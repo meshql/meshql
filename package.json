@@ -29,11 +29,11 @@
     "publish:jsr": "pnpm --filter @meshql/core publish:jsr && pnpm --filter @meshql/http publish:jsr && pnpm --filter @meshql/upload publish:jsr && pnpm --filter @meshql/client publish:jsr"
   },
   "devDependencies": {
-    "prettier": "^3.7.4",
+    "prettier": "^3.8.4",
     "tsup": "^8.4.0",
     "turbo": "^2.9.18",
-    "typescript": "5.9.2",
-    "vitest": "^3.0.0"
+    "typescript": "6.0.3",
+    "vitest": "^4.1.9"
   },
   "packageManager": "pnpm@11.0.0",
   "engines": {
