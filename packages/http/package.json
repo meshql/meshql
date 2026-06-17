@@ -1,0 +1,62 @@
+{
+  "name": "@meshql/http",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./express": {
+      "types": "./dist/adapters/express.d.ts",
+      "import": "./dist/adapters/express.js"
+    },
+    "./fastify": {
+      "types": "./dist/adapters/fastify.d.ts",
+      "import": "./dist/adapters/fastify.js"
+    },
+    "./hono": {
+      "types": "./dist/adapters/hono.d.ts",
+      "import": "./dist/adapters/hono.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --passWithNoTests",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@meshql/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@meshql/typescript-config": "workspace:*",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.15.3",
+    "express": "^5.1.0",
+    "fastify": "^5.3.3",
+    "hono": "^4.7.10",
+    "tsup": "^8.4.0",
+    "typescript": "5.9.2",
+    "vitest": "^3.0.0"
+  },
+  "peerDependencies": {
+    "express": "^4 || ^5",
+    "fastify": "^4 || ^5",
+    "hono": "^4"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    },
+    "fastify": {
+      "optional": true
+    },
+    "hono": {
+      "optional": true
+    }
+  }
+}

@@ -1,159 +1,114 @@
-# Turborepo starter
+<p align="center">
+  <img src="./assets/meshql-logo.png" alt="MeshQL logo" width="80" />
+</p>
 
-This Turborepo starter is maintained by the Turborepo core team.
+<h1 align="center">MeshQL</h1>
 
-## Using this example
+<p align="center">
+  <strong>Shape your API, not your codebase.</strong><br />
+  Client-driven field selection over REST — without GraphQL ceremony.
+</p>
 
-Run the following command:
+<p align="center">
+  <a href="https://github.com/meshql/meshql">GitHub</a> ·
+  <a href="./docs/http-adapters.md">HTTP adapters</a> ·
+  <a href="./examples/express-postgres">Example</a>
+</p>
 
-```sh
-npx create-turbo@latest
+<p align="center">
+  <img src="https://img.shields.io/github/actions/workflow/status/meshql/meshql/ci.yml?branch=main&logo=github&label=CI" alt="CI" />
+  <img src="https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white" alt="Node 22+" />
+  <img src="https://img.shields.io/github/license/meshql/meshql" alt="MIT" />
+</p>
+
+---
+
+## What is MeshQL?
+
+A TypeScript library for **REST APIs with GraphQL-style queries**. Clients pick the shape; you write **one SQL query per request** — no per-field resolvers, dataloaders, or codegen.
+
+| From | You get |
+|------|---------|
+| **GraphQL** | Client-driven field selection, nested relations |
+| **REST** | HTTP verbs, cacheable URLs |
+| **Your schema** | Typed join config — your domain types stay untouched |
+
+---
+
+## Quick example
+
+```typescript
+import { createMesh, buildSelectSql } from "@meshql/core";
+import { meshExpressRouter } from "@meshql/http/express";
+import { createClient } from "@meshql/client";
+import express from "express";
+
+const schema = {
+  entities: {
+    user:  { type: {} as User,  fields: ["id", "name"], table: "users" },
+    token: { type: {} as Token, fields: ["accessToken"], table: "tokens",
+             columns: { accessToken: "access_token" } },
+  },
+  joins: {
+    "user.tokens": { entity: "token", on: "tokens.user_id = users.id", type: "many" },
+  },
+};
+
+const mesh = createMesh(schema);
+
+mesh.resolve("user", async (plan) => {
+  const { sql, params } = buildSelectSql(plan, schema);
+  return (await pool.query(sql, params)).rows;
+});
+
+express().use(meshExpressRouter(mesh, "/mesh")).listen(3001);
+
+// Client
+const client = createClient({ url: "http://localhost:3001/mesh" });
+const user = await client.query(
+  { user: { id: true, name: true, tokens: { accessToken: true } } },
+  { entityId: "123" },
+);
 ```
 
-## What's inside?
+---
 
-This Turborepo includes the following packages/apps:
+## Packages
 
-### Apps and Packages
+| Package | Purpose |
+|---------|---------|
+| [`@meshql/core`](./packages/core) | Parser, planner, shaper, `createMesh()`, `buildSelectSql()` |
+| [`@meshql/http`](./packages/http) | HTTP transport — [Express, Fastify, Hono](./docs/http-adapters.md) |
+| [`@meshql/client`](./packages/client) | Typed client (handles query headers for you) |
+| [`@meshql/upload`](./packages/upload) | Opt-in file upload extension |
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+---
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## Documentation
 
-### Utilities
+| Doc | Contents |
+|-----|----------|
+| [HTTP adapters](./docs/http-adapters.md) | Routes, headers, Express / Fastify / Hono setup, errors |
+| [Contributing](./CONTRIBUTING.md) | Dev setup and PR guidelines |
 
-This Turborepo has some additional tools already setup for you:
+---
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+## Development
 
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```bash
+git clone https://github.com/meshql/meshql.git && cd meshql
+pnpm install && pnpm build && pnpm test
 ```
 
-Without global `turbo`, use your package manager:
+Run the [express-postgres example](./examples/express-postgres):
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+```bash
+pnpm --filter express-postgres start
+pnpm --filter express-postgres exec tsx src/demo-client.ts
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+## License
 
-```sh
-turbo build --filter=docs
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+MIT © [MeshQL](https://github.com/meshql/meshql) · [Security](./SECURITY.md) · [Changelog](./CHANGELOG.md)
