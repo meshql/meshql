@@ -1,159 +1,146 @@
-# Turborepo starter
+<p align="center">
+  <img src="./assets/meshql-logo.png" alt="MeshQL logo" width="80" />
+</p>
 
-This Turborepo starter is maintained by the Turborepo core team.
+<h1 align="center">MeshQL</h1>
 
-## Using this example
+<p align="center">
+  <strong>Shape your API, not your codebase.</strong><br />
+  Client-driven field selection over REST, without GraphQL ceremony.
+</p>
 
-Run the following command:
+<p align="center">
+  <a href="https://github.com/meshql/meshql">GitHub</a> ·
+  <a href="./docs/http-adapters.md">HTTP adapters</a> ·
+  <a href="./examples/express-postgres">Example</a>
+</p>
 
-```sh
-npx create-turbo@latest
+<p align="center">
+  <img src="https://img.shields.io/github/actions/workflow/status/meshql/meshql/ci.yml?branch=main&logo=github&label=CI" alt="CI" />
+  <img src="https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white" alt="Node 22+" />
+  <img src="https://img.shields.io/badge/typescript-5.9-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/github/license/meshql/meshql" alt="MIT" />
+</p>
+
+---
+
+MeshQL is a small TypeScript library for when you want GraphQL-style "give me these fields" queries, but you'd rather keep REST and write normal SQL.
+
+Clients send a query (what fields they want, including nested stuff like `user.tokens.accessToken`). You get a `JoinPlan` with exactly those fields and joins. Write one query, return flat rows, MeshQL shapes the JSON. No resolver per field, no dataloader dance, no codegen eating your types.
+
+## The idea
+
+GraphQL is great until you're maintaining 40 resolvers and debugging N+1 queries at 2am.
+
+Plain REST is great until every client wants a slightly different `?include=` and you're shipping half the database anyway.
+
+MeshQL sits in the middle. URLs stay normal REST (`GET /mesh/user/123`). The query lives in a header (`X-Mesh-Query`), base64-encoded so you don't fight URL length limits. The client SDK handles encoding; you don't think about it.
+
+## Try it
+
+```bash
+git clone https://github.com/meshql/meshql.git
+cd meshql
+pnpm install
+pnpm build
+pnpm test
 ```
 
-## What's inside?
+Run the example server:
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```bash
+pnpm --filter express-postgres start
 ```
 
-Without global `turbo`, use your package manager:
+Then in another terminal:
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+```bash
+pnpm --filter express-postgres exec tsx src/demo-client.ts
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+Works without Postgres (in-memory). Set `DATABASE_URL` if you want the real thing. See `examples/express-postgres`.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+## Server
 
-```sh
-turbo build --filter=docs
+```typescript
+import { createMesh, buildSelectSql } from "@meshql/core";
+import { meshExpressRouter } from "@meshql/http/express";
+import express from "express";
+
+const schema = {
+  entities: {
+    user: { type: {} as User, fields: ["id", "name"], table: "users" },
+    token: {
+      type: {} as Token,
+      fields: ["accessToken"],
+      table: "tokens",
+      columns: { accessToken: "access_token" },
+    },
+  },
+  joins: {
+    "user.tokens": {
+      entity: "token",
+      on: "tokens.user_id = users.id",
+      type: "many",
+    },
+  },
+};
+
+const mesh = createMesh(schema);
+
+mesh.resolve("user", async (plan) => {
+  // plan.fields and plan.joins = only what the client asked for
+  const { sql, params } = buildSelectSql(plan, schema);
+  return (await pool.query(sql, params)).rows;
+});
+
+const app = express();
+app.use(meshExpressRouter(mesh, "/mesh"));
+app.listen(3001);
 ```
 
-Without global `turbo`:
+## Client
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+```typescript
+import { createClient } from "@meshql/client";
+
+const client = createClient({ url: "http://localhost:3001/mesh" });
+
+const user = await client.query(
+  {
+    user: {
+      id: true,
+      name: true,
+      tokens: { accessToken: true },
+    },
+  },
+  { entityId: "123" },
+);
 ```
 
-### Develop
+## Packages
 
-To develop all apps and packages, run the following command:
+- `@meshql/core` - parser, join planner, response shaper, `createMesh()`, `buildSelectSql()`
+- `@meshql/http` - header transport + adapters for Express, Fastify, Hono
+- `@meshql/client` - typed client, sets query headers for you
+- `@meshql/upload` - file uploads (optional, separate package)
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+HTTP adapter docs (routes, headers, per-framework setup): [docs/http-adapters.md](./docs/http-adapters.md)
 
-```sh
-cd my-turborepo
-turbo dev
+## Hacking on it
+
+Node 22+, pnpm 11. Monorepo uses Turborepo.
+
+```
+packages/core      engine
+packages/http      adapters
+packages/client    SDK
+packages/upload    uploads
+examples/          runnable demos
 ```
 
-Without global `turbo`, use your package manager:
+PRs welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
+## License
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+MIT. Security issues: [SECURITY.md](./SECURITY.md).

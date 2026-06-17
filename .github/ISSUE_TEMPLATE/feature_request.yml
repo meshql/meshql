@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest an idea for MeshQL
+title: "[feat]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        MeshQL aims to stay focused: REST transport + client-driven field selection + minimal ceremony.
+        Please describe how your idea fits that scope.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What problem are you trying to solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would you like MeshQL to behave?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: GraphQL, tRPC, hand-rolled REST, etc.
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Likely package
+      options:
+        - "@meshql/core"
+        - "@meshql/http"
+        - "@meshql/client"
+        - "@meshql/upload"
+        - "docs / examples"
+        - "not sure"

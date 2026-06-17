@@ -1,0 +1,30 @@
+{
+  "name": "@meshql/upload",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --passWithNoTests",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@meshql/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@meshql/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3",
+    "tsup": "^8.4.0",
+    "typescript": "5.9.2",
+    "vitest": "^3.0.0"
+  }
+}

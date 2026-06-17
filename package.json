@@ -1,20 +1,41 @@
 {
   "name": "meshql",
+  "description": "Shape your API, not your codebase. Client-driven field selection over REST.",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/meshql/meshql.git"
+  },
+  "homepage": "https://github.com/meshql/meshql#readme",
+  "bugs": {
+    "url": "https://github.com/meshql/meshql/issues"
+  },
+  "keywords": [
+    "rest",
+    "graphql",
+    "api",
+    "query",
+    "typescript",
+    "join",
+    "field-selection"
+  ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "turbo run lint",
+    "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
     "prettier": "^3.7.4",
+    "tsup": "^8.4.0",
     "turbo": "^2.9.18",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "vitest": "^3.0.0"
   },
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@11.0.0",
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   }
 }
