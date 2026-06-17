@@ -1,7 +1,8 @@
 {
   "name": "@meshql/core",
   "version": "0.1.0",
-  "private": true,
+  "description": "MeshQL core - parse queries, build join plans, shape responses",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,7 +16,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "publish:jsr": "jsr publish"
   },
   "devDependencies": {
     "@meshql/typescript-config": "workspace:*",

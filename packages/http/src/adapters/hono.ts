@@ -7,7 +7,10 @@ export interface MeshHonoOptions {
   basePath?: string;
 }
 
-export function meshHonoRoutes(mesh: MeshInstance, options: MeshHonoOptions = {}) {
+export function meshHonoRoutes(
+  mesh: MeshInstance,
+  options: MeshHonoOptions = {},
+): Hono {
   const basePath = options.basePath ?? "/mesh";
   const app = new Hono();
   const handler = createMeshHttpHandler(mesh);
