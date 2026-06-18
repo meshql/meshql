@@ -101,8 +101,8 @@ importers:
   packages/http:
     dependencies:
       '@meshql/core':
-        specifier: jsr:@meshql/core@^0.1.0
-        version: '@jsr/meshql__core@0.1.0'
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@meshql/typescript-config':
         specifier: workspace:*
@@ -137,8 +137,8 @@ importers:
   packages/upload:
     dependencies:
       '@meshql/core':
-        specifier: jsr:@meshql/core@^0.1.0
-        version: '@jsr/meshql__core@0.1.0'
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@meshql/typescript-config':
         specifier: workspace:*
@@ -500,9 +500,6 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
-
-  '@jsr/meshql__core@0.1.0':
-    resolution: {integrity: sha512-anMjd9zhnF5woLpw6XT2dYOLVjCRrCwSHS7sD3KdoKyyn4Rd5SGTzFdf0yHBvPv8PnyCrjDe5g16PPwcoxicjQ==}
 
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
@@ -1769,8 +1766,6 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
-
-  '@jsr/meshql__core@0.1.0': {}
 
   '@pinojs/redact@0.4.0': {}
 
