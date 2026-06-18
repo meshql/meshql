@@ -3,15 +3,83 @@ name: Publish JSR
 on:
   push:
     tags:
-      - "v*"
+      - "core/v*"
+      - "http/v*"
+      - "upload/v*"
+      - "client/v*"
+      - "all/v*"
+      - "v*" # legacy umbrella tag: publish every package
   workflow_dispatch:
+    inputs:
+      package:
+        description: Package to publish
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - core
+          - http
+          - upload
+          - client
+
+# Each package must be created on JSR and linked to meshql/meshql in package settings.
+# See CONTRIBUTING.md → Publishing to JSR
 
 permissions:
   contents: read
   id-token: write
 
 jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.plan.outputs.packages }}
+      tag_version: ${{ steps.plan.outputs.tag_version }}
+    steps:
+      - name: Resolve packages to publish
+        id: plan
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            selection="${{ inputs.package }}"
+            tag_version=""
+          else
+            tag="${GITHUB_REF#refs/tags/}"
+            tag_version="${tag#*/v}"
+            if [ "$tag_version" = "$tag" ]; then
+              tag_version="${tag#v}"
+            fi
+
+            case "$tag" in
+              core/v*) selection="core" ;;
+              http/v*) selection="http" ;;
+              upload/v*) selection="upload" ;;
+              client/v*) selection="client" ;;
+              all/v*|v*) selection="all" ;;
+              *)
+                echo "::error::Unknown tag format: $tag"
+                exit 1
+                ;;
+            esac
+          fi
+
+          case "$selection" in
+            all) packages='["core","http","upload","client"]' ;;
+            core|http|upload|client) packages="[\"$selection\"]" ;;
+            *)
+              echo "::error::Unknown package selection: $selection"
+              exit 1
+              ;;
+          esac
+
+          echo "packages=$packages" >> "$GITHUB_OUTPUT"
+          echo "tag_version=$tag_version" >> "$GITHUB_OUTPUT"
+          echo "Publishing: $packages"
+
   publish:
+    needs: resolve
     runs-on: ubuntu-latest
 
     steps:
@@ -36,18 +104,40 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: Publish @meshql/core
-        working-directory: packages/core
-        run: npx jsr publish
+      - name: Verify tag version matches package manifests
+        if: needs.resolve.outputs.tag_version != ''
+        env:
+          TAG_VERSION: ${{ needs.resolve.outputs.tag_version }}
+          PACKAGES: ${{ needs.resolve.outputs.packages }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require("node:fs");
+          const tagVersion = process.env.TAG_VERSION;
+          const packages = JSON.parse(process.env.PACKAGES);
 
-      - name: Publish @meshql/http
-        working-directory: packages/http
-        run: npx jsr publish
+          let failed = false;
+          for (const pkg of packages) {
+            const manifest = JSON.parse(
+              fs.readFileSync(`packages/${pkg}/jsr.json`, "utf8"),
+            );
+            if (manifest.version !== tagVersion) {
+              console.error(
+                `::error::Tag version ${tagVersion} does not match packages/${pkg}/jsr.json version ${manifest.version}`,
+              );
+              failed = true;
+            }
+          }
 
-      - name: Publish @meshql/upload
-        working-directory: packages/upload
-        run: npx jsr publish
+          if (failed) process.exit(1);
+          NODE
 
-      - name: Publish @meshql/client
-        working-directory: packages/client
-        run: npx jsr publish
+      - name: Publish selected packages
+        env:
+          PACKAGES: ${{ needs.resolve.outputs.packages }}
+        run: |
+          set -euo pipefail
+          for pkg in $(node -e 'JSON.parse(process.env.PACKAGES).forEach((p) => console.log(p))'); do
+            echo "Publishing @meshql/${pkg}..."
+            (cd "packages/${pkg}" && npx jsr publish)
+          done

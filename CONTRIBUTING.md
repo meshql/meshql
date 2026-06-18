@@ -45,11 +45,26 @@ HTTP setup: [docs/http-adapters.md](./docs/http-adapters.md).
 
 Packages: `@meshql/core`, `@meshql/http`, `@meshql/client`, `@meshql/upload` at `0.1.0`.
 
-### Manual (first time)
+### One-time JSR setup (required for each package)
 
-1. Link the repo on [jsr.io](https://jsr.io) to `meshql/meshql` (OIDC for CI, or login locally).
-2. Commit all changes (`jsr publish` rejects dirty git trees).
-3. Publish in order:
+JSR OIDC only works for packages **linked to your GitHub repo**. Creating `@meshql/core` is not enough.
+
+For **each** package:
+
+1. Go to [jsr.io/new](https://jsr.io/new) and create it under the `@meshql` scope (if not created yet).
+2. Open the package on JSR → **Settings** → **GitHub repository**.
+3. Enter `meshql/meshql` and click **Link**.
+
+Do this for `http`, `client`, and `upload` even if `core` already published. Without linking, CI fails with `actorNotAuthorized`.
+
+### Internal dependencies
+
+Published packages declare JSR deps in `package.json` (e.g. `"@meshql/core": "jsr:@meshql/core@^0.1.0"`). `@meshql/client` still uses `workspace:*` for `@meshql/http` until that package is on JSR; switch it to `jsr:@meshql/http@^0.1.0` after the first successful `http` publish.
+
+### Manual publish
+
+1. Commit all changes (`jsr publish` rejects dirty git trees).
+2. Publish in order:
 
 ```bash
 cd packages/core && npx jsr publish
@@ -60,18 +75,39 @@ cd ../client && npx jsr publish
 
 Or from root: `pnpm publish:jsr`
 
-Dry run first: `npx jsr publish --dry-run` (add `--allow-dirty` only to test uncommitted work).
+`@meshql/core` at `0.1.0` skips re-publish if already live. Dry run: `npx jsr publish --dry-run`.
 
-### CI (after linking)
+### CI
 
-Push a version tag:
+Use **per-package tags** for independent releases, an **umbrella tag** to ship everything, or **workflow dispatch** to retry one package.
+
+| Trigger | Example | Publishes |
+| --- | --- | --- |
+| Per-package tag | `core/v0.1.0` | `@meshql/core` only |
+| Per-package tag | `http/v0.1.0` | `@meshql/http` only |
+| Umbrella tag | `all/v0.1.0` | all four packages, in order |
+| Legacy umbrella | `v0.1.0` | all four packages, in order |
+| Manual dispatch | Actions → Publish JSR → choose package | selected package(s) |
+
+Bump `version` in the package's `jsr.json` before tagging. Tag version must match `jsr.json` (CI checks this).
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+# Publish only core
+git tag core/v0.1.0
+git push origin core/v0.1.0
+
+# Publish only http (after core is live and linked on JSR)
+git tag http/v0.1.0
+git push origin http/v0.1.0
+
+# Publish everything
+git tag all/v0.1.0
+git push origin all/v0.1.0
 ```
 
-`.github/workflows/publish-jsr.yml` runs build, test, then publishes all four packages via OIDC (no `JSR_TOKEN` secret needed when the repo is linked). Provenance is attached automatically in GitHub Actions.
+To retry a failed package without retagging, open **Actions → Publish JSR → Run workflow** and pick `http`, `upload`, or `client`.
+
+Already-published versions are skipped automatically by `jsr publish`.
 
 ## Pull requests
 
