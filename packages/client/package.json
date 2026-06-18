@@ -1,7 +1,8 @@
 {
   "name": "@meshql/client",
   "version": "0.1.0",
-  "private": true,
+  "description": "MeshQL typed client SDK",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,7 +16,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run --passWithNoTests",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "publish:jsr": "jsr publish"
   },
   "dependencies": {
     "@meshql/http": "workspace:*"

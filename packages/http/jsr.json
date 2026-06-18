@@ -1,0 +1,19 @@
+{
+  "name": "@meshql/http",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./express": "./src/adapters/express.ts",
+    "./fastify": "./src/adapters/fastify.ts",
+    "./hono": "./src/adapters/hono.ts"
+  },
+  "publish": {
+    "exclude": [
+      "**/*.test.ts",
+      "vitest.config.ts",
+      "tsup.config.ts",
+      "dist/**"
+    ]
+  }
+}

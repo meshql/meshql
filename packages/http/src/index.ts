@@ -12,6 +12,10 @@ export interface HttpHandlerOptions {
   basePath?: string;
 }
 
+export type MeshHttpHandler = (
+  req: HttpRequest,
+) => Promise<{ status: number; body: unknown }>;
+
 function toErrorResponse(error: unknown): { status: number; body: Record<string, unknown> } {
   if (error instanceof MeshError) {
     const status =
@@ -40,11 +44,11 @@ function toErrorResponse(error: unknown): { status: number; body: Record<string,
   };
 }
 
-export function createHttpHandler(mesh: MeshInstance, _options: HttpHandlerOptions = {}) {
-  return async function meshHttpHandler(req: HttpRequest): Promise<{
-    status: number;
-    body: unknown;
-  }> {
+export function createHttpHandler(
+  mesh: MeshInstance,
+  _options: HttpHandlerOptions = {},
+): MeshHttpHandler {
+  return async function meshHttpHandler(req: HttpRequest) {
     try {
       const method = req.method.toUpperCase();
 

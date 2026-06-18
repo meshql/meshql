@@ -1,0 +1,53 @@
+name: Publish JSR
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Publish @meshql/core
+        working-directory: packages/core
+        run: npx jsr publish
+
+      - name: Publish @meshql/http
+        working-directory: packages/http
+        run: npx jsr publish
+
+      - name: Publish @meshql/upload
+        working-directory: packages/upload
+        run: npx jsr publish
+
+      - name: Publish @meshql/client
+        working-directory: packages/client
+        run: npx jsr publish

@@ -41,6 +41,38 @@ pnpm format
 
 HTTP setup: [docs/http-adapters.md](./docs/http-adapters.md).
 
+## Publishing to JSR
+
+Packages: `@meshql/core`, `@meshql/http`, `@meshql/client`, `@meshql/upload` at `0.1.0`.
+
+### Manual (first time)
+
+1. Link the repo on [jsr.io](https://jsr.io) to `meshql/meshql` (OIDC for CI, or login locally).
+2. Commit all changes (`jsr publish` rejects dirty git trees).
+3. Publish in order:
+
+```bash
+cd packages/core && npx jsr publish
+cd ../http && npx jsr publish
+cd ../upload && npx jsr publish
+cd ../client && npx jsr publish
+```
+
+Or from root: `pnpm publish:jsr`
+
+Dry run first: `npx jsr publish --dry-run` (add `--allow-dirty` only to test uncommitted work).
+
+### CI (after linking)
+
+Push a version tag:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+`.github/workflows/publish-jsr.yml` runs build, test, then publishes all four packages via OIDC (no `JSR_TOKEN` secret needed when the repo is linked). Provenance is attached automatically in GitHub Actions.
+
 ## Pull requests
 
 - Keep PRs focused - one feature or fix per PR when possible.
