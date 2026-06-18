@@ -139,5 +139,6 @@ jobs:
           set -euo pipefail
           for pkg in $(node -e 'JSON.parse(process.env.PACKAGES).forEach((p) => console.log(p))'); do
             echo "Publishing @meshql/${pkg}..."
-            (cd "packages/${pkg}" && npx jsr publish)
+            node scripts/prepare-jsr-publish.mjs "${pkg}"
+            (cd "packages/${pkg}" && npx jsr publish --allow-dirty)
           done

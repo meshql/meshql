@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-18
+
 ### Added
 
 - `@meshql/core` - parser, planner, shaper, `createMesh()`, `buildSelectSql()`
@@ -14,3 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `@meshql/client` - typed client SDK with automatic query encoding
 - `@meshql/upload` - opt-in file upload extension
 - `examples/express-postgres` - end-to-end demo with in-memory and Postgres modes
+
+### Fixed
+
+- JSR publish rewrites `workspace:*` deps to `jsr:` specifiers in CI before publish
