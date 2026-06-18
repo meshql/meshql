@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-06-18
+
+### Added
+
+- Per-package `README.md` files with usage examples for JSR documentation score
+- Module-level JSDoc (`@module`, `@example`) on all JSR entrypoints
+- JSDoc on exported public APIs across all publishable packages
+- `docs/jsr-settings.md` with JSR description and runtime compatibility checklist
+
 ## [0.1.1] - 2026-06-18
 
 ### Added

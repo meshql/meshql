@@ -1,3 +1,4 @@
+/** Base error for all MeshQL failures. */
 export class MeshError extends Error {
   constructor(
     message: string,
@@ -9,12 +10,14 @@ export class MeshError extends Error {
   }
 }
 
+/** Raised when query transport headers or encoding are invalid. */
 export class TransportError extends MeshError {
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, "TransportError", details);
   }
 }
 
+/** Raised when a query or schema validation fails. */
 export class ValidationError extends MeshError {
   constructor(
     message: string,
@@ -24,6 +27,7 @@ export class ValidationError extends MeshError {
   }
 }
 
+/** Raised when an entity resolver fails or is missing. */
 export class ResolverError extends MeshError {
   constructor(
     message: string,
@@ -33,6 +37,7 @@ export class ResolverError extends MeshError {
   }
 }
 
+/** Raised when query parsing fails. */
 export class ParseError extends MeshError {
   constructor(message: string) {
     super(message, "ParseError");

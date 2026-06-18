@@ -2,6 +2,7 @@ import { ValidationError } from "../errors/index.js";
 import type { AST, ASTNode } from "../parser/ast.js";
 import type { MeshSchema } from "../schema/schema.js";
 
+/** Validate a parsed AST against the MeshQL schema. */
 export function validateAst(ast: AST, schema: MeshSchema): AST {
   if (!schema.entities[ast.root.name]) {
     throw new ValidationError(`Unknown entity '${ast.root.name}'`);

@@ -1,12 +1,29 @@
+/**
+ * Hono routes for MeshQL HTTP endpoints.
+ *
+ * @module
+ *
+ * @example
+ * ```ts
+ * import { Hono } from "hono";
+ * import { createMesh } from "@meshql/core";
+ * import { meshHonoRoutes } from "@meshql/http/hono";
+ *
+ * const app = new Hono();
+ * app.route("/", meshHonoRoutes(createMesh({ entities: {} })));
+ * ```
+ */
 import type { MeshInstance } from "@meshql/core";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { createMeshHttpHandler, toHttpRequest } from "./shared.js";
 
+/** Options for {@link meshHonoRoutes}. */
 export interface MeshHonoOptions {
   basePath?: string;
 }
 
+/** Create Hono routes that serve MeshQL endpoints. */
 export function meshHonoRoutes(
   mesh: MeshInstance,
   options: MeshHonoOptions = {},

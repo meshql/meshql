@@ -2,11 +2,13 @@ import type { JoinPlan, ResolvedJoin } from "../planner/join-plan.js";
 import type { MeshSchema } from "../schema/schema.js";
 import { entityTable } from "../schema/schema.js";
 
+/** Parameterized SQL query generated from a join plan. */
 export interface SqlQuery {
   sql: string;
   params: unknown[];
 }
 
+/** Options for {@link buildSelectSql}. */
 export interface SqlBuilderOptions {
   idColumn?: string;
 }
@@ -76,6 +78,7 @@ function entityKeyForTable(
   return join?.entity ?? table.replace(/s$/, "");
 }
 
+/** Build a parameterized SELECT statement from a join plan. */
 export function buildSelectSql(
   plan: JoinPlan,
   schema: MeshSchema,

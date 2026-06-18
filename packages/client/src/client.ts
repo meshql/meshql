@@ -5,6 +5,7 @@ import {
   type QuerySelection,
 } from "./query-builder.js";
 
+/** Options for {@link createClient}. */
 export interface MeshClientOptions {
   url: string;
   format?: "json" | "ql";
@@ -12,13 +13,16 @@ export interface MeshClientOptions {
   headers?: Record<string, string>;
 }
 
+/** Typed MeshQL HTTP client. */
 export interface MeshClient {
+  /** Execute a field selection query against the MeshQL server. */
   query<T = Record<string, unknown>>(
     selection: QuerySelection,
     options?: { entityId?: string },
   ): Promise<T>;
 }
 
+/** Create a MeshQL HTTP client. */
 export function createClient(options: MeshClientOptions): MeshClient {
   const fetchFn = options.fetch ?? globalThis.fetch.bind(globalThis);
   const format = options.format ?? "json";

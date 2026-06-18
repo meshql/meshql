@@ -9,6 +9,7 @@ function readField(
   return row[`${nodeName}_${field}`] ?? row[field] ?? row[`${nodeName}.${field}`];
 }
 
+/** Shape flat SQL rows into nested JSON for a single root record. */
 export function shape(
   rows: Record<string, unknown>[],
   node: ASTNode,
@@ -44,6 +45,7 @@ export function shape(
   return result;
 }
 
+/** Shape flat SQL rows into nested JSON for a list of root records. */
 export function shapeMany(
   rows: Record<string, unknown>[],
   node: ASTNode,

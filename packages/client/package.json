@@ -1,6 +1,6 @@
 {
   "name": "@meshql/client",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MeshQL typed client SDK",
   "license": "MIT",
   "type": "module",

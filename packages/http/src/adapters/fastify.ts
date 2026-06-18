@@ -1,11 +1,28 @@
+/**
+ * Fastify plugin for MeshQL HTTP endpoints.
+ *
+ * @module
+ *
+ * @example
+ * ```ts
+ * import Fastify from "fastify";
+ * import { createMesh } from "@meshql/core";
+ * import { createMeshFastifyPlugin } from "@meshql/http/fastify";
+ *
+ * const app = Fastify();
+ * await app.register(createMeshFastifyPlugin(createMesh({ entities: {} })));
+ * ```
+ */
 import type { MeshInstance } from "@meshql/core";
 import type { FastifyPluginAsync } from "fastify";
 import { createMeshHttpHandler, toHttpRequest } from "./shared.js";
 
+/** Options for the MeshQL Fastify plugin. */
 export interface MeshFastifyOptions {
   basePath?: string;
 }
 
+/** Create a Fastify plugin that serves MeshQL routes. */
 export function createMeshFastifyPlugin(
   mesh: MeshInstance,
   options: MeshFastifyOptions = {},

@@ -1,12 +1,15 @@
 import { TransportError } from "@meshql/core";
 
+/** Supported MeshQL query transport formats. */
 export type QueryFormat = "json" | "ql";
 
+/** Decoded query payload from HTTP headers. */
 export interface DecodedQuery {
   raw: string;
   format: QueryFormat;
 }
 
+/** Object carrying HTTP headers for query decoding. */
 export interface HeaderCarrier {
   headers: Record<string, string | string[] | undefined>;
 }
@@ -22,6 +25,7 @@ function getHeader(
   return value;
 }
 
+/** Decode a MeshQL query from `X-Mesh-Query` transport headers. */
 export function decodeQuery(req: HeaderCarrier): DecodedQuery {
   const header = getHeader(req.headers, "x-mesh-query");
   const format = (getHeader(req.headers, "x-mesh-format") ?? "json") as QueryFormat;
@@ -47,6 +51,7 @@ export function decodeQuery(req: HeaderCarrier): DecodedQuery {
   }
 }
 
+/** Encode a MeshQL query into transport headers for HTTP requests. */
 export function encodeQuery(
   query: string,
   format: QueryFormat = "json",

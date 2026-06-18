@@ -109,6 +109,10 @@ To retry a failed package without retagging, open **Actions → Publish JSR → 
 
 Already-published versions are skipped automatically by `jsr publish`.
 
+### JSR package score
+
+Documentation and symbol JSDoc live in each package's source and `README.md`. Description and runtime compatibility are set on jsr.io — see [docs/jsr-settings.md](./docs/jsr-settings.md).
+
 ## Pull requests
 
 - Keep PRs focused - one feature or fix per PR when possible.

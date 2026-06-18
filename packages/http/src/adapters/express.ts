@@ -1,3 +1,18 @@
+/**
+ * Express router and middleware helpers for MeshQL.
+ *
+ * @module
+ *
+ * @example
+ * ```ts
+ * import express from "express";
+ * import { createMesh } from "@meshql/core";
+ * import { meshExpressRouter } from "@meshql/http/express";
+ *
+ * const app = express();
+ * app.use(meshExpressRouter(createMesh({ entities: {} }), "/mesh"));
+ * ```
+ */
 import type { MeshInstance } from "@meshql/core";
 import express, { type Request, type RequestHandler, type Response, type Router } from "express";
 import { createMeshHttpHandler, toHttpRequest } from "./shared.js";
@@ -6,6 +21,7 @@ function param(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+/** Mount MeshQL routes on an Express router. */
 export function meshExpressRouter(mesh: MeshInstance, basePath = "/mesh"): Router {
   const router = express.Router();
   const handler = createMeshHttpHandler(mesh);
@@ -35,6 +51,7 @@ export function meshExpressRouter(mesh: MeshInstance, basePath = "/mesh"): Route
   return router;
 }
 
+/** Express middleware that handles MeshQL routes under a base path. */
 export function meshExpressMiddleware(
   mesh: MeshInstance,
   basePath = "/mesh",

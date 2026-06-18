@@ -3,6 +3,7 @@ import type { AST, ASTNode } from "../parser/ast.js";
 import type { JoinConfig, MeshSchema } from "../schema/schema.js";
 import type { QueryContext } from "../resolver/context.js";
 
+/** Execution plan describing selected fields and joins for a query. */
 export interface JoinPlan {
   rootEntity: string;
   fields: string[];
@@ -10,6 +11,7 @@ export interface JoinPlan {
   context: QueryContext;
 }
 
+/** A resolved join from the query AST to a schema join definition. */
 export interface ResolvedJoin {
   entity: string;
   on: string;
@@ -22,6 +24,7 @@ function tablePrefix(entity: string): string {
   return entity.endsWith("s") ? entity : `${entity}s`;
 }
 
+/** Build a join plan from a parsed query AST and schema. */
 export function buildJoinPlan(
   ast: AST,
   schema: MeshSchema,
@@ -64,6 +67,7 @@ export function buildJoinPlan(
   };
 }
 
+/** Collect a node and all nested reference nodes from an AST subtree. */
 export function collectAstNodes(node: ASTNode): ASTNode[] {
   return [node, ...node.refs.flatMap(collectAstNodes)];
 }

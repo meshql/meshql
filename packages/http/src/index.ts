@@ -1,3 +1,23 @@
+/**
+ * HTTP transport for MeshQL queries and framework-agnostic request handling.
+ *
+ * @module
+ *
+ * @example
+ * ```ts
+ * import { createMesh } from "@meshql/core";
+ * import { createHttpHandler } from "@meshql/http";
+ *
+ * const mesh = createMesh({ entities: { user: { table: "users" } } });
+ * const handler = createHttpHandler(mesh);
+ *
+ * const { status, body } = await handler({
+ *   method: "GET",
+ *   params: { entity: "user", id: "123" },
+ *   headers: { "x-mesh-query": "...", "x-mesh-format": "json" },
+ * });
+ * ```
+ */
 import type { MeshInstance } from "@meshql/core";
 import { MeshError } from "@meshql/core";
 import {
@@ -8,10 +28,12 @@ import {
   type HttpRequest,
 } from "./handlers/index.js";
 
+/** Options for {@link createHttpHandler}. */
 export interface HttpHandlerOptions {
   basePath?: string;
 }
 
+/** Low-level HTTP handler for MeshQL requests. */
 export type MeshHttpHandler = (
   req: HttpRequest,
 ) => Promise<{ status: number; body: unknown }>;
@@ -44,6 +66,7 @@ function toErrorResponse(error: unknown): { status: number; body: Record<string,
   };
 }
 
+/** Create a framework-agnostic MeshQL HTTP handler. */
 export function createHttpHandler(
   mesh: MeshInstance,
   _options: HttpHandlerOptions = {},

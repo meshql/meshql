@@ -1,11 +1,14 @@
+/** Nested JSON field selection used by the MeshQL client. */
 export type QuerySelection = {
   [key: string]: boolean | QuerySelection;
 };
 
+/** Serialize a field selection to JSON query format. */
 export function selectionToJson(selection: QuerySelection): string {
   return JSON.stringify(selection);
 }
 
+/** Serialize a field selection to MeshQL brace syntax. */
 export function selectionToQl(selection: QuerySelection, rootName?: string): string {
   const entries = Object.entries(selection);
   if (entries.length !== 1) {

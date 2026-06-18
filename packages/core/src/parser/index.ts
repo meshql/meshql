@@ -2,6 +2,7 @@ import { ParseError } from "../errors/index.js";
 import type { AST, ASTNode } from "./ast.js";
 import { tokenize, type Token } from "./tokenizer.js";
 
+/** Parse a MeshQL query string in brace syntax. */
 export function parseQl(query: string): AST {
   const tokens = tokenize(query.trim());
   let pos = 0;
@@ -61,6 +62,7 @@ interface JsonSelection {
   [key: string]: boolean | JsonSelection;
 }
 
+/** Parse a MeshQL query encoded as JSON field selection. */
 export function parseJson(raw: string): AST {
   let parsed: unknown;
   try {
@@ -102,6 +104,7 @@ function jsonNodeToAst(name: string, value: unknown): ASTNode {
   return node;
 }
 
+/** Parse a query in the given transport format. */
 export function parseQuery(raw: string, format: "json" | "ql" = "ql"): AST {
   return format === "json" ? parseJson(raw) : parseQl(raw);
 }

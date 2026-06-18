@@ -1,3 +1,31 @@
+/**
+ * MeshQL core: define schemas, register resolvers, and execute shaped queries.
+ *
+ * @module
+ *
+ * @example
+ * ```ts
+ * import { buildSelectSql, createMesh } from "@meshql/core";
+ *
+ * const mesh = createMesh({
+ *   entities: {
+ *     user: {
+ *       table: "users",
+ *       joins: { tokens: { table: "tokens", on: "user_id" } },
+ *     },
+ *   },
+ * });
+ *
+ * mesh.resolve("user", async (plan) => {
+ *   const sql = buildSelectSql(plan, mesh.schema);
+ *   return db.query(sql.text, sql.params);
+ * });
+ *
+ * const user = await mesh.execute("user { id email tokens { accessToken } }", {
+ *   context: { requestId: "req-1", method: "GET" },
+ * });
+ * ```
+ */
 import { ResolverError } from "./errors/index.js";
 import { parseQuery } from "./parser/index.js";
 import { buildJoinPlan } from "./planner/join-plan.js";
@@ -13,22 +41,31 @@ import {
 import { shape, shapeMany } from "./shaper/shaper.js";
 import type { AST } from "./parser/ast.js";
 
+/** Options passed to {@link MeshInstance.execute}. */
 export interface ExecuteOptions {
+  /** Query wire format. Defaults to `ql`. */
   format?: "json" | "ql";
+  /** Request context passed to resolvers. */
   context?: Partial<QueryContext> & Pick<QueryContext, "requestId" | "method">;
+  /** Return a list of shaped records instead of a single object. */
   list?: boolean;
 }
 
+/** A configured MeshQL server instance with registered resolvers. */
 export interface MeshInstance {
   schema: MeshConfig;
+  /** Register a data resolver for an entity. */
   resolve(entity: string, resolver: Resolver): MeshInstance;
+  /** Register a file upload resolver for a path. */
   resolveUpload(path: string, resolver: UploadResolver): MeshInstance;
+  /** Parse, plan, fetch, and shape a MeshQL query. */
   execute(
     query: string,
     options?: ExecuteOptions,
   ): Promise<Record<string, unknown> | Record<string, unknown>[]>;
 }
 
+/** Create a MeshQL instance from a schema configuration. */
 export function createMesh(config: MeshConfig): MeshInstance {
   const registry = new ResolverRegistry();
 
