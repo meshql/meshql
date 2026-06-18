@@ -27,7 +27,8 @@ for (const [dep, specifier] of Object.entries(manifest.dependencies ?? {})) {
     console.error(`Cannot map workspace dependency ${dep} for @meshql/${packageName}`);
     process.exit(1);
   }
-  manifest.dependencies[dep] = `jsr:${dep}@^${version}`;
+  const shortName = dep.slice("@meshql/".length);
+  manifest.dependencies[dep] = `npm:@jsr/meshql__${shortName}@^${version}`;
 }
 
 fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
