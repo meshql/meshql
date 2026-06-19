@@ -2,6 +2,14 @@
 
 Parser, planner, shaper, and executor for client-driven field selection over REST.
 
+## Install
+
+```bash
+npx jsr add @meshql/core
+```
+
+Published on [JSR](https://jsr.io/@meshql/core). npm coming soon.
+
 ## Example
 
 ```ts

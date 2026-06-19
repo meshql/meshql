@@ -2,6 +2,14 @@
 
 Typed client SDK for MeshQL APIs.
 
+## Install
+
+```bash
+npx jsr add @meshql/client
+```
+
+Published on [JSR](https://jsr.io/@meshql/client). npm coming soon.
+
 ## Example
 
 ```ts

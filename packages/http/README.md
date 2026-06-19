@@ -2,6 +2,14 @@
 
 HTTP transport and framework adapters for MeshQL.
 
+## Install
+
+```bash
+npx jsr add @meshql/http
+```
+
+Published on [JSR](https://jsr.io/@meshql/http). npm coming soon.
+
 ## Example
 
 ```ts

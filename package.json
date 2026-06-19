@@ -26,7 +26,8 @@
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "publish:jsr": "pnpm --filter @meshql/core publish:jsr && pnpm --filter @meshql/http publish:jsr && pnpm --filter @meshql/upload publish:jsr && pnpm --filter @meshql/client publish:jsr"
+    "publish:jsr": "pnpm --filter @meshql/core publish:jsr && pnpm --filter @meshql/http publish:jsr && pnpm --filter @meshql/upload publish:jsr && pnpm --filter @meshql/client publish:jsr",
+    "publish:npm:pack": "node scripts/publish-npm-pack.mjs"
   },
   "devDependencies": {
     "prettier": "^3.7.4",

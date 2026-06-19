@@ -2,31 +2,8 @@
  * MeshQL core: define schemas, register resolvers, and execute shaped queries.
  *
  * @module
- *
- * @example
- * ```ts
- * import { buildSelectSql, createMesh } from "@meshql/core";
- *
- * const mesh = createMesh({
- *   entities: {
- *     user: {
- *       table: "users",
- *       joins: { tokens: { table: "tokens", on: "user_id" } },
- *     },
- *   },
- * });
- *
- * mesh.resolve("user", async (plan) => {
- *   const sql = buildSelectSql(plan, mesh.schema);
- *   return db.query(sql.text, sql.params);
- * });
- *
- * const user = await mesh.execute("user { id email tokens { accessToken } }", {
- *   context: { requestId: "req-1", method: "GET" },
- * });
- * ```
  */
-import { ResolverError } from "./errors/index.js";
+import { MeshError, ResolverError } from "./errors/index.js";
 import { parseQuery } from "./parser/index.js";
 import { buildJoinPlan } from "./planner/join-plan.js";
 import { validateAst } from "./planner/validator.js";
@@ -40,6 +17,13 @@ import {
 } from "./resolver/index.js";
 import { shape, shapeMany } from "./shaper/shaper.js";
 import type { AST } from "./parser/ast.js";
+import {
+  PluginRunner,
+  type ExecuteTransport,
+  type MeshPlugin,
+  type PluginContext,
+  isPlanShortCircuit,
+} from "./plugin/index.js";
 
 /** Options passed to {@link MeshInstance.execute}. */
 export interface ExecuteOptions {
@@ -49,6 +33,8 @@ export interface ExecuteOptions {
   context?: Partial<QueryContext> & Pick<QueryContext, "requestId" | "method">;
   /** Return a list of shaped records instead of a single object. */
   list?: boolean;
+  /** HTTP transport metadata for integrity verification. */
+  transport?: ExecuteTransport;
 }
 
 /** A configured MeshQL server instance with registered resolvers. */
@@ -58,6 +44,8 @@ export interface MeshInstance {
   resolve(entity: string, resolver: Resolver): MeshInstance;
   /** Register a file upload resolver for a path. */
   resolveUpload(path: string, resolver: UploadResolver): MeshInstance;
+  /** Register a plugin hook. */
+  use(plugin: MeshPlugin): MeshInstance;
   /** Parse, plan, fetch, and shape a MeshQL query. */
   execute(
     query: string,
@@ -68,6 +56,7 @@ export interface MeshInstance {
 /** Create a MeshQL instance from a schema configuration. */
 export function createMesh(config: MeshConfig): MeshInstance {
   const registry = new ResolverRegistry();
+  const plugins = new PluginRunner();
 
   const mesh: MeshInstance = {
     schema: config,
@@ -82,8 +71,14 @@ export function createMesh(config: MeshConfig): MeshInstance {
       return mesh;
     },
 
+    use(plugin) {
+      plugins.register(plugin);
+      return mesh;
+    },
+
     async execute(query, options = {}) {
       const format = options.format ?? "ql";
+      const startTime = Date.now();
       const context = createQueryContext(
         options.context ?? {
           requestId: crypto.randomUUID(),
@@ -91,45 +86,101 @@ export function createMesh(config: MeshConfig): MeshInstance {
         },
       );
 
-      const ast: AST = parseQuery(query, format);
-      validateAst(ast, config);
-      const plan = buildJoinPlan(ast, config, context);
+      const pluginCtx: PluginContext = {
+        queryContext: context,
+        transport: options.transport,
+        startTime,
+      };
 
-      const resolver = registry.get(plan.rootEntity);
-      if (!resolver) {
-        throw new ResolverError(
-          `No resolver registered for entity '${plan.rootEntity}'`,
-          plan.rootEntity,
-        );
-      }
+      let rawQuery = query;
 
-      let raw: unknown;
       try {
-        raw = await resolver(plan);
+        rawQuery = await plugins.runOnRequest(rawQuery, pluginCtx);
+
+        const ast: AST = parseQuery(rawQuery, format);
+        pluginCtx.ast = ast;
+
+        validateAst(ast, config);
+        const plan = buildJoinPlan(ast, config, context);
+
+        const planResult = await plugins.runOnPlan(plan, pluginCtx);
+
+        if (isPlanShortCircuit(planResult)) {
+          let shortResponse = planResult.response;
+          if (
+            !options.list &&
+            Array.isArray(shortResponse) &&
+            shortResponse.length === 0
+          ) {
+            shortResponse = {};
+          }
+          const finalResponse = await plugins.runOnResponse(
+            shortResponse,
+            pluginCtx,
+          );
+          return finalResponse as
+            | Record<string, unknown>
+            | Record<string, unknown>[];
+        }
+
+        const resolver = registry.get(planResult.rootEntity);
+        if (!resolver) {
+          throw new ResolverError(
+            `No resolver registered for entity '${planResult.rootEntity}'`,
+            planResult.rootEntity,
+          );
+        }
+
+        let raw: unknown;
+        try {
+          raw = await resolver(planResult);
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Resolver failed";
+          throw new ResolverError(message, planResult.rootEntity);
+        }
+
+        raw = await plugins.runOnResult(raw, pluginCtx);
+
+        const rows = Array.isArray(raw)
+          ? raw
+          : [raw as Record<string, unknown>];
+
+        const shaped = options.list
+          ? shapeMany(rows, ast.root, planResult.joins)
+          : shape(rows, ast.root, planResult.joins);
+
+        const response = await plugins.runOnResponse(shaped, pluginCtx);
+        return response as Record<string, unknown> | Record<string, unknown>[];
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Resolver failed";
-        throw new ResolverError(message, plan.rootEntity);
+        if (error instanceof MeshError) {
+          await plugins.runOnError(error, pluginCtx);
+        }
+        throw error;
       }
-
-      const rows = Array.isArray(raw)
-        ? raw
-        : [raw as Record<string, unknown>];
-
-      return options.list
-        ? shapeMany(rows, ast.root, plan.joins)
-        : shape(rows, ast.root, plan.joins);
     },
   };
 
   return mesh;
 }
 
-export { MeshError, ParseError, ResolverError, TransportError, ValidationError } from "./errors/index.js";
+export {
+  MeshError,
+  ParseError,
+  ResolverError,
+  TransportError,
+  ValidationError,
+  IntegrityError,
+} from "./errors/index.js";
 export { parseQuery, parseQl, parseJson, tokenize } from "./parser/index.js";
 export type { AST, ASTNode } from "./parser/ast.js";
-export { buildJoinPlan } from "./planner/join-plan.js";
+export { buildJoinPlan, collectAstNodes } from "./planner/join-plan.js";
 export type { JoinPlan, ResolvedJoin } from "./planner/join-plan.js";
+export {
+  stripFieldsFromPlan,
+  normalizeFieldPath,
+  isFieldDenied,
+} from "./planner/strip-fields.js";
 export { validateAst } from "./planner/validator.js";
 export {
   entityTable,
@@ -149,3 +200,18 @@ export {
   type UploadResolver,
   type MeshFile,
 } from "./resolver/index.js";
+export {
+  PluginRunner,
+  type ExecuteTransport,
+  type MeshPlugin,
+  type PlanShortCircuit,
+  type PluginContext,
+  isPlanShortCircuit,
+} from "./plugin/index.js";
+export {
+  hmacSha256,
+  formatSignature,
+  parseSignature,
+  signQueryHeader,
+  verifyQuerySignature,
+} from "./crypto/hmac.js";

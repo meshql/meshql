@@ -43,3 +43,13 @@ export class ParseError extends MeshError {
     super(message, "ParseError");
   }
 }
+
+/** Raised when query integrity or signature verification fails. */
+export class IntegrityError extends MeshError {
+  constructor(
+    message: string,
+    details?: Record<string, unknown>,
+  ) {
+    super(message, "IntegrityError", details);
+  }
+}

@@ -113,6 +113,73 @@ Already-published versions are skipped automatically by `jsr publish`.
 
 Documentation and symbol JSDoc live in each package's source and `README.md`. Description and runtime compatibility are set on jsr.io — see [docs/jsr-settings.md](./docs/jsr-settings.md).
 
+## Publishing to npm (interim)
+
+Until the `@meshql` org is available on [npmjs.com](https://www.npmjs.com), packages publish as **unscoped** `meshql-*` names with compiled `dist/` (ESM). JSR remains the source for `@meshql/*` TypeScript packages.
+
+| Monorepo | npm name |
+| --- | --- |
+| `packages/core` | `meshql-core` |
+| `packages/http` | `meshql-http` |
+| `packages/client` | `meshql-client` |
+| `packages/upload` | `meshql-upload` |
+| `packages/integrity` | `meshql-integrity` |
+| `packages/access` | `meshql-access` |
+| `packages/plugins` | `meshql-plugins` |
+
+### One-time npm setup
+
+1. Create an [npm access token](https://www.npmjs.com/settings/~/tokens) with **Automation** or **Publish** scope.
+2. Add it to the GitHub repo:
+
+```bash
+gh secret set NPM_TOKEN --repo meshql/meshql
+```
+
+3. Ensure each `meshql-*` package name is available on npm (first publish claims the name).
+
+### CI
+
+Workflow: [`.github/workflows/publish-npm.yml`](./.github/workflows/publish-npm.yml)
+
+Tags use an `npm/` prefix so they do not collide with JSR tags:
+
+| Trigger | Example | Publishes |
+| --- | --- | --- |
+| Per-package tag | `npm/core/v0.1.2` | `meshql-core` only |
+| Per-package tag | `npm/http/v0.1.2` | `meshql-http` only |
+| Umbrella tag | `npm/all/v0.1.2` | core → http → upload → client |
+| Manual dispatch | Actions → Publish npm | selected package(s) |
+
+Bump `version` in the package's `package.json` before tagging. Tag version must match `package.json` (CI checks this).
+
+```bash
+# Publish only core to npm + GitHub Release assets
+git tag npm/core/v0.1.2
+git push origin npm/core/v0.1.2
+
+# Publish all four default packages
+git tag npm/all/v0.1.2
+git push origin npm/all/v0.1.2
+```
+
+Each tag push creates a **GitHub Release** with `.tgz` assets (install without npm registry):
+
+```bash
+npm install https://github.com/meshql/meshql/releases/download/npm/core/v0.1.2/meshql-core-0.1.2.tgz
+```
+
+If `NPM_TOKEN` is set, the workflow also runs `npm publish` to registry.npmjs.org in dependency order.
+
+### Local pack (dry run)
+
+```bash
+pnpm build
+pnpm publish:npm:pack   # writes artifacts/*.tgz, restores package.json files
+```
+
+`scripts/prepare-npm-publish.mjs` rewrites `package.json` for publish (rename, `workspace:*` → semver, strip devDeps). CI restores manifests after each package.
+
 ## Pull requests
 
 - Keep PRs focused - one feature or fix per PR when possible.

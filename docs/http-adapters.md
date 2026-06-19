@@ -4,8 +4,17 @@ MeshQL ships framework adapters on top of `@meshql/http`. Each adapter wires the
 
 ## Install
 
+MeshQL is on **[JSR](https://jsr.io/@meshql)** (`@meshql` scope). npm packages are coming soon.
+
 ```bash
-npm i @meshql/core @meshql/http
+# Node
+npx jsr add @meshql/core @meshql/http
+
+# Bun
+bunx jsr add @meshql/core @meshql/http
+
+# Deno
+deno add jsr:@meshql/core jsr:@meshql/http
 ```
 
 Install your framework as a peer dependency:
@@ -101,6 +110,46 @@ const headers = encodeQuery(
 ```
 
 `format` is optional (defaults to `ql`).
+
+---
+
+## Test with curl
+
+Base64-encode the query for `GET` requests:
+
+```bash
+mesh_query() {
+  echo -n "$1" | base64 | tr -d '\n'
+}
+
+Q=$(mesh_query '{"user":{"id":true,"name":true}}')
+
+# Single resource
+curl -s "http://localhost:3001/mesh/user/1" \
+  -H "X-Mesh-Query: $Q" \
+  -H "X-Mesh-Format: json"
+
+# List
+curl -s "http://localhost:3001/mesh/user" \
+  -H "X-Mesh-Query: $Q" \
+  -H "X-Mesh-Format: json"
+
+# QL format
+Q=$(mesh_query '{ user { id name } }')
+curl -s "http://localhost:3001/mesh/user/1" \
+  -H "X-Mesh-Query: $Q" \
+  -H "X-Mesh-Format: ql"
+
+# POST (no base64)
+curl -s -X POST "http://localhost:3001/mesh" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ user { id name } }","format":"ql"}'
+
+# Missing header (expect 400)
+curl -s "http://localhost:3001/mesh/user/1"
+```
+
+Full walkthrough: [run-example.md](./run-example.md)
 
 ---
 
@@ -278,5 +327,6 @@ The client sets `X-Mesh-Query`, `X-Mesh-Format`, and `X-Mesh-Version` on every r
 
 ## Related
 
+- [Run example](./run-example.md) - JSR install, server setup, curl testing
 - [README](../README.md) - project overview
 - [examples/express-postgres](../examples/express-postgres) - runnable Express demo

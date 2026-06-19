@@ -35,6 +35,9 @@ importers:
       '@meshql/http':
         specifier: workspace:*
         version: link:../../packages/http
+      '@meshql/integrity':
+        specifier: workspace:*
+        version: link:../../packages/integrity
       express:
         specifier: ^5.1.0
         version: 5.2.1
@@ -60,6 +63,28 @@ importers:
       typescript:
         specifier: 5.9.2
         version: 5.9.2
+
+  packages/access:
+    dependencies:
+      '@meshql/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@meshql/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.6(@types/node@22.15.3)(tsx@4.22.4)
 
   packages/client:
     dependencies:
@@ -122,6 +147,58 @@ importers:
       hono:
         specifier: ^4.7.10
         version: 4.12.25
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.6(@types/node@22.15.3)(tsx@4.22.4)
+
+  packages/integrity:
+    dependencies:
+      '@meshql/core':
+        specifier: workspace:*
+        version: link:../core
+      '@meshql/http':
+        specifier: workspace:*
+        version: link:../http
+    devDependencies:
+      '@meshql/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.6
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      express:
+        specifier: ^5.1.0
+        version: 5.2.1
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.6(@types/node@22.15.3)(tsx@4.22.4)
+
+  packages/plugins:
+    devDependencies:
+      '@meshql/core':
+        specifier: workspace:*
+        version: link:../core
+      '@meshql/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)

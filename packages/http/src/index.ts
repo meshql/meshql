@@ -41,11 +41,15 @@ export type MeshHttpHandler = (
 function toErrorResponse(error: unknown): { status: number; body: Record<string, unknown> } {
   if (error instanceof MeshError) {
     const status =
-      error.code === "ValidationError" || error.code === "TransportError"
-        ? 400
-        : error.code === "ResolverError"
-          ? 500
-          : 400;
+      error.code === "IntegrityError"
+        ? 401
+        : error.code === "ValidationError" || error.code === "TransportError"
+          ? 400
+          : error.code === "ResolverError"
+            ? 500
+            : error.code === "RateLimitError"
+              ? 429
+              : 400;
 
     return {
       status,
@@ -95,5 +99,6 @@ export function createHttpHandler(
   };
 }
 
-export { decodeQuery, encodeQuery } from "./transport/decode.js";
-export type { DecodedQuery, QueryFormat } from "./transport/decode.js";
+export { decodeQuery, encodeQuery, readTransportHeaders, signQuery } from "./transport/decode.js";
+export type { DecodedQuery, QueryFormat, SignQueryOptions } from "./transport/decode.js";
+export type { HttpRequest } from "./handlers/index.js";

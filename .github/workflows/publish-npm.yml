@@ -1,0 +1,215 @@
+name: Publish npm
+
+on:
+  push:
+    tags:
+      - "npm/core/v*"
+      - "npm/http/v*"
+      - "npm/upload/v*"
+      - "npm/client/v*"
+      - "npm/integrity/v*"
+      - "npm/access/v*"
+      - "npm/plugins/v*"
+      - "npm/all/v*"
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package to publish
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - core
+          - http
+          - upload
+          - client
+          - integrity
+          - access
+          - plugins
+      publish_registry:
+        description: Publish to registry.npmjs.org (requires NPM_TOKEN)
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.plan.outputs.packages }}
+      tag_version: ${{ steps.plan.outputs.tag_version }}
+      release_tag: ${{ steps.plan.outputs.release_tag }}
+      publish_registry: ${{ steps.plan.outputs.publish_registry }}
+    steps:
+      - name: Resolve packages to publish
+        id: plan
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            selection="${{ inputs.package }}"
+            tag_version=""
+            release_tag="manual-${{ github.run_id }}"
+            publish_registry="${{ inputs.publish_registry }}"
+          else
+            tag="${GITHUB_REF#refs/tags/}"
+            release_tag="$tag"
+            publish_registry="true"
+            tag_version="${tag##*/v}"
+
+            case "$tag" in
+              npm/core/v*) selection="core" ;;
+              npm/http/v*) selection="http" ;;
+              npm/upload/v*) selection="upload" ;;
+              npm/client/v*) selection="client" ;;
+              npm/integrity/v*) selection="integrity" ;;
+              npm/access/v*) selection="access" ;;
+              npm/plugins/v*) selection="plugins" ;;
+              npm/all/v*) selection="all" ;;
+              *)
+                echo "::error::Unknown tag format: $tag (expected npm/core/v1.2.3)"
+                exit 1
+                ;;
+            esac
+          fi
+
+          case "$selection" in
+            all) packages='["core","http","upload","client"]' ;;
+            core|http|upload|client|integrity|access|plugins)
+              packages="[\"$selection\"]"
+              ;;
+            *)
+              echo "::error::Unknown package selection: $selection"
+              exit 1
+              ;;
+          esac
+
+          echo "packages=$packages" >> "$GITHUB_OUTPUT"
+          echo "tag_version=$tag_version" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "publish_registry=$publish_registry" >> "$GITHUB_OUTPUT"
+          echo "Publishing npm packages: $packages"
+
+  publish:
+    needs: resolve
+    runs-on: ubuntu-latest
+    env:
+      PACKAGES: ${{ needs.resolve.outputs.packages }}
+      TAG_VERSION: ${{ needs.resolve.outputs.tag_version }}
+      RELEASE_TAG: ${{ needs.resolve.outputs.release_tag }}
+      PUBLISH_REGISTRY: ${{ needs.resolve.outputs.publish_registry }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Verify tag version matches package manifests
+        if: env.TAG_VERSION != ''
+        env:
+          TAG_VERSION: ${{ needs.resolve.outputs.tag_version }}
+          PACKAGES: ${{ needs.resolve.outputs.packages }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require("node:fs");
+          const tagVersion = process.env.TAG_VERSION;
+          const packages = JSON.parse(process.env.PACKAGES);
+
+          let failed = false;
+          for (const pkg of packages) {
+            const manifest = JSON.parse(
+              fs.readFileSync(`packages/${pkg}/package.json`, "utf8"),
+            );
+            if (manifest.version !== tagVersion) {
+              console.error(
+                `::error::Tag version ${tagVersion} does not match packages/${pkg}/package.json version ${manifest.version}`,
+              );
+              failed = true;
+            }
+          }
+
+          if (failed) process.exit(1);
+          NODE
+
+      - name: Pack and publish packages
+        id: pack
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          packed=""
+
+          publish_order=(core http upload client integrity access plugins)
+          selected=$(node -e 'JSON.parse(process.env.PACKAGES).forEach((p) => console.log(p))')
+
+          for pkg in "${publish_order[@]}"; do
+            echo "$selected" | grep -qx "$pkg" || continue
+
+            echo "── Preparing meshql-${pkg} ──"
+            node scripts/prepare-npm-publish.mjs "$pkg"
+
+            cd "packages/${pkg}"
+            npm pack --pack-destination "../../artifacts"
+            tarball=$(ls -1 "../../artifacts"/meshql-${pkg}-*.tgz | tail -1)
+            echo "Packed $(basename "$tarball")"
+            packed="${packed}${tarball}"$'\n'
+
+            if [ "$PUBLISH_REGISTRY" = "true" ]; then
+              if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+                echo "::warning::NPM_TOKEN secret not set — skipping registry publish for meshql-${pkg}"
+              else
+                echo "Publishing meshql-${pkg} to registry.npmjs.org"
+                npm publish "$tarball" --access public
+              fi
+            fi
+
+            cd ../..
+            node scripts/prepare-npm-publish.mjs "$pkg" restore
+          done
+
+          echo "packed<<EOF" >> "$GITHUB_OUTPUT"
+          echo -n "$packed" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.resolve.outputs.release_tag }}
+          name: npm ${{ needs.resolve.outputs.release_tag }}
+          generate_release_notes: true
+          files: artifacts/*.tgz
+
+      - name: Upload workflow artifacts
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-tarballs
+          path: artifacts/*.tgz

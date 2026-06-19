@@ -13,8 +13,14 @@
  * });
  * ```
  */
-export { createClient } from "./client.js";
-export type { MeshClient, MeshClientOptions } from "./client.js";
+export { createClient, createAuthClient } from "./client.js";
+export type {
+  MeshClient,
+  MeshClientOptions,
+  AuthClientOptions,
+  AuthMeshClient,
+  AuthTokens,
+} from "./client.js";
 export {
   selectionToJson,
   selectionToQl,
