@@ -38,3 +38,6 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Check npm and JSR version parity
+        run: node scripts/sync-jsr-versions.mjs --check
