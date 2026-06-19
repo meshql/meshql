@@ -7,6 +7,10 @@ on:
       - "http/v*"
       - "upload/v*"
       - "client/v*"
+      - "integrity/v*"
+      - "access/v*"
+      - "plugins/v*"
+      - "security/v*"
       - "all/v*"
       - "v*" # legacy umbrella tag: publish every package
   workflow_dispatch:
@@ -22,6 +26,10 @@ on:
           - http
           - upload
           - client
+          - integrity
+          - access
+          - plugins
+          - security
 
 # Each package must be created on JSR and linked to meshql/meshql in package settings.
 # See CONTRIBUTING.md → Publishing to JSR
@@ -57,6 +65,10 @@ jobs:
               http/v*) selection="http" ;;
               upload/v*) selection="upload" ;;
               client/v*) selection="client" ;;
+              integrity/v*) selection="integrity" ;;
+              access/v*) selection="access" ;;
+              plugins/v*) selection="plugins" ;;
+              security/v*) selection="security" ;;
               all/v*|v*) selection="all" ;;
               *)
                 echo "::error::Unknown tag format: $tag"
@@ -67,7 +79,10 @@ jobs:
 
           case "$selection" in
             all) packages='["core","http","upload","client"]' ;;
-            core|http|upload|client) packages="[\"$selection\"]" ;;
+            security) packages='["integrity","access"]' ;;
+            core|http|upload|client|integrity|access|plugins)
+              packages="[\"$selection\"]"
+              ;;
             *)
               echo "::error::Unknown package selection: $selection"
               exit 1

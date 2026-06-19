@@ -28,6 +28,91 @@ const PUBLISH_ORDER = [
   "plugins",
 ];
 
+/** Longest paths first so @meshql/core/builtins is rewritten before @meshql/core. */
+const IMPORT_REWRITES = [
+  ["@meshql/core/builtins", "meshql-core/builtins"],
+  ["@meshql/core", "meshql-core"],
+  ["@meshql/http", "meshql-http"],
+  ["@meshql/client", "meshql-client"],
+  ["@meshql/upload", "meshql-upload"],
+  ["@meshql/integrity", "meshql-integrity"],
+  ["@meshql/access", "meshql-access"],
+  ["@meshql/plugins", "meshql-plugins"],
+];
+
+function rewriteDistImports(packageDir) {
+  const distDir = path.join(repoRoot, "packages", packageDir, "dist");
+  if (!fs.existsSync(distDir)) {
+    return;
+  }
+
+  function walk(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+
+      if (!/\.(js|d\.ts)$/.test(entry.name)) {
+        continue;
+      }
+
+      let content = fs.readFileSync(full, "utf8");
+      let changed = false;
+
+      for (const [from, to] of IMPORT_REWRITES) {
+        if (!content.includes(from)) {
+          continue;
+        }
+        content = content.split(from).join(to);
+        changed = true;
+      }
+
+      if (changed) {
+        fs.writeFileSync(full, content);
+      }
+    }
+  }
+
+  walk(distDir);
+}
+
+function rewriteManifestDeps(manifest, section) {
+  if (!manifest[section]) {
+    return;
+  }
+
+  const next = {};
+  for (const [dep, specifier] of Object.entries(manifest[section])) {
+    if (dep === "@meshql/typescript-config") {
+      continue;
+    }
+
+    if (specifier.startsWith("workspace:") && DIR_BY_SCOPE[dep]) {
+      const depDir = DIR_BY_SCOPE[dep];
+      next[npmName(depDir)] = `^${versionOf(depDir)}`;
+      continue;
+    }
+
+    if (dep.startsWith("@meshql/")) {
+      const depDir = dep.slice("@meshql/".length);
+      if (NPM_NAME_BY_DIR[depDir]) {
+        next[npmName(depDir)] = `^${versionOf(depDir)}`;
+        continue;
+      }
+    }
+
+    next[dep] = specifier;
+  }
+
+  if (Object.keys(next).length > 0) {
+    manifest[section] = next;
+  } else {
+    delete manifest[section];
+  }
+}
+
 function readManifest(packageDir) {
   const manifestPath = path.join(repoRoot, "packages", packageDir, "package.json");
   return {
@@ -60,34 +145,8 @@ export function prepareNpmPublish(packageDir) {
 
   manifest.name = npmName(packageDir);
 
-  const dependencies = {};
-  for (const [dep, specifier] of Object.entries(manifest.dependencies ?? {})) {
-    if (dep === "@meshql/typescript-config") {
-      continue;
-    }
-
-    if (specifier.startsWith("workspace:") && DIR_BY_SCOPE[dep]) {
-      const depDir = DIR_BY_SCOPE[dep];
-      dependencies[npmName(depDir)] = `^${versionOf(depDir)}`;
-      continue;
-    }
-
-    if (dep.startsWith("@meshql/")) {
-      const depDir = dep.slice("@meshql/".length);
-      if (NPM_NAME_BY_DIR[depDir]) {
-        dependencies[npmName(depDir)] = `^${versionOf(depDir)}`;
-        continue;
-      }
-    }
-
-    dependencies[dep] = specifier;
-  }
-
-  if (Object.keys(dependencies).length > 0) {
-    manifest.dependencies = dependencies;
-  } else {
-    delete manifest.dependencies;
-  }
+  rewriteManifestDeps(manifest, "dependencies");
+  rewriteManifestDeps(manifest, "peerDependencies");
 
   delete manifest.devDependencies;
 
@@ -111,6 +170,7 @@ export function prepareNpmPublish(packageDir) {
   delete manifest.scripts?.["publish:jsr"];
 
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  rewriteDistImports(packageDir);
   return { manifest, backupPath, npmName: manifest.name };
 }
 

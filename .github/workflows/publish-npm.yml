@@ -11,6 +11,7 @@ on:
       - "npm/access/v*"
       - "npm/plugins/v*"
       - "npm/all/v*"
+      - "npm/security/v*"
   workflow_dispatch:
     inputs:
       package:
@@ -27,6 +28,7 @@ on:
           - integrity
           - access
           - plugins
+          - security
       publish_registry:
         description: Publish to registry.npmjs.org (requires NPM_TOKEN)
         required: true
@@ -69,6 +71,7 @@ jobs:
               npm/integrity/v*) selection="integrity" ;;
               npm/access/v*) selection="access" ;;
               npm/plugins/v*) selection="plugins" ;;
+              npm/security/v*) selection="security" ;;
               npm/all/v*) selection="all" ;;
               *)
                 echo "::error::Unknown tag format: $tag (expected npm/core/v1.2.3)"
@@ -79,6 +82,7 @@ jobs:
 
           case "$selection" in
             all) packages='["core","http","upload","client"]' ;;
+            security) packages='["integrity","access"]' ;;
             core|http|upload|client|integrity|access|plugins)
               packages="[\"$selection\"]"
               ;;
