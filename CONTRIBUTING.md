@@ -76,6 +76,8 @@ Choose the affected package(s) and semver bump (patch / minor / major). This cre
 
 2. **Merge your PR** to `main`. If changesets are pending, CI opens or updates a **Version Packages** PR ([`.github/workflows/release.yml`](./.github/workflows/release.yml)).
 
+   **One-time repo setting (required):** GitHub → **Settings** → **Actions** → **General** → enable **Read and write permissions** for workflows, and check **Allow GitHub Actions to create and approve pull requests**. Without this, the Version Packages PR cannot be opened automatically.
+
 3. **Merge the Version Packages PR.** It bumps `package.json`, syncs `jsr.json`, and updates per-package `CHANGELOG.md` files.
 
 4. **CI creates per-package tags** on `main` and existing publish workflows run:
