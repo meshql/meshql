@@ -42,8 +42,13 @@ export function handleLogout(
   return { loggedOut: true };
 }
 
+/** Framework-agnostic auth route handler. */
+export type AuthHandler = (
+  req: AuthHttpRequest,
+) => Promise<{ status: number; body: unknown }>;
+
 /** Create an auth handler for framework-agnostic HTTP dispatch. */
-export function createAuthHandler(config: IntegrityConfig) {
+export function createAuthHandler(config: IntegrityConfig): AuthHandler {
   return async function authHandler(
     req: AuthHttpRequest,
   ): Promise<{ status: number; body: unknown }> {
