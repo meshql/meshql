@@ -36,7 +36,7 @@ jobs:
       - name: Create version PR or skip
         uses: changesets/action@v1
         with:
-          version: pnpm changeset version && node scripts/sync-jsr-versions.mjs
+          version: pnpm run version-packages
           commit: "Version packages"
           title: "Version Packages"
         env:
