@@ -78,7 +78,13 @@ jobs:
           fi
 
           case "$selection" in
-            all) packages='["core","http","upload","client"]' ;;
+            all)
+              if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                packages='["core","http","upload","client","integrity","access","plugins"]'
+              else
+                packages='["core","http","upload","client"]'
+              fi
+              ;;
             security) packages='["integrity","access"]' ;;
             core|http|upload|client|integrity|access|plugins)
               packages="[\"$selection\"]"
