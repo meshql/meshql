@@ -6,7 +6,12 @@ const repoRoot = path.resolve(import.meta.dirname, "..");
 const packagesDir = path.join(repoRoot, "packages");
 
 function run(command, options = {}) {
-  return execSync(command, { cwd: repoRoot, encoding: "utf8", stdio: options.stdio ?? "pipe" }).trim();
+  const stdio = options.stdio ?? "pipe";
+  const result = execSync(command, { cwd: repoRoot, encoding: "utf8", stdio });
+  if (stdio === "inherit") {
+    return;
+  }
+  return (result ?? "").trim();
 }
 
 function tagExists(tag) {
