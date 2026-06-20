@@ -1,6 +1,6 @@
 {
   "name": "@meshql/access",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MeshQL advanced field, entity, and row access control",
   "license": "MIT",
   "type": "module",
