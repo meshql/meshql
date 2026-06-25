@@ -55,11 +55,7 @@ function aliasForField(
   return `${prefix}_${column}`;
 }
 
-function sqlColumn(
-  entityKey: string,
-  field: string,
-  schema: MeshSchema,
-): string {
+function sqlColumn(entityKey: string, field: string, schema: MeshSchema): string {
   const config = schema.entities[entityKey];
   return config?.columns?.[field] ?? field;
 }
@@ -99,7 +95,10 @@ export function buildSelectSql(
     const entityKey = entityKeyForTable(table, plan, schema, rootTable);
     const sqlColumnName = sqlColumn(entityKey, column, schema);
     const alias = aliasForField(plan, schema, rootTable, qualified);
-    selectParts.push(`${tableName}.${sqlColumnName} AS ${alias}`);
+    // Aliases are quoted with double quotes so Postgres preserves the
+    // original case. Unquoted identifiers fold to lowercase, which would
+    // silently break the shaper's camelCase field lookup.
+    selectParts.push(`${tableName}.${sqlColumnName} AS "${alias}"`);
   }
 
   let sql = `SELECT ${selectParts.join(", ")} FROM ${rootTable}`;
@@ -109,8 +108,7 @@ export function buildSelectSql(
   for (const join of plan.joins) {
     const joinConfig = schema.joins[`${plan.rootEntity}.${join.refName}`];
     const joinTable =
-      joinConfig?.table ??
-      entityTable(join.entity, schema.entities[join.entity]);
+      joinConfig?.table ?? entityTable(join.entity, schema.entities[join.entity]);
 
     if (joinedTables.has(joinTable)) {
       continue;

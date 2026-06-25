@@ -90,16 +90,6 @@ export function createMeshFastifyPlugin(
       });
       return reply.status(result.status).send(result.body);
     });
-
-    fastify.delete(`${basePath}/:entity/:id`, async (request, reply) => {
-      const result = await dispatch({
-        method: request.method,
-        params: request.params as Record<string, string>,
-        headers: request.headers as Record<string, string | string[] | undefined>,
-        body: request.body,
-      });
-      return reply.status(result.status).send(result.body);
-    });
   };
 
   return plugin;

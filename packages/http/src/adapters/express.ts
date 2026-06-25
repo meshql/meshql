@@ -14,7 +14,12 @@
  * ```
  */
 import type { MeshInstance } from "@meshql/core";
-import express, { type Request, type RequestHandler, type Response, type Router } from "express";
+import express, {
+  type Request,
+  type RequestHandler,
+  type Response,
+  type Router,
+} from "express";
 import { createMeshHttpHandler, toHttpRequest } from "./shared.js";
 
 function param(value: string | string[] | undefined): string | undefined {
@@ -46,7 +51,6 @@ export function meshExpressRouter(mesh: MeshInstance, basePath = "/mesh"): Route
   router.get(`${basePath}/:entity`, dispatch);
   router.post(basePath, dispatch);
   router.put(`${basePath}/:entity/:id`, dispatch);
-  router.delete(`${basePath}/:entity/:id`, dispatch);
 
   return router;
 }

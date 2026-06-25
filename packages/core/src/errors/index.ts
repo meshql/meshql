@@ -46,10 +46,21 @@ export class ParseError extends MeshError {
 
 /** Raised when query integrity or signature verification fails. */
 export class IntegrityError extends MeshError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message, "IntegrityError", details);
+  }
+}
+
+/** Raised when a rate limit is exceeded. */
+export class RateLimitError extends MeshError {
   constructor(
     message: string,
-    details?: Record<string, unknown>,
+    public readonly retryAfterMs?: number,
   ) {
-    super(message, "IntegrityError", details);
+    super(
+      message,
+      "RateLimitError",
+      retryAfterMs !== undefined ? { retryAfterMs } : undefined,
+    );
   }
 }
