@@ -65,17 +65,6 @@ export function handlePut(mesh: MeshInstance, req: HttpRequest) {
   });
 }
 
-export function handleDelete(_mesh: MeshInstance, req: HttpRequest) {
-  const entity = req.params.entity;
-  const entityId = req.params.id;
-
-  return {
-    deleted: true,
-    entity,
-    id: entityId,
-  };
-}
-
 function getClientIp(req: HttpRequest): string | undefined {
   const forwarded = req.headers["x-forwarded-for"];
   if (typeof forwarded === "string") {

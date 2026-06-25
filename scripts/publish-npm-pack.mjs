@@ -4,7 +4,17 @@ import path from "node:path";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const artifacts = path.join(repoRoot, "artifacts");
-const packages = ["core", "http", "upload", "client", "integrity", "access", "plugins"];
+const packages = [
+  "core",
+  "postgres",
+  "sqlite",
+  "http",
+  "upload",
+  "client",
+  "integrity",
+  "access",
+  "plugins",
+];
 
 fs.mkdirSync(artifacts, { recursive: true });
 

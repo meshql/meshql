@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "core/v*"
+      - "postgres/v*"
+      - "sqlite/v*"
       - "http/v*"
       - "upload/v*"
       - "client/v*"
@@ -23,6 +25,8 @@ on:
         options:
           - all
           - core
+          - postgres
+          - sqlite
           - http
           - upload
           - client
@@ -62,6 +66,8 @@ jobs:
 
             case "$tag" in
               core/v*) selection="core" ;;
+              postgres/v*) selection="postgres" ;;
+              sqlite/v*) selection="sqlite" ;;
               http/v*) selection="http" ;;
               upload/v*) selection="upload" ;;
               client/v*) selection="client" ;;
@@ -80,13 +86,13 @@ jobs:
           case "$selection" in
             all)
               if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                packages='["core","http","upload","client","integrity","access","plugins"]'
+                packages='["core","postgres","sqlite","http","upload","client","integrity","access","plugins"]'
               else
-                packages='["core","http","upload","client"]'
+                packages='["core","postgres","sqlite","http","upload","client"]'
               fi
               ;;
             security) packages='["integrity","access"]' ;;
-            core|http|upload|client|integrity|access|plugins)
+            core|postgres|sqlite|http|upload|client|integrity|access|plugins)
               packages="[\"$selection\"]"
               ;;
             *)

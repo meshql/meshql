@@ -1,9 +1,6 @@
-import { createMesh, buildSelectSql, type MeshSchema } from "@meshql/core";
-import {
-  withBasicIntegrity,
-  withRoleAccess,
-  depthLimit,
-} from "@meshql/core/builtins";
+import { createMesh, type MeshSchema } from "@meshql/core";
+import { withBasicIntegrity, withRoleAccess, depthLimit } from "@meshql/core/builtins";
+import { buildSelectSql } from "@meshql/postgres";
 import { withIntegrity } from "@meshql/integrity";
 import { meshIntegrityExpressRouter } from "@meshql/integrity/express";
 import { meshExpressRouter } from "@meshql/http/express";
@@ -87,7 +84,8 @@ if (useIntegrity && process.env.MESH_SECRET && "integrity" in mesh) {
   app.use(
     meshIntegrityExpressRouter(
       mesh,
-      (mesh as typeof mesh & { integrity: import("@meshql/integrity").IntegrityConfig }).integrity,
+      (mesh as typeof mesh & { integrity: import("@meshql/integrity").IntegrityConfig })
+        .integrity,
       "/mesh",
     ),
   );
@@ -128,7 +126,9 @@ async function start() {
     );
     console.log("Try: pnpm --filter express-postgres exec tsx src/demo-client.ts");
     if (useIntegrity) {
-      console.log("Secure: pnpm --filter express-postgres exec tsx src/demo-secure-client.ts");
+      console.log(
+        "Secure: pnpm --filter express-postgres exec tsx src/demo-secure-client.ts",
+      );
     }
   });
 }

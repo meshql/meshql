@@ -22,6 +22,7 @@ describe("roleAccessPlugin", () => {
   const basePlan: JoinPlan = {
     rootEntity: "user",
     fields: ["users.id", "users.email", "tokens.accessToken"],
+    idField: "id",
     joins: [
       {
         entity: "token",
@@ -29,6 +30,7 @@ describe("roleAccessPlugin", () => {
         fields: ["tokens.accessToken"],
         type: "many",
         refName: "tokens",
+        idField: "id",
       },
     ],
     context: createQueryContext({ requestId: "1", method: "GET" }),

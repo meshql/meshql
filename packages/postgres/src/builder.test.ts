@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildJoinPlan } from "../planner/join-plan.js";
+import {
+  buildJoinPlan,
+  createQueryContext,
+  parseQl,
+  type MeshSchema,
+} from "@meshql/core";
 import { buildSelectSql } from "./builder.js";
-import { createQueryContext } from "../resolver/context.js";
-import { parseQl } from "../parser/index.js";
-import type { MeshSchema } from "../schema/schema.js";
 
 const schema: MeshSchema = {
   entities: {
@@ -29,7 +31,7 @@ const schema: MeshSchema = {
 };
 
 describe("buildSelectSql", () => {
-  it("builds select with joins and where clause", () => {
+  it("builds select with quoted aliases, joins, and where clause", () => {
     const ast = parseQl("{ user { id name tokens { accessToken } } }");
     const plan = buildJoinPlan(
       ast,
@@ -43,8 +45,11 @@ describe("buildSelectSql", () => {
 
     const { sql, params } = buildSelectSql(plan, schema);
 
+    // Aliases are double-quoted so Postgres preserves the camelCase used by
+    // the shaper. `tokens.id` is auto-added by the planner so the shaper can
+    // dedupe Cartesian-product rows.
     expect(sql).toBe(
-      "SELECT users.id AS user_id, users.name AS user_name, tokens.access_token AS tokens_accessToken FROM users LEFT JOIN tokens ON tokens.user_id = users.id WHERE users.id = $1",
+      'SELECT users.id AS "user_id", users.name AS "user_name", tokens.access_token AS "tokens_accessToken", tokens.id AS "tokens_id" FROM users LEFT JOIN tokens ON tokens.user_id = users.id WHERE users.id = $1',
     );
     expect(params).toEqual(["123"]);
   });
