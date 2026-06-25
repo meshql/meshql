@@ -32,6 +32,7 @@ describe("stripFieldsFromPlan", () => {
     const plan = stripFieldsFromPlan(
       {
         rootEntity: "user",
+        idField: "id",
         fields: ["users.id", "users.email", "tokens.accessToken"],
         joins: [
           {
@@ -40,6 +41,7 @@ describe("stripFieldsFromPlan", () => {
             fields: ["tokens.accessToken"],
             type: "many",
             refName: "tokens",
+            idField: "id",
           },
         ],
         context: createQueryContext({ requestId: "1", method: "GET" }),

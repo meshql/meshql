@@ -8,6 +8,7 @@ import { ValidationError } from "../../errors/index.js";
 const basePlan: JoinPlan = {
   rootEntity: "user",
   fields: ["users.id"],
+  idField: "id",
   joins: [],
   context: createQueryContext({ requestId: "1", method: "GET" }),
 };

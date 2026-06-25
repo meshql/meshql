@@ -32,10 +32,7 @@ export function meshHonoRoutes(
   const app = new Hono();
   const handler = createMeshHttpHandler(mesh);
 
-  async function run(
-    c: Context,
-    params: { entity?: string; id?: string },
-  ) {
+  async function run(c: Context, params: { entity?: string; id?: string }) {
     const headers: Record<string, string | string[] | undefined> = {};
     c.req.raw.headers.forEach((value, key) => {
       headers[key] = value;
@@ -65,14 +62,9 @@ export function meshHonoRoutes(
   app.get(`${basePath}/:entity/:id`, (c) =>
     run(c, { entity: c.req.param("entity"), id: c.req.param("id") }),
   );
-  app.get(`${basePath}/:entity`, (c) =>
-    run(c, { entity: c.req.param("entity") }),
-  );
+  app.get(`${basePath}/:entity`, (c) => run(c, { entity: c.req.param("entity") }));
   app.post(basePath, (c) => run(c, {}));
   app.put(`${basePath}/:entity/:id`, (c) =>
-    run(c, { entity: c.req.param("entity"), id: c.req.param("id") }),
-  );
-  app.delete(`${basePath}/:entity/:id`, (c) =>
     run(c, { entity: c.req.param("entity"), id: c.req.param("id") }),
   );
 
