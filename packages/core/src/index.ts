@@ -114,13 +114,8 @@ export function createMesh(config: MeshConfig): MeshInstance {
           ) {
             shortResponse = {};
           }
-          const finalResponse = await plugins.runOnResponse(
-            shortResponse,
-            pluginCtx,
-          );
-          return finalResponse as
-            | Record<string, unknown>
-            | Record<string, unknown>[];
+          const finalResponse = await plugins.runOnResponse(shortResponse, pluginCtx);
+          return finalResponse as Record<string, unknown> | Record<string, unknown>[];
         }
 
         const resolver = registry.get(planResult.rootEntity);
@@ -135,19 +130,16 @@ export function createMesh(config: MeshConfig): MeshInstance {
         try {
           raw = await resolver(planResult);
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Resolver failed";
+          const message = error instanceof Error ? error.message : "Resolver failed";
           throw new ResolverError(message, planResult.rootEntity);
         }
 
         raw = await plugins.runOnResult(raw, pluginCtx);
 
-        const rows = Array.isArray(raw)
-          ? raw
-          : [raw as Record<string, unknown>];
+        const rows = Array.isArray(raw) ? raw : [raw as Record<string, unknown>];
 
         const shaped = options.list
-          ? shapeMany(rows, ast.root, planResult.joins)
+          ? shapeMany(rows, ast.root, planResult.joins, planResult.idField)
           : shape(rows, ast.root, planResult.joins);
 
         const response = await plugins.runOnResponse(shaped, pluginCtx);
@@ -171,6 +163,7 @@ export {
   TransportError,
   ValidationError,
   IntegrityError,
+  RateLimitError,
 } from "./errors/index.js";
 export { parseQuery, parseQl, parseJson, tokenize } from "./parser/index.js";
 export type { AST, ASTNode } from "./parser/ast.js";
@@ -184,6 +177,7 @@ export {
 export { validateAst } from "./planner/validator.js";
 export {
   entityTable,
+  entityIdField,
   type MeshConfig,
   type MeshSchema,
   type EntityConfig,

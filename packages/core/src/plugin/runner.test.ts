@@ -15,6 +15,7 @@ function baseCtx(): PluginContext {
 const samplePlan: JoinPlan = {
   rootEntity: "user",
   fields: ["users.id"],
+  idField: "id",
   joins: [],
   context: createQueryContext({ requestId: "1", method: "GET" }),
 };
@@ -84,8 +85,18 @@ describe("PluginRunner", () => {
     const ctx = baseCtx();
     const err = new MeshError("fail", "TestError");
 
-    runner.register({ name: "a", onError: () => { errors.push("a"); } });
-    runner.register({ name: "b", onError: () => { errors.push("b"); } });
+    runner.register({
+      name: "a",
+      onError: () => {
+        errors.push("a");
+      },
+    });
+    runner.register({
+      name: "b",
+      onError: () => {
+        errors.push("b");
+      },
+    });
 
     await runner.runOnError(err, ctx);
     expect(errors).toEqual(["a", "b"]);

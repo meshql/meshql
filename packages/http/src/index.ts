@@ -19,9 +19,15 @@
  * ```
  */
 import type { MeshInstance } from "@meshql/core";
-import { MeshError } from "@meshql/core";
 import {
-  handleDelete,
+  IntegrityError,
+  MeshError,
+  RateLimitError,
+  ResolverError,
+  TransportError,
+  ValidationError,
+} from "@meshql/core";
+import {
   handleGet,
   handlePost,
   handlePut,
@@ -38,21 +44,22 @@ export type MeshHttpHandler = (
   req: HttpRequest,
 ) => Promise<{ status: number; body: unknown }>;
 
-function toErrorResponse(error: unknown): { status: number; body: Record<string, unknown> } {
-  if (error instanceof MeshError) {
-    const status =
-      error.code === "IntegrityError"
-        ? 401
-        : error.code === "ValidationError" || error.code === "TransportError"
-          ? 400
-          : error.code === "ResolverError"
-            ? 500
-            : error.code === "RateLimitError"
-              ? 429
-              : 400;
+function statusForError(error: MeshError): number {
+  if (error instanceof IntegrityError) return 401;
+  if (error instanceof RateLimitError) return 429;
+  if (error instanceof ValidationError) return 400;
+  if (error instanceof TransportError) return 400;
+  if (error instanceof ResolverError) return 500;
+  return 400;
+}
 
+function toErrorResponse(error: unknown): {
+  status: number;
+  body: Record<string, unknown>;
+} {
+  if (error instanceof MeshError) {
     return {
-      status,
+      status: statusForError(error),
       body: {
         error: error.code,
         message: error.message,
@@ -88,17 +95,32 @@ export function createHttpHandler(
       if (method === "PUT") {
         return { status: 200, body: await handlePut(mesh, req) };
       }
-      if (method === "DELETE") {
-        return { status: 200, body: handleDelete(mesh, req) };
-      }
 
-      throw new MeshError(`Unsupported method ${method}`, "TransportError");
+      // DELETE and other mutating verbs are not part of v0.2 — a generic
+      // mutation story arrives later. Returning 405 is more honest than the
+      // previous no-op handler that echoed back fake success.
+      return {
+        status: 405,
+        body: {
+          error: "TransportError",
+          message: `Unsupported method ${method}`,
+        },
+      };
     } catch (error) {
       return toErrorResponse(error);
     }
   };
 }
 
-export { decodeQuery, encodeQuery, readTransportHeaders, signQuery } from "./transport/decode.js";
-export type { DecodedQuery, QueryFormat, SignQueryOptions } from "./transport/decode.js";
+export {
+  decodeQuery,
+  encodeQuery,
+  readTransportHeaders,
+  signQuery,
+} from "./transport/decode.js";
+export type {
+  DecodedQuery,
+  QueryFormat,
+  SignQueryOptions,
+} from "./transport/decode.js";
 export type { HttpRequest } from "./handlers/index.js";
