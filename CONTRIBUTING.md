@@ -53,6 +53,8 @@ MeshQL is a **pnpm + Turbo monorepo** with **independent per-package versions**.
 | Package | npm name | JSR name |
 | --- | --- | --- |
 | `@meshql/core` | `meshql-core` | `@meshql/core` |
+| `@meshql/postgres` | `meshql-postgres` | `@meshql/postgres` |
+| `@meshql/sqlite` | `meshql-sqlite` | `@meshql/sqlite` |
 | `@meshql/http` | `meshql-http` | `@meshql/http` |
 | `@meshql/client` | `meshql-client` | `@meshql/client` |
 | `@meshql/upload` | `meshql-upload` | `@meshql/upload` |
@@ -62,7 +64,7 @@ MeshQL is a **pnpm + Turbo monorepo** with **independent per-package versions**.
 
 `@meshql/typescript-config` is private and never published.
 
-**Publish order** (when multiple packages release together): `core → http → upload → client → integrity → access → plugins`.
+**Publish order** (when multiple packages release together): `core → postgres → sqlite → http → upload → client → integrity → access → plugins`.
 
 ### Standard release flow (Changesets)
 

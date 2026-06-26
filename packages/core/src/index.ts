@@ -183,8 +183,6 @@ export {
   type EntityConfig,
   type JoinConfig,
 } from "./schema/schema.js";
-export { buildSelectSql } from "./sql/builder.js";
-export type { SqlBuilderOptions, SqlQuery } from "./sql/builder.js";
 export { shape, shapeMany } from "./shaper/shaper.js";
 export {
   createQueryContext,

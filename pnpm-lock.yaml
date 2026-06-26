@@ -41,6 +41,9 @@ importers:
       '@meshql/integrity':
         specifier: workspace:*
         version: link:../../packages/integrity
+      '@meshql/postgres':
+        specifier: workspace:*
+        version: link:../../packages/postgres
       express:
         specifier: ^5.1.0
         version: 5.2.1
@@ -60,6 +63,40 @@ importers:
       '@types/pg':
         specifier: ^8.15.2
         version: 8.20.0
+      tsx:
+        specifier: ^4.19.4
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
+  examples/express-sqlite:
+    dependencies:
+      '@meshql/client':
+        specifier: workspace:*
+        version: link:../../packages/client
+      '@meshql/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@meshql/http':
+        specifier: workspace:*
+        version: link:../../packages/http
+      '@meshql/sqlite':
+        specifier: workspace:*
+        version: link:../../packages/sqlite
+      express:
+        specifier: ^5.1.0
+        version: 5.2.1
+    devDependencies:
+      '@meshql/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.6
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
       tsx:
         specifier: ^4.19.4
         version: 4.22.4
@@ -196,6 +233,56 @@ importers:
       '@meshql/core':
         specifier: workspace:*
         version: link:../core
+      '@meshql/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.6(@types/node@22.15.3)(tsx@4.22.4)
+
+  packages/postgres:
+    dependencies:
+      '@meshql/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@meshql/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      '@types/pg':
+        specifier: ^8.20.0
+        version: 8.20.0
+      pg:
+        specifier: ^8.21.0
+        version: 8.21.0
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.6(@types/node@22.15.3)(tsx@4.22.4)
+
+  packages/sqlite:
+    dependencies:
+      '@meshql/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
       '@meshql/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config

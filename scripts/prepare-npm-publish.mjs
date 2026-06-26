@@ -6,6 +6,8 @@ const repoRoot = path.resolve(import.meta.dirname, "..");
 /** Monorepo directory → npm package name (unscoped; @meshql org unavailable on npm). */
 const NPM_NAME_BY_DIR = {
   core: "meshql-core",
+  postgres: "meshql-postgres",
+  sqlite: "meshql-sqlite",
   http: "meshql-http",
   client: "meshql-client",
   upload: "meshql-upload",
@@ -20,6 +22,8 @@ const DIR_BY_SCOPE = Object.fromEntries(
 
 const PUBLISH_ORDER = [
   "core",
+  "postgres",
+  "sqlite",
   "http",
   "upload",
   "client",
@@ -32,6 +36,8 @@ const PUBLISH_ORDER = [
 const IMPORT_REWRITES = [
   ["@meshql/core/builtins", "meshql-core/builtins"],
   ["@meshql/core", "meshql-core"],
+  ["@meshql/postgres", "meshql-postgres"],
+  ["@meshql/sqlite", "meshql-sqlite"],
   ["@meshql/http", "meshql-http"],
   ["@meshql/client", "meshql-client"],
   ["@meshql/upload", "meshql-upload"],
