@@ -14,7 +14,8 @@
   <a href="https://jsr.io/@meshql/core">JSR</a> ·
   <a href="./docs/run-example.md">5-minute guide</a> ·
   <a href="./docs/http-adapters.md">HTTP adapters</a> ·
-  <a href="./examples/express-postgres">Example</a>
+  <a href="./examples/express-sqlite">SQLite example</a> ·
+  <a href="./examples/express-postgres">Postgres example</a>
 </p>
 
 <p align="center">
@@ -51,6 +52,8 @@ deno add jsr:@meshql/core jsr:@meshql/http jsr:@meshql/client
 | Package | JSR | Purpose |
 |---------|-----|---------|
 | `@meshql/core` | [jsr.io/@meshql/core](https://jsr.io/@meshql/core) | Parser, planner, shaper, `createMesh()` |
+| `@meshql/postgres` | [jsr.io/@meshql/postgres](https://jsr.io/@meshql/postgres) | Postgres `buildSelectSql` (`$1`, `$2`, … placeholders) |
+| `@meshql/sqlite` | [jsr.io/@meshql/sqlite](https://jsr.io/@meshql/sqlite) | SQLite `buildSelectSql` for Node 22.5+ `node:sqlite` / Bun / D1 |
 | `@meshql/http` | [jsr.io/@meshql/http](https://jsr.io/@meshql/http) | Express, Fastify, Hono adapters |
 | `@meshql/client` | [jsr.io/@meshql/client](https://jsr.io/@meshql/client) | Typed client SDK |
 | `@meshql/upload` | [jsr.io/@meshql/upload](https://jsr.io/@meshql/upload) | File uploads (optional) |
@@ -58,10 +61,14 @@ deno add jsr:@meshql/core jsr:@meshql/http jsr:@meshql/client
 | `@meshql/access` | [jsr.io/@meshql/access](https://jsr.io/@meshql/access) | Entity, row, and field access control |
 | `@meshql/plugins` | [jsr.io/@meshql/plugins](https://jsr.io/@meshql/plugins) | Optional plugins (peer on core) |
 
-**Core stack** (most apps):
+**Core stack** (most apps — pick a DB adapter):
 
 ```bash
-npx jsr add @meshql/core @meshql/http @meshql/client
+# SQLite (zero setup, built into Node 22.5+)
+npx jsr add @meshql/core @meshql/sqlite @meshql/http @meshql/client
+
+# Postgres
+npx jsr add @meshql/core @meshql/postgres @meshql/http @meshql/client
 ```
 
 **With security** (signing + access):
@@ -89,6 +96,8 @@ npm install meshql-core meshql-http meshql-client meshql-upload meshql-integrity
 | Package | npm | Purpose |
 |---------|-----|---------|
 | `meshql-core` | [npmjs.com/package/meshql-core](https://www.npmjs.com/package/meshql-core) | Parser, planner, shaper, `createMesh()` |
+| `meshql-postgres` | [npmjs.com/package/meshql-postgres](https://www.npmjs.com/package/meshql-postgres) | Postgres `buildSelectSql` |
+| `meshql-sqlite` | [npmjs.com/package/meshql-sqlite](https://www.npmjs.com/package/meshql-sqlite) | SQLite `buildSelectSql` for `node:sqlite` / Bun / D1 |
 | `meshql-http` | [npmjs.com/package/meshql-http](https://www.npmjs.com/package/meshql-http) | Express, Fastify, Hono adapters |
 | `meshql-client` | [npmjs.com/package/meshql-client](https://www.npmjs.com/package/meshql-client) | Typed client SDK |
 | `meshql-upload` | [npmjs.com/package/meshql-upload](https://www.npmjs.com/package/meshql-upload) | File uploads (optional) |
@@ -114,7 +123,7 @@ npm install https://github.com/meshql/meshql/releases/download/npm/core/v0.1.4/m
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md#releasing-packages) for the release workflow (Changesets → per-package tags).
 
-> **SQLite is not supported.** Use in-memory data for local testing, or Postgres via the [express-postgres example](./examples/express-postgres).
+> **SQLite is first-class.** [`@meshql/sqlite`](./packages/sqlite) runs on Node 22.5+'s built-in [`node:sqlite`](https://nodejs.org/api/sqlite.html) — zero native deps, zero Docker. Try the [express-sqlite example](./examples/express-sqlite). Postgres works via [`@meshql/postgres`](./packages/postgres) and the [express-postgres example](./examples/express-postgres).
 
 ---
 
@@ -228,11 +237,41 @@ Works **without Postgres** (in-memory). See [examples/express-postgres/README.md
 
 ## Server (with SQL)
 
+Pick the adapter that matches your database. Both expose the same API.
+
+**SQLite** (Node 22.5+ built-in, no Docker, no native deps):
+
 ```typescript
-import { createMesh, buildSelectSql } from "@meshql/core";
+import { DatabaseSync } from "node:sqlite";
+import { createMesh } from "@meshql/core";
+import { buildSelectSql } from "@meshql/sqlite";
 import { meshExpressRouter } from "@meshql/http/express";
 import express from "express";
 
+const db = new DatabaseSync(":memory:");
+const mesh = createMesh(schema);
+
+mesh.resolve("user", async (plan) => {
+  const { sql, params } = buildSelectSql(plan, schema);
+  return db.prepare(sql).all(...params);
+});
+
+express()
+  .use(express.json())
+  .use(meshExpressRouter(mesh, "/mesh"))
+  .listen(3001);
+```
+
+**Postgres** (via `pg`):
+
+```typescript
+import { createMesh } from "@meshql/core";
+import { buildSelectSql } from "@meshql/postgres";
+import { meshExpressRouter } from "@meshql/http/express";
+import express from "express";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const mesh = createMesh(schema);
 
 mesh.resolve("user", async (plan) => {
@@ -240,16 +279,19 @@ mesh.resolve("user", async (plan) => {
   return (await pool.query(sql, params)).rows;
 });
 
-const app = express();
-app.use(meshExpressRouter(mesh, "/mesh"));
-app.listen(3001);
+express()
+  .use(express.json())
+  .use(meshExpressRouter(mesh, "/mesh"))
+  .listen(3001);
 ```
 
 ## Packages
 
-| Package | npm | JSR |
-|---------|-----|-----|
-| `@meshql/core` | `meshql-core` | Parser, join planner, response shaper, `createMesh()`, `buildSelectSql()` |
+| Package | npm | Purpose |
+|---------|-----|---------|
+| `@meshql/core` | `meshql-core` | Parser, join planner, response shaper, `createMesh()` |
+| `@meshql/postgres` | `meshql-postgres` | `buildSelectSql` for Postgres |
+| `@meshql/sqlite` | `meshql-sqlite` | `buildSelectSql` for `node:sqlite` / Bun / D1 |
 | `@meshql/http` | `meshql-http` | Header transport + Express, Fastify, Hono adapters |
 | `@meshql/client` | `meshql-client` | Typed client, sets query headers for you |
 | `@meshql/upload` | `meshql-upload` | File uploads (optional) |
@@ -280,14 +322,16 @@ Runnable demo: [samples/npm-access](../samples/npm-access) in the meshql_stack r
 Node 22+, pnpm 11. Monorepo uses Turborepo.
 
 ```
-packages/core       engine
+packages/core       engine (DB-agnostic)
+packages/postgres   buildSelectSql for Postgres
+packages/sqlite     buildSelectSql for node:sqlite / Bun / D1
 packages/http       adapters
 packages/client     SDK
 packages/upload     uploads
 packages/integrity  signing tokens
 packages/access     access control
 packages/plugins    optional plugins
-examples/           runnable demos
+examples/           runnable demos (express-sqlite, express-postgres)
 ```
 
 PRs welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md).

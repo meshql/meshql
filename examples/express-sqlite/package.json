@@ -1,29 +1,29 @@
 {
-  "name": "express-postgres",
-  "version": "0.1.1",
+  "name": "express-sqlite",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "seed": "tsx src/seed.ts",
+    "demo": "tsx src/demo-client.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@meshql/client": "workspace:*",
     "@meshql/core": "workspace:*",
     "@meshql/http": "workspace:*",
-    "@meshql/integrity": "workspace:*",
-    "@meshql/postgres": "workspace:*",
-    "express": "^5.1.0",
-    "pg": "^8.16.0"
+    "@meshql/sqlite": "workspace:*",
+    "express": "^5.1.0"
   },
   "devDependencies": {
     "@meshql/typescript-config": "workspace:*",
     "@types/express": "^5.0.0",
     "@types/node": "^22.15.3",
-    "@types/pg": "^8.15.2",
     "tsx": "^4.19.4",
     "typescript": "5.9.2"
+  },
+  "engines": {
+    "node": ">=22.5"
   }
 }

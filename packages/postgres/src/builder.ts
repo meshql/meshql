@@ -1,6 +1,5 @@
-import type { JoinPlan, ResolvedJoin } from "../planner/join-plan.js";
-import type { MeshSchema } from "../schema/schema.js";
-import { entityTable } from "../schema/schema.js";
+import type { JoinPlan, ResolvedJoin, MeshSchema } from "@meshql/core";
+import { entityTable } from "@meshql/core";
 
 /** Parameterized SQL query generated from a join plan. */
 export interface SqlQuery {

@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "npm/core/v*"
+      - "npm/postgres/v*"
+      - "npm/sqlite/v*"
       - "npm/http/v*"
       - "npm/upload/v*"
       - "npm/client/v*"
@@ -22,6 +24,8 @@ on:
         options:
           - all
           - core
+          - postgres
+          - sqlite
           - http
           - upload
           - client
@@ -65,6 +69,8 @@ jobs:
 
             case "$tag" in
               npm/core/v*) selection="core" ;;
+              npm/postgres/v*) selection="postgres" ;;
+              npm/sqlite/v*) selection="sqlite" ;;
               npm/http/v*) selection="http" ;;
               npm/upload/v*) selection="upload" ;;
               npm/client/v*) selection="client" ;;
@@ -83,13 +89,13 @@ jobs:
           case "$selection" in
             all)
               if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                packages='["core","http","upload","client","integrity","access","plugins"]'
+                packages='["core","postgres","sqlite","http","upload","client","integrity","access","plugins"]'
               else
-                packages='["core","http","upload","client"]'
+                packages='["core","postgres","sqlite","http","upload","client"]'
               fi
               ;;
             security) packages='["integrity","access"]' ;;
-            core|http|upload|client|integrity|access|plugins)
+            core|postgres|sqlite|http|upload|client|integrity|access|plugins)
               packages="[\"$selection\"]"
               ;;
             *)
@@ -173,7 +179,7 @@ jobs:
           mkdir -p artifacts
           packed=""
 
-          publish_order=(core http upload client integrity access plugins)
+          publish_order=(core postgres sqlite http upload client integrity access plugins)
           selected=$(node -e 'JSON.parse(process.env.PACKAGES).forEach((p) => console.log(p))')
 
           for pkg in "${publish_order[@]}"; do

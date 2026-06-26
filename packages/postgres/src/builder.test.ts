@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildJoinPlan } from "../planner/join-plan.js";
+import {
+  buildJoinPlan,
+  createQueryContext,
+  parseQl,
+  type MeshSchema,
+} from "@meshql/core";
 import { buildSelectSql } from "./builder.js";
-import { createQueryContext } from "../resolver/context.js";
-import { parseQl } from "../parser/index.js";
-import type { MeshSchema } from "../schema/schema.js";
 
 const schema: MeshSchema = {
   entities: {
