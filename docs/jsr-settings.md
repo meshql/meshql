@@ -14,7 +14,6 @@ For each publishable package, open **Settings** on the package page and set:
 | `@meshql/upload` | done | done |
 | `@meshql/integrity` | **before first release** | **before first release** |
 | `@meshql/access` | **before first release** | **before first release** |
-| `@meshql/plugins` | **before first release** | **before first release** |
 
 Steps for each new package:
 
@@ -31,7 +30,6 @@ Steps for each new package:
 | `@meshql/upload` | Optional file upload extension for MeshQL servers. |
 | `@meshql/integrity` | Request integrity and signing helpers for MeshQL HTTP servers. |
 | `@meshql/access` | Access control helpers for MeshQL resources. |
-| `@meshql/plugins` | Optional plugins extending MeshQL core. |
 
 ## Runtime compatibility
 

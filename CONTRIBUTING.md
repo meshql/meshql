@@ -38,7 +38,6 @@ pnpm format
 | `packages/upload` | Upload extension |
 | `packages/integrity` | Request integrity / signing |
 | `packages/access` | Access control helpers |
-| `packages/plugins` | Optional plugins (peer on core) |
 | `examples/` | Runnable examples |
 | `docs/` | Usage guides |
 
@@ -60,11 +59,10 @@ MeshQL is a **pnpm + Turbo monorepo** with **independent per-package versions**.
 | `@meshql/upload` | `meshql-upload` | `@meshql/upload` |
 | `@meshql/integrity` | `meshql-integrity` | `@meshql/integrity` |
 | `@meshql/access` | `meshql-access` | `@meshql/access` |
-| `@meshql/plugins` | `meshql-plugins` | `@meshql/plugins` |
 
 `@meshql/typescript-config` is private and never published.
 
-**Publish order** (when multiple packages release together): `core → postgres → sqlite → http → upload → client → integrity → access → plugins`.
+**Publish order** (when multiple packages release together): `core → postgres → sqlite → http → upload → client → integrity → access`.
 
 ### Standard release flow (Changesets)
 
@@ -133,7 +131,6 @@ For **each** publishable package:
 | `@meshql/upload` | yes | yes |
 | `@meshql/integrity` | **required before first tag** | **required before first tag** |
 | `@meshql/access` | **required before first tag** | **required before first tag** |
-| `@meshql/plugins` | **required before first tag** | **required before first tag** |
 
 Without linking, CI fails with `actorNotAuthorized`. See [docs/jsr-settings.md](./docs/jsr-settings.md) for descriptions and runtime compatibility.
 
