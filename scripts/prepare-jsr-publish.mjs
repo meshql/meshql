@@ -37,5 +37,6 @@ function rewriteMeshqlDeps(section) {
 
 rewriteMeshqlDeps("dependencies");
 rewriteMeshqlDeps("peerDependencies");
+delete manifest.devDependencies;
 
 fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
