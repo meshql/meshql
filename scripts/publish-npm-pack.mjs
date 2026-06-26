@@ -13,7 +13,6 @@ const packages = [
   "client",
   "integrity",
   "access",
-  "plugins",
 ];
 
 fs.mkdirSync(artifacts, { recursive: true });
