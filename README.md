@@ -59,7 +59,6 @@ deno add jsr:@meshql/core jsr:@meshql/http jsr:@meshql/client
 | `@meshql/upload` | [jsr.io/@meshql/upload](https://jsr.io/@meshql/upload) | File uploads (optional) |
 | `@meshql/integrity` | [jsr.io/@meshql/integrity](https://jsr.io/@meshql/integrity) | Request signing and integrity tokens |
 | `@meshql/access` | [jsr.io/@meshql/access](https://jsr.io/@meshql/access) | Entity, row, and field access control |
-| `@meshql/plugins` | [jsr.io/@meshql/plugins](https://jsr.io/@meshql/plugins) | Optional plugins (peer on core) |
 
 **Core stack** (most apps — pick a DB adapter):
 
@@ -87,10 +86,10 @@ Until the `@meshql` npm org is available, packages publish as unscoped **`meshql
 npm install meshql-core meshql-http meshql-client
 ```
 
-**Full stack** (uploads + security + plugins):
+**Full stack** (uploads + security):
 
 ```bash
-npm install meshql-core meshql-http meshql-client meshql-upload meshql-integrity meshql-access meshql-plugins
+npm install meshql-core meshql-http meshql-client meshql-upload meshql-integrity meshql-access
 ```
 
 | Package | npm | Purpose |
@@ -103,7 +102,6 @@ npm install meshql-core meshql-http meshql-client meshql-upload meshql-integrity
 | `meshql-upload` | [npmjs.com/package/meshql-upload](https://www.npmjs.com/package/meshql-upload) | File uploads (optional) |
 | `meshql-integrity` | [npmjs.com/package/meshql-integrity](https://www.npmjs.com/package/meshql-integrity) | Request signing and integrity tokens |
 | `meshql-access` | [npmjs.com/package/meshql-access](https://www.npmjs.com/package/meshql-access) | Entity, row, and field access control |
-| `meshql-plugins` | [npmjs.com/package/meshql-plugins](https://www.npmjs.com/package/meshql-plugins) | Optional plugins (peer on `meshql-core`) |
 
 Imports use the npm package names:
 
@@ -297,13 +295,12 @@ express()
 | `@meshql/upload` | `meshql-upload` | File uploads (optional) |
 | `@meshql/integrity` | `meshql-integrity` | Signing token lifecycle and request integrity |
 | `@meshql/access` | `meshql-access` | Entity, row, and dynamic field access |
-| `@meshql/plugins` | `meshql-plugins` | Optional plugins (peer dependency on core) |
 
 HTTP adapter docs (routes, headers, curl): [docs/http-adapters.md](./docs/http-adapters.md)
 
 ## Security
 
-Built-in limits (depth, complexity, rate) live in `@meshql/core/builtins`. For signed requests and access control, add the dedicated packages:
+Built-in limits (depth, complexity, rate) live in `@meshql/core/builtins`. Custom plugins use `MeshPlugin` from `@meshql/core` and `mesh.use()`. For signed requests and access control, add the dedicated packages:
 
 ```bash
 # npm
@@ -315,7 +312,7 @@ npx jsr add @meshql/integrity @meshql/access
 
 Runnable demo: [samples/npm-access](../samples/npm-access) in the meshql_stack repo.
 
-> **JSR:** `integrity`, `access`, and `plugins` require one-time package setup on [jsr.io](https://jsr.io) before first publish. See [CONTRIBUTING.md](./CONTRIBUTING.md).
+> **JSR:** `integrity` and `access` require one-time package setup on [jsr.io](https://jsr.io) before first publish. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Hacking on it
 
@@ -330,7 +327,6 @@ packages/client     SDK
 packages/upload     uploads
 packages/integrity  signing tokens
 packages/access     access control
-packages/plugins    optional plugins
 examples/           runnable demos (express-sqlite, express-postgres)
 ```
 

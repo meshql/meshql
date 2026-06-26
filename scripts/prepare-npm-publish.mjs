@@ -13,7 +13,6 @@ const NPM_NAME_BY_DIR = {
   upload: "meshql-upload",
   integrity: "meshql-integrity",
   access: "meshql-access",
-  plugins: "meshql-plugins",
 };
 
 const DIR_BY_SCOPE = Object.fromEntries(
@@ -29,7 +28,6 @@ const PUBLISH_ORDER = [
   "client",
   "integrity",
   "access",
-  "plugins",
 ];
 
 /** Longest paths first so @meshql/core/builtins is rewritten before @meshql/core. */
@@ -43,7 +41,6 @@ const IMPORT_REWRITES = [
   ["@meshql/upload", "meshql-upload"],
   ["@meshql/integrity", "meshql-integrity"],
   ["@meshql/access", "meshql-access"],
-  ["@meshql/plugins", "meshql-plugins"],
 ];
 
 function rewriteDistImports(packageDir) {
