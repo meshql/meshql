@@ -1,2 +1,2 @@
-export { buildSelectSql } from "./builder.js";
-export type { SqlBuilderOptions, SqlQuery } from "./builder.js";
+export { buildSelectSql, decodeCursor, encodeCursor } from "./builder.js";
+export type { CursorPayload, SqlBuilderOptions, SqlQuery } from "./builder.js";

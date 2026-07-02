@@ -1,8 +1,9 @@
 import { ValidationError } from "../errors/index.js";
 import type { AST, ASTNode } from "../parser/ast.js";
-import type { JoinConfig, MeshSchema } from "../schema/schema.js";
-import { entityIdField } from "../schema/schema.js";
+import type { EntityConfig, JoinConfig, MeshSchema } from "../schema/schema.js";
+import { entityIdField, entityTable, resolveEntityKey } from "../schema/schema.js";
 import type { QueryContext } from "../resolver/context.js";
+import type { ListOptions } from "./list-options.js";
 
 /** Execution plan describing selected fields and joins for a query. */
 export interface JoinPlan {
@@ -16,6 +17,12 @@ export interface JoinPlan {
   idField: string;
   joins: ResolvedJoin[];
   context: QueryContext;
+  /**
+   * List-read options (pagination, filtering, ordering). Present only when
+   * the request is a list query \u2014 point reads leave this undefined so
+   * resolvers can distinguish the two cases with a simple `plan.list` check.
+   */
+  list?: ListOptions;
 }
 
 /** A resolved join from the query AST to a schema join definition. */
@@ -33,8 +40,20 @@ export interface ResolvedJoin {
   idField: string;
 }
 
-function tablePrefix(entity: string): string {
-  return entity.endsWith("s") ? entity : `${entity}s`;
+/** Options for {@link buildJoinPlan}. */
+export interface BuildJoinPlanOptions {
+  /** List-read metadata attached to the returned plan. */
+  list?: ListOptions;
+}
+
+/**
+ * SQL table alias for an entity, given the entity's config.
+ *
+ * Prefer this over the raw AST name so entities with irregular plurals
+ * (declared via `config.table`) render correctly in `SELECT` prefixes.
+ */
+function tablePrefix(entityKey: string, config?: EntityConfig): string {
+  return entityTable(entityKey, config);
 }
 
 /** Build a join plan from a parsed query AST and schema. */
@@ -42,14 +61,20 @@ export function buildJoinPlan(
   ast: AST,
   schema: MeshSchema,
   context: QueryContext,
+  options: BuildJoinPlanOptions = {},
 ): JoinPlan {
   const root = ast.root;
   const fields: string[] = [];
   const joins: ResolvedJoin[] = [];
 
-  const rootConfig = schema.entities[root.name];
+  const rootEntityKey = resolveEntityKey(root.name, schema);
+  if (!rootEntityKey) {
+    throw new ValidationError(`Unknown entity '${root.name}'`);
+  }
+
+  const rootConfig = schema.entities[rootEntityKey];
   const rootIdField = entityIdField(rootConfig);
-  const rootPrefix = tablePrefix(root.name);
+  const rootPrefix = tablePrefix(rootEntityKey, rootConfig);
 
   const rootFieldSet = new Set<string>();
   for (const field of root.fields) {
@@ -94,13 +119,19 @@ export function buildJoinPlan(
     });
   }
 
-  return {
-    rootEntity: root.name,
+  const plan: JoinPlan = {
+    rootEntity: rootEntityKey,
     fields,
     idField: rootIdField,
     joins,
     context,
   };
+
+  if (options.list) {
+    plan.list = options.list;
+  }
+
+  return plan;
 }
 
 /** Collect a node and all nested reference nodes from an AST subtree. */

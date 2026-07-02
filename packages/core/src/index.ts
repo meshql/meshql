@@ -6,6 +6,7 @@
 import { MeshError, ResolverError } from "./errors/index.js";
 import { parseQuery } from "./parser/index.js";
 import { buildJoinPlan } from "./planner/join-plan.js";
+import type { ListOptions } from "./planner/list-options.js";
 import { validateAst } from "./planner/validator.js";
 import type { MeshConfig } from "./schema/schema.js";
 import {
@@ -33,6 +34,18 @@ export interface ExecuteOptions {
   context?: Partial<QueryContext> & Pick<QueryContext, "requestId" | "method">;
   /** Return a list of shaped records instead of a single object. */
   list?: boolean;
+  /**
+   * Pagination, filtering, and ordering options attached to the plan.
+   *
+   * Precedence: this option overrides any `$list` declared in the wire
+   * payload. Setting it implicitly enables list-shape mode (`list: true`);
+   * pass `list: false` explicitly to opt back into single-record shaping.
+   *
+   * For HTTP transport, prefer declaring `$list` in the JSON wire payload
+   * so the value is covered by the request signature. This option exists
+   * for programmatic callers and adapters that construct plans directly.
+   */
+  listOptions?: ListOptions;
   /** HTTP transport metadata for integrity verification. */
   transport?: ExecuteTransport;
 }
@@ -101,17 +114,22 @@ export function createMesh(config: MeshConfig): MeshInstance {
         pluginCtx.ast = ast;
 
         validateAst(ast, config);
-        const plan = buildJoinPlan(ast, config, context);
+
+        // Resolve list options: explicit caller override wins over the
+        // wire-declared `$list`, which wins over none. listOptions presence
+        // implies list-shape mode unless the caller passed `list: false`.
+        const listOptions = options.listOptions ?? ast.list;
+        const listMode = options.list ?? listOptions !== undefined;
+
+        const plan = buildJoinPlan(ast, config, context, {
+          list: listOptions,
+        });
 
         const planResult = await plugins.runOnPlan(plan, pluginCtx);
 
         if (isPlanShortCircuit(planResult)) {
           let shortResponse = planResult.response;
-          if (
-            !options.list &&
-            Array.isArray(shortResponse) &&
-            shortResponse.length === 0
-          ) {
+          if (!listMode && Array.isArray(shortResponse) && shortResponse.length === 0) {
             shortResponse = {};
           }
           const finalResponse = await plugins.runOnResponse(shortResponse, pluginCtx);
@@ -138,7 +156,7 @@ export function createMesh(config: MeshConfig): MeshInstance {
 
         const rows = Array.isArray(raw) ? raw : [raw as Record<string, unknown>];
 
-        const shaped = options.list
+        const shaped = listMode
           ? shapeMany(rows, ast.root, planResult.joins, planResult.idField)
           : shape(rows, ast.root, planResult.joins);
 
@@ -168,7 +186,11 @@ export {
 export { parseQuery, parseQl, parseJson, tokenize } from "./parser/index.js";
 export type { AST, ASTNode } from "./parser/ast.js";
 export { buildJoinPlan, collectAstNodes } from "./planner/join-plan.js";
-export type { JoinPlan, ResolvedJoin } from "./planner/join-plan.js";
+export type {
+  BuildJoinPlanOptions,
+  JoinPlan,
+  ResolvedJoin,
+} from "./planner/join-plan.js";
 export {
   stripFieldsFromPlan,
   normalizeFieldPath,
@@ -176,8 +198,16 @@ export {
 } from "./planner/strip-fields.js";
 export { validateAst } from "./planner/validator.js";
 export {
+  DEFAULT_LIST_LIMIT,
+  FILTER_OPS,
+  MAX_LIST_LIMIT,
+  isFilterOp,
+} from "./planner/list-options.js";
+export type { Filter, FilterOp, ListOptions, OrderBy } from "./planner/list-options.js";
+export {
   entityTable,
   entityIdField,
+  resolveEntityKey,
   type MeshConfig,
   type MeshSchema,
   type EntityConfig,
@@ -185,6 +215,7 @@ export {
 } from "./schema/schema.js";
 export { shape, shapeMany } from "./shaper/shaper.js";
 export {
+  CATCH_ALL,
   createQueryContext,
   ResolverRegistry,
   type QueryContext,

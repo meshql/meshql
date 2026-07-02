@@ -125,6 +125,7 @@ async function start() {
       }`,
     );
     console.log("Try: pnpm --filter express-postgres exec tsx src/demo-client.ts");
+    console.log("List: pnpm --filter express-postgres exec tsx src/demo-list-client.ts");
     if (useIntegrity) {
       console.log(
         "Secure: pnpm --filter express-postgres exec tsx src/demo-secure-client.ts",

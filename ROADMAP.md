@@ -36,18 +36,19 @@ express()
 
 Every gap between this snippet and what the repo does today is a roadmap item.
 
-## Status (as of 0.2.0)
+## Status (as of 0.4.0)
 
 **Current sequence** — Phase 1 landed first (correctness took precedence over
 repositioning), then the chosen execution order is:
 
 | Step | What | Status |
 |---|---|---|
-| A | Cut **0.2.0** with the Phase 1 correctness fixes (changeset queued) | ✅ committed; awaiting `pnpm version-packages` + publish |
+| A | Cut **0.2.0** with the Phase 1 correctness fixes | ✅ |
 | B | CI Postgres integration test (was item 1.10) | ✅ |
-| C | **Phase 0** — split `@meshql/postgres` + `@meshql/sqlite` out of `@meshql/core` | ✅ |
+| C | **Phase 0** — split `@meshql/postgres` + `@meshql/sqlite` out of `@meshql/core` | ✅ (shipped in 0.2.0) |
+| D | **Phase 2** — `JoinPlan.list`, filters, cursors, catch-all resolver | ✅ |
 | E | Decide on **Phase 4.5** wire protocol work (persisted queries / compression / CBOR) — placement and timing | ⏭ next |
-| D | **Phase 2** — `JoinPlan.list`, filters, cursors, catch-all resolver | ⏭ |
+| F | **Phase 3** — native multipart uploads with signed body | ⏭ |
 
 Phases 3 → 5 follow the original order. The headline plan below describes
 the *intended* phase progression; the Status table is the source of truth for
@@ -93,7 +94,7 @@ gantt
 |---|---|---|---|---|
 | 0 | Reposition: `@meshql/postgres` + `@meshql/sqlite` split out of core | `0.3.0` | 1 evening | ✅ done |
 | 1 | Correctness bugs fixed, Postgres integration test passes | `0.2.0` | 2 weeks | ✅ done |
-| 2 | List queries, filters, cursors, catch-all resolver | `0.4.0` | 1.5 weeks | ⏭ |
+| 2 | List queries, filters, cursors, catch-all resolver | `0.4.0` | 1.5 weeks | ✅ done |
 | 3 | Multipart upload with signed body | `0.5.0` | ~2 weeks | ⏭ |
 | 4 | Prisma + Drizzle + Kysely adapters | `0.6.0` | 2 weeks | ⏭ |
 | 4.5 | Wire protocol: persisted queries, compression, optional CBOR | TBD | ~1 week | ⏭ decision pending |
@@ -318,10 +319,22 @@ default; SQL builder move is breaking. Document both in the changeset.)
 
 ---
 
-## Phase 2 — JoinPlan extensions + catch-all resolver (1.5 weeks)
+## Phase 2 — JoinPlan extensions + catch-all resolver (1.5 weeks) ✅ DONE
 
 > Make list endpoints real. Plumb pagination, filtering, ordering down to the
 > resolver. Add the catch-all resolver pattern that ORM adapters will rely on.
+>
+> **What landed in 0.4.0**:
+>
+> - `JoinPlan.list` with `ListOptions` (limit, cursor, orderBy, filter).
+> - List metadata travels in the signed JSON wire payload as `$list` — not URL
+>   query strings — so pagination and filters stay inside the integrity boundary.
+> - Catch-all resolver via `mesh.resolve("*", fn)`; specific resolvers win.
+> - `@meshql/postgres` and `@meshql/sqlite` builders generate parameterized
+>   `WHERE`/`ORDER BY`/`LIMIT` and keyset cursor predicates; `encodeCursor` /
+>   `decodeCursor` helpers exported from both adapters.
+> - `@meshql/client` accepts a `list` option that serializes `$list` into the
+>   signed `X-Mesh-Query` header automatically.
 
 ### 2.1 Extend `JoinPlan` with `list`
 
@@ -359,25 +372,32 @@ export interface Filter {
 }
 ```
 
-`list` is only set when the request is a list query (no `:id` in the route, or
-explicit `?list=true`).
+`list` is set when the wire payload includes `$list`, when the caller passes
+`listOptions` to `mesh.execute()`, or when the HTTP route is a list read (no
+`:id` segment) and list metadata is present in the signed query.
 
-### 2.2 HTTP transport parses query params
+### 2.2 List metadata in the signed wire payload ✅
 
-`packages/http/src/handlers/index.ts`:
+MeshQL carries queries in `X-Mesh-Query` (base64 JSON), not URL query strings.
+List options are a `$list` sibling key in that JSON so they are covered by
+request signing:
 
-- `?limit=20`
-- `?cursor=eyJpZCI6MTAwfQ`
-- `?orderBy=createdAt:desc,name:asc`
-- `?filter[status]=active` → `{ field: "status", op: "eq", value: "active" }`
-- `?filter[age][gte]=18` → `{ field: "age", op: "gte", value: "18" }`
-- `?filter[role][in]=admin,owner` → array value
+```json
+{
+  "user": { "id": true, "name": true },
+  "$list": {
+    "limit": 20,
+    "cursor": "eyJpZCI6MTAwfQ",
+    "orderBy": [{ "field": "createdAt", "dir": "desc" }],
+    "filter": [{ "field": "role", "op": "in", "value": ["admin", "owner"] }]
+  }
+}
+```
 
-Add parsing utilities under `packages/http/src/transport/list-params.ts` with
-their own tests.
-
-Validate against the schema before passing to the resolver: unknown fields,
-disallowed operators, oversized `limit`, all rejected at the HTTP boundary.
+Parsing lives in `packages/core/src/parser/index.ts` (`parseListOptions`);
+validation in `packages/core/src/planner/validator.ts` (unknown fields,
+invalid operators, `limit` capped at 200). `@meshql/client` exposes this as
+`client.query(selection, { list: { ... } })`.
 
 ### 2.3 Catch-all resolver
 
@@ -415,14 +435,14 @@ example showing list/filter/order usage.
 Cursor format: `base64url(JSON.stringify({ id }))`. Resolver decides what's in
 the cursor.
 
-### 2.6 Tests
+### 2.6 Tests ✅
 
-`packages/http/src/transport/list-params.test.ts`:
+`packages/core/src/parser/parser.test.ts`:
 
-- Each operator parses correctly.
-- Unknown operator → 400.
+- Each filter operator parses correctly.
+- Unknown operator → `ParseError`.
 - `orderBy` parses multi-key with mixed directions.
-- `limit` capped at 200.
+- `limit` shape validation.
 
 `packages/core/src/resolver/registry.test.ts`:
 
@@ -435,15 +455,15 @@ the cursor.
 - Filter generates parameterised WHERE.
 - Multi-key ORDER BY renders correctly.
 - Cursor decoded into WHERE clause.
-- Limit and offset.
+- Limit and cursor keyset predicate.
 
-### Acceptance
+### Acceptance ✅
 
-- `GET /api/user?limit=10&orderBy=createdAt:desc&filter[role][in]=admin,owner`
-  works end-to-end against the express-postgres example.
+- List reads with `$list` in the signed wire payload work end-to-end against
+  the express-postgres example and the SQLite integration suite.
 - Catch-all resolver pattern shown in README.
 
-**Release: 0.3.0**
+**Release: 0.4.0**
 
 ---
 
