@@ -210,6 +210,35 @@ const user = await client.query(
 console.log(user);
 ```
 
+### List queries and catch-all resolvers
+
+**List reads** — pass `list` to the client (serialized as `$list` in the signed
+header payload):
+
+```typescript
+const users = await client.query(
+  { user: { id: true, name: true } },
+  {
+    list: {
+      limit: 10,
+      orderBy: [{ field: "name", dir: "asc" }],
+      filter: [{ field: "role", op: "eq", value: "admin" }],
+    },
+  },
+);
+```
+
+**Catch-all resolver** — one handler for every entity (the pattern ORM adapters use):
+
+```typescript
+mesh.resolve("*", async (plan) => {
+  const { sql, params } = buildSelectSql(plan, schema);
+  return db.query(sql, params);
+});
+```
+
+A specific `mesh.resolve("user", fn)` always wins over the `"*"` fallback.
+
 ---
 
 ## Try the monorepo example

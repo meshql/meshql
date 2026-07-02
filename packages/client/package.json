@@ -1,6 +1,6 @@
 {
   "name": "@meshql/client",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "MeshQL typed client SDK",
   "license": "MIT",
   "type": "module",
@@ -20,6 +20,7 @@
     "publish:jsr": "jsr publish"
   },
   "dependencies": {
+    "@meshql/core": "workspace:*",
     "@meshql/http": "workspace:*"
   },
   "devDependencies": {

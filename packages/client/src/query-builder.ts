@@ -1,11 +1,23 @@
+import type { ListOptions } from "@meshql/core";
+
 /** Nested JSON field selection used by the MeshQL client. */
 export type QuerySelection = {
   [key: string]: boolean | QuerySelection;
 };
 
-/** Serialize a field selection to JSON query format. */
-export function selectionToJson(selection: QuerySelection): string {
-  return JSON.stringify(selection);
+/**
+ * Serialize a field selection to JSON query format.
+ *
+ * When `list` is provided it lands in the payload under the reserved
+ * `$list` key so the server picks it up as part of the signed body. The
+ * key sits alongside the entity selection \u2014 do not include a `$list`
+ * property in `selection` itself.
+ */
+export function selectionToJson(selection: QuerySelection, list?: ListOptions): string {
+  if (list === undefined) {
+    return JSON.stringify(selection);
+  }
+  return JSON.stringify({ ...selection, $list: list });
 }
 
 /** Serialize a field selection to MeshQL brace syntax. */

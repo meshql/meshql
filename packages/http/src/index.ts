@@ -22,6 +22,7 @@ import type { MeshInstance } from "@meshql/core";
 import {
   IntegrityError,
   MeshError,
+  ParseError,
   RateLimitError,
   ResolverError,
   TransportError,
@@ -49,6 +50,7 @@ function statusForError(error: MeshError): number {
   if (error instanceof RateLimitError) return 429;
   if (error instanceof ValidationError) return 400;
   if (error instanceof TransportError) return 400;
+  if (error instanceof ParseError) return 400;
   if (error instanceof ResolverError) return 500;
   return 400;
 }

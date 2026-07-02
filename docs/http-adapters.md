@@ -80,6 +80,33 @@ Change the base path with the second argument / `options.basePath`.
 { "user": { "id": true, "name": true } }
 ```
 
+**List reads** — add a `$list` sibling key in the same JSON payload (covered by
+the signature when integrity is enabled). Use this for pagination, filtering,
+and ordering on `GET /mesh/:entity` (no `:id`):
+
+```json
+{
+  "user": { "id": true, "name": true },
+  "$list": {
+    "limit": 20,
+    "orderBy": [{ "field": "name", "dir": "asc" }],
+    "filter": [{ "field": "role", "op": "in", "value": ["admin", "owner"] }],
+    "cursor": "eyJpZCI6MTAwfQ"
+  }
+}
+```
+
+| `$list` key | Type | Notes |
+|-------------|------|-------|
+| `limit` | integer | Default 50, max 200 |
+| `cursor` | string | Opaque keyset cursor from `encodeCursor()` |
+| `orderBy` | `{ field, dir }[]` | Multi-key sort; `dir` is `asc` or `desc` |
+| `filter` | `{ field, op, value }[]` | Ops: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `nin`, `like`, `ilike` |
+
+List metadata is **not** passed as URL query strings — it lives in the signed
+`X-Mesh-Query` body so filters and page size cannot be tampered with separately
+from the field selection.
+
 **QL format** - brace syntax:
 
 ```
@@ -132,6 +159,11 @@ curl -s "http://localhost:3001/mesh/user/1" \
 # List
 curl -s "http://localhost:3001/mesh/user" \
   -H "X-Mesh-Query: $Q" \
+  -H "X-Mesh-Format: json"
+
+# List
+curl -s "http://localhost:3001/mesh/user" \
+  -H "X-Mesh-Query: $(mesh_query '{"user":{"id":true,"name":true},"$list":{"limit":10,"orderBy":[{"field":"name","dir":"asc"}]}}')" \
   -H "X-Mesh-Format: json"
 
 # QL format
@@ -319,9 +351,21 @@ const user = await client.query(
   },
   { entityId: "123" },
 );
+
+// List read with pagination, filters, and ordering ($list in signed payload)
+const admins = await client.query(
+  { user: { id: true, name: true } },
+  {
+    list: {
+      limit: 10,
+      orderBy: [{ field: "name", dir: "asc" }],
+      filter: [{ field: "role", op: "in", value: ["admin", "owner"] }],
+    },
+  },
+);
 ```
 
-The client sets `X-Mesh-Query`, `X-Mesh-Format`, and `X-Mesh-Version` on every request.
+The client sets `X-Mesh-Query`, `X-Mesh-Format`, and `X-Mesh-Version` on every request. List options require `format: "json"` (the default).
 
 ---
 
