@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.1
+
+### Patch Changes
+
+- v0.4.0: list queries, filters, cursors, and catch-all resolver.
+  - **New:** `JoinPlan.list` with `ListOptions` (limit, cursor, orderBy, filter). List metadata travels in the signed JSON wire payload as `$list`.
+  - **New:** Catch-all resolver via `mesh.resolve("*", fn)`; specific entity resolvers always win.
+  - **New:** `@meshql/postgres` and `@meshql/sqlite` builders generate parameterized `WHERE`/`ORDER BY`/`LIMIT` and keyset cursor predicates; `encodeCursor` / `decodeCursor` helpers exported.
+  - **New:** `@meshql/client` `list` option serializes `$list` into the signed `X-Mesh-Query` header.
+
+- Updated dependencies
+  - @meshql/core@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

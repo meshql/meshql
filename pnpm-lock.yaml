@@ -128,6 +128,9 @@ importers:
 
   packages/client:
     dependencies:
+      '@meshql/core':
+        specifier: workspace:*
+        version: link:../core
       '@meshql/http':
         specifier: workspace:*
         version: link:../http

@@ -1,4 +1,5 @@
 import { signQuery } from "@meshql/http";
+import type { ListOptions } from "@meshql/core";
 import {
   selectionToJson,
   selectionToQl,
@@ -30,10 +31,19 @@ export interface MeshClientOptions {
 
 /** Typed MeshQL HTTP client. */
 export interface MeshClient {
-  /** Execute a field selection query against the MeshQL server. */
+  /**
+   * Execute a field selection query against the MeshQL server.
+   *
+   * Pass `entityId` for point reads (`GET /:entity/:id`). Pass `list` for
+   * list reads (`GET /:entity`) with pagination, filters, and ordering —
+   * the value is serialized into the signed body as `$list` metadata.
+   *
+   * `list` requires `format: 'json'` on the client (the QL brace format
+   * has no list syntax). Passing both `entityId` and `list` throws.
+   */
   query<T = Record<string, unknown>>(
     selection: QuerySelection,
-    options?: { entityId?: string },
+    options?: { entityId?: string; list?: ListOptions },
   ): Promise<T>;
   /** Update signing credentials after login or refresh. */
   setAuth(tokens: Partial<Pick<AuthTokens, "signingToken" | "token">>): void;
@@ -53,16 +63,26 @@ export function createClient(options: MeshClientOptions): MeshClient {
 
   async function executeQuery<T>(
     selection: QuerySelection,
-    requestOptions: { entityId?: string } = {},
+    requestOptions: { entityId?: string; list?: ListOptions } = {},
   ): Promise<T> {
     const rootEntity = Object.keys(selection)[0];
     if (!rootEntity) {
       throw new Error("Query selection must include a root entity");
     }
 
+    if (requestOptions.list && requestOptions.entityId) {
+      throw new Error("Cannot combine `list` with `entityId` — use one or the other");
+    }
+
+    if (requestOptions.list && format !== "json") {
+      throw new Error(
+        "`list` options require format: 'json' on the client (the QL brace format has no list syntax)",
+      );
+    }
+
     const raw =
       format === "json"
-        ? selectionToJson(selection)
+        ? selectionToJson(selection, requestOptions.list)
         : selectionToQl(selection);
 
     const path = requestOptions.entityId
@@ -95,7 +115,9 @@ export function createClient(options: MeshClientOptions): MeshClient {
       const errorBody = (await response.json().catch(() => ({}))) as {
         message?: string;
       };
-      throw new Error(errorBody.message ?? `MeshQL request failed (${response.status})`);
+      throw new Error(
+        errorBody.message ?? `MeshQL request failed (${response.status})`,
+      );
     }
 
     return (await response.json()) as T;

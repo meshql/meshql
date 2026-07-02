@@ -1,4 +1,11 @@
 import { ParseError } from "../errors/index.js";
+import {
+  FILTER_OPS,
+  isFilterOp,
+  type Filter,
+  type ListOptions,
+  type OrderBy,
+} from "../planner/list-options.js";
 import type { AST, ASTNode } from "./ast.js";
 import { tokenize, type Token } from "./tokenizer.js";
 
@@ -62,7 +69,19 @@ interface JsonSelection {
   [key: string]: boolean | JsonSelection;
 }
 
-/** Parse a MeshQL query encoded as JSON field selection. */
+/**
+ * Parse a MeshQL query encoded as JSON field selection.
+ *
+ * The wire format is a single-root selection map:
+ *
+ * ```json
+ * { "user": { "id": true, "name": true, "tokens": { "accessToken": true } } }
+ * ```
+ *
+ * Keys starting with `$` are reserved for MeshQL metadata. Currently only
+ * `$list` is supported; unknown `$`-prefixed keys throw a `ParseError` so
+ * typos aren't silently ignored.
+ */
 export function parseJson(raw: string): AST {
   let parsed: unknown;
   try {
@@ -75,13 +94,35 @@ export function parseJson(raw: string): AST {
     throw new ParseError("JSON query must be an object");
   }
 
-  const entries = Object.entries(parsed as Record<string, unknown>);
-  if (entries.length !== 1) {
+  const obj = parsed as Record<string, unknown>;
+  const entityEntries: [string, unknown][] = [];
+  let listRaw: unknown;
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (key.startsWith("$")) {
+      if (key === "$list") {
+        listRaw = value;
+        continue;
+      }
+      throw new ParseError(
+        `Unknown meta key '${key}' - only '$list' is currently supported`,
+      );
+    }
+    entityEntries.push([key, value]);
+  }
+
+  if (entityEntries.length !== 1) {
     throw new ParseError("JSON query must have exactly one root entity");
   }
 
-  const [rootName, rootValue] = entries[0]!;
-  return { root: jsonNodeToAst(rootName, rootValue) };
+  const [rootName, rootValue] = entityEntries[0]!;
+  const ast: AST = { root: jsonNodeToAst(rootName, rootValue) };
+
+  if (listRaw !== undefined) {
+    ast.list = parseListOptions(listRaw);
+  }
+
+  return ast;
 }
 
 function jsonNodeToAst(name: string, value: unknown): ASTNode {
@@ -102,6 +143,89 @@ function jsonNodeToAst(name: string, value: unknown): ASTNode {
   }
 
   return node;
+}
+
+/**
+ * Parse and shape-check a `$list` payload.
+ *
+ * Only syntactic validation (types, shapes, known operator names) happens
+ * here \u2014 field existence and range checks are the validator's job so
+ * the parser stays schema-agnostic.
+ */
+function parseListOptions(raw: unknown): ListOptions {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new ParseError("'$list' must be an object");
+  }
+
+  const obj = raw as Record<string, unknown>;
+  const out: ListOptions = {};
+
+  if ("limit" in obj) {
+    const limit = obj.limit;
+    if (typeof limit !== "number" || !Number.isInteger(limit) || limit < 1) {
+      throw new ParseError("'$list.limit' must be a positive integer");
+    }
+    out.limit = limit;
+  }
+
+  if ("cursor" in obj) {
+    const cursor = obj.cursor;
+    if (typeof cursor !== "string" || cursor.length === 0) {
+      throw new ParseError("'$list.cursor' must be a non-empty string");
+    }
+    out.cursor = cursor;
+  }
+
+  if ("orderBy" in obj) {
+    const orderBy = obj.orderBy;
+    if (!Array.isArray(orderBy)) {
+      throw new ParseError("'$list.orderBy' must be an array");
+    }
+    out.orderBy = orderBy.map(parseOrderBy);
+  }
+
+  if ("filter" in obj) {
+    const filter = obj.filter;
+    if (!Array.isArray(filter)) {
+      throw new ParseError("'$list.filter' must be an array");
+    }
+    out.filter = filter.map(parseFilter);
+  }
+
+  return out;
+}
+
+function parseOrderBy(entry: unknown, index: number): OrderBy {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    throw new ParseError(`'$list.orderBy[${index}]' must be an object`);
+  }
+  const { field, dir } = entry as Record<string, unknown>;
+  if (typeof field !== "string" || field.length === 0) {
+    throw new ParseError(`'$list.orderBy[${index}].field' must be a non-empty string`);
+  }
+  if (dir !== "asc" && dir !== "desc") {
+    throw new ParseError(`'$list.orderBy[${index}].dir' must be 'asc' or 'desc'`);
+  }
+  return { field, dir };
+}
+
+function parseFilter(entry: unknown, index: number): Filter {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    throw new ParseError(`'$list.filter[${index}]' must be an object`);
+  }
+  const { field, op, value } = entry as Record<string, unknown>;
+  if (typeof field !== "string" || field.length === 0) {
+    throw new ParseError(`'$list.filter[${index}].field' must be a non-empty string`);
+  }
+  if (typeof op !== "string" || !isFilterOp(op)) {
+    throw new ParseError(
+      `'$list.filter[${index}].op' must be one of: ${FILTER_OPS.join(", ")}`,
+    );
+  }
+  // `value` may be any JSON type \u2014 scalar for comparison ops, array for
+  // in/nin, string for like/ilike. Semantic checks live in the validator/
+  // resolver.
+  return { field, op, value };
 }
 
 /** Parse a query in the given transport format. */

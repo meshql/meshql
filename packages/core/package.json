@@ -1,6 +1,6 @@
 {
   "name": "@meshql/core",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "MeshQL core - parse queries, build join plans, shape responses",
   "license": "MIT",
   "type": "module",

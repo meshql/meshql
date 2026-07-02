@@ -38,3 +38,34 @@ export function entityTable(entity: string, config?: EntityConfig): string {
 export function entityIdField(config?: EntityConfig): string {
   return config?.idField ?? "id";
 }
+
+/**
+ * Resolve an arbitrary name (entity key or SQL table name) to a declared
+ * entity key.
+ *
+ * Lookup order:
+ *   1. Exact match against `schema.entities` keys.
+ *   2. Match against each entity's `entityTable(...)` — so a plural table
+ *      name like `users` resolves to entity key `user`.
+ *   3. Naive singular fallback (`replace(/s$/, "")`) for backwards
+ *      compatibility with the pre-0.3 planner.
+ *
+ * Returns `undefined` when no entity matches. Users with irregular plurals
+ * (e.g. `address` → `addresses`) should declare `entities.address.table =
+ * "addresses"` so step 2 succeeds; the naive fallback only handles regular
+ * `+s` pluralization.
+ */
+export function resolveEntityKey(name: string, schema: MeshSchema): string | undefined {
+  if (schema.entities[name]) return name;
+
+  for (const [key, config] of Object.entries(schema.entities)) {
+    if (entityTable(key, config) === name) return key;
+  }
+
+  if (name.endsWith("s")) {
+    const singular = name.slice(0, -1);
+    if (schema.entities[singular]) return singular;
+  }
+
+  return undefined;
+}
