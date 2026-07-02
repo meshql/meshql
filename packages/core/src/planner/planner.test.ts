@@ -94,4 +94,72 @@ describe("buildJoinPlan", () => {
       "tokens.sid",
     ]);
   });
+
+  it("uses the entity's declared table for the SELECT prefix (irregular plural)", () => {
+    const irregularSchema: MeshSchema = {
+      entities: {
+        address: {
+          type: {},
+          fields: ["id", "street"],
+          table: "addresses",
+        },
+      },
+      joins: {},
+    };
+
+    const ast = parseQl("{ address { street } }");
+    const plan = buildJoinPlan(
+      ast,
+      irregularSchema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+    );
+
+    expect(plan.rootEntity).toBe("address");
+    expect(plan.fields).toEqual(["addresses.street", "addresses.id"]);
+  });
+
+  it("resolves a plural root name back to the declared entity key", () => {
+    const ast = parseQl("{ users { id name } }");
+    const plan = buildJoinPlan(
+      ast,
+      schema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+    );
+
+    expect(plan.rootEntity).toBe("user");
+    expect(plan.fields).toEqual(["users.id", "users.name"]);
+  });
+
+  it("attaches list options to the plan when provided", () => {
+    const ast = parseQl("{ user { id name } }");
+    const plan = buildJoinPlan(
+      ast,
+      schema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+      {
+        list: {
+          limit: 20,
+          orderBy: [{ field: "name", dir: "asc" }],
+          filter: [{ field: "id", op: "gt", value: 100 }],
+        },
+      },
+    );
+
+    expect(plan.list).toEqual({
+      limit: 20,
+      orderBy: [{ field: "name", dir: "asc" }],
+      filter: [{ field: "id", op: "gt", value: 100 }],
+    });
+  });
+
+  it("leaves plan.list undefined for point reads", () => {
+    const ast = parseQl("{ user { id name } }");
+    const plan = buildJoinPlan(
+      ast,
+      schema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+    );
+
+    expect(plan.list).toBeUndefined();
+  });
 });
