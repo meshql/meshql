@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2
+
+### Patch Changes
+
+- Fix JSR publish: rename adapter source files so bare `express`/`hono` imports do not collide with this package's `./express` and `./hono` export paths.
+
 ## 0.2.1
 
 ### Patch Changes

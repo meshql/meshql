@@ -1,12 +1,12 @@
 {
   "name": "@meshql/http",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "MIT",
   "exports": {
     ".": "./src/index.ts",
-    "./express": "./src/adapters/express.ts",
-    "./fastify": "./src/adapters/fastify.ts",
-    "./hono": "./src/adapters/hono.ts"
+    "./express": "./src/adapters/express-adapter.ts",
+    "./fastify": "./src/adapters/fastify-adapter.ts",
+    "./hono": "./src/adapters/hono-adapter.ts"
   },
   "publish": {
     "exclude": [
