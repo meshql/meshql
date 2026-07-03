@@ -3,9 +3,9 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: [
     "src/index.ts",
-    "src/adapters/express.ts",
-    "src/adapters/fastify.ts",
-    "src/adapters/hono.ts",
+    "src/adapters/express-adapter.ts",
+    "src/adapters/fastify-adapter.ts",
+    "src/adapters/hono-adapter.ts",
   ],
   format: ["esm"],
   dts: true,
