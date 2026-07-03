@@ -2,6 +2,11 @@
   "name": "@meshql/http",
   "version": "0.2.2",
   "license": "MIT",
+  "imports": {
+    "express": "npm:express@^5",
+    "fastify": "npm:fastify@^5",
+    "hono": "npm:hono@^4"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./express": "./src/adapters/express-adapter.ts",
