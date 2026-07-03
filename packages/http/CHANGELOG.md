@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- Fix JSR publish: rename adapter source files so bare `express`/`hono` imports do not collide with this package's `./express` and `./hono` export paths.
+- Fix JSR publish: rename adapter source files and add `jsr.json` import map so bare `express`/`hono`/`fastify` imports resolve to npm instead of this package's `./express`/`./hono`/`./fastify` export paths.
 
 ## 0.2.1
 
