@@ -99,7 +99,26 @@ export function createIntegrityPlugin(config: IntegrityConfig): MeshPlugin {
 
       return raw;
     },
+
+    async onUpload(file, _plan, ctx) {
+      const expected = ctx.contentHash;
+      if (!expected) {
+        throw new IntegrityError("Missing contentHash in signed upload payload");
+      }
+
+      const actual = await hashContent(file.buffer);
+      if (actual !== expected) {
+        throw new IntegrityError("Upload contentHash mismatch");
+      }
+
+      return file;
+    },
   };
+}
+
+async function hashContent(buffer: Buffer): Promise<string> {
+  const { createHash } = await import("node:crypto");
+  return `sha256:${createHash("sha256").update(buffer).digest("hex")}`;
 }
 
 /** Issue a signing token and wire token for an authenticated user. */

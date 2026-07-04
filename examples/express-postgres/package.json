@@ -15,6 +15,7 @@
     "@meshql/http": "workspace:*",
     "@meshql/integrity": "workspace:*",
     "@meshql/postgres": "workspace:*",
+    "@meshql/upload": "workspace:*",
     "express": "^5.1.0",
     "pg": "^8.16.0"
   },
