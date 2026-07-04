@@ -95,6 +95,29 @@ function entityKeyForTable(
   return join?.entity ?? resolveEntityKey(table, schema) ?? table;
 }
 
+/** Map a field prefix (ref name or entity) to the real SQL table name. */
+function sqlTableForPrefix(
+  table: string,
+  plan: JoinPlan,
+  schema: MeshSchema,
+  rootTable: string,
+): string {
+  if (!table || table === rootTable || table === plan.rootEntity) {
+    return rootTable;
+  }
+
+  const join = joinForTable(table, plan.joins, schema, plan.rootEntity);
+  if (!join) {
+    return table;
+  }
+
+  const joinConfig = schema.joins[`${plan.rootEntity}.${join.refName}`];
+  return (
+    joinConfig?.table ??
+    entityTable(join.entity, schema.entities[join.entity])
+  );
+}
+
 /**
  * Encode a cursor payload as a URL-safe opaque string.
  *
@@ -240,7 +263,7 @@ export function buildSelectSql(
 
   for (const qualified of plan.fields) {
     const { table, column } = parseQualifiedField(qualified);
-    const tableName = table || rootTable;
+    const tableName = sqlTableForPrefix(table, plan, schema, rootTable);
     const entityKey = entityKeyForTable(table, plan, schema, rootTable);
     const sqlColumnName = sqlColumn(entityKey, column, schema);
     const alias = aliasForField(plan, schema, rootTable, qualified);
