@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0
+
+### Minor Changes
+
+- v0.5.0: native multipart uploads with signed contentHash.
+  - **New:** `mesh.executeUpload()` and `onUpload` plugin hook for file uploads.
+  - **New:** Real local filesystem storage; S3 and R2 adapters (peer-dep gated).
+  - **New:** `busboy` multipart parsing and upload routes on Express, Fastify, and Hono.
+  - **New:** Integrity verifies `contentHash` in the signed wire payload against file bytes.
+  - **New:** `client.upload({ entity, field, id?, file })` hashes and signs automatically.
+
 ## 0.4.0
 
 ### Minor Changes
