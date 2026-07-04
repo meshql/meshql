@@ -40,7 +40,10 @@ export function extractUploadField(raw: string, entity: string): string | undefi
 }
 
 /** Handle a multipart upload request. */
-export async function handleUpload(mesh: MeshInstance, req: UploadHttpRequest) {
+export async function handleUpload(
+  mesh: MeshInstance,
+  req: UploadHttpRequest,
+): Promise<Record<string, unknown>> {
   const entity = req.params.entity;
   if (!entity) {
     throw new TransportError("Upload requires an entity path segment");
