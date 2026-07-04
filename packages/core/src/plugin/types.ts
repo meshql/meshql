@@ -1,5 +1,6 @@
 import type { MeshError } from "../errors/index.js";
 import type { JoinPlan } from "../planner/join-plan.js";
+import type { MeshFile } from "../resolver/registry.js";
 import type { QueryContext } from "../resolver/context.js";
 
 /** HTTP transport metadata for integrity verification. */
@@ -43,6 +44,17 @@ export interface MeshPlugin {
   ) => unknown | Promise<unknown>;
 
   onError?: (error: MeshError, ctx: PluginContext) => void | Promise<void>;
+
+  /**
+   * Runs after multipart parsing and signature verification, before the
+   * upload resolver. Used by integrity to check `contentHash` against the
+   * received file bytes.
+   */
+  onUpload?: (
+    file: MeshFile,
+    plan: JoinPlan,
+    ctx: PluginContext & { contentHash?: string },
+  ) => MeshFile | Promise<MeshFile>;
 }
 
 /** Result of a plan hook that short-circuits resolver execution. */
