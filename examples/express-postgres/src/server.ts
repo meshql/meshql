@@ -4,6 +4,7 @@ import { buildSelectSql } from "@meshql/postgres";
 import { withIntegrity } from "@meshql/integrity";
 import { meshIntegrityExpressRouter } from "@meshql/integrity/express";
 import { meshExpressRouter } from "@meshql/http/express";
+import { withUpload } from "@meshql/upload";
 import express from "express";
 import type { User, Token } from "./types.js";
 import { ensureSchema, pool } from "./db.js";
@@ -13,7 +14,7 @@ const schema: MeshSchema = {
   entities: {
     user: {
       type: {} as User,
-      fields: ["id", "name"],
+      fields: ["id", "name", "avatar"],
       table: "users",
     },
     token: {
@@ -36,7 +37,10 @@ const schema: MeshSchema = {
   },
 };
 
-const mesh = createMesh(schema);
+const mesh = withUpload(createMesh(schema), {
+  storage: "local",
+  localDirectory: "./uploads",
+});
 const useIntegrity = process.env.MESH_INTEGRITY === "1";
 
 if (useIntegrity && process.env.MESH_SECRET) {
@@ -75,6 +79,28 @@ mesh.resolve("user", async (plan) => {
 
   console.log("[meshql] SQL:", sql, params);
   return queryInMemory(plan, inMemoryRows);
+});
+
+mesh.resolveUpload("user.avatar", async (file, plan) => {
+  const entityId = plan.context.entityId ?? "new";
+  const key = `user/${entityId}/${file.originalName}`;
+  const stored = await mesh.upload.adapter.put(file, key);
+
+  if (pool && plan.context.entityId !== undefined) {
+    await pool.query("UPDATE users SET avatar = $1 WHERE id = $2", [
+      stored,
+      plan.context.entityId,
+    ]);
+  } else if (plan.context.entityId !== undefined) {
+    const id = Number(plan.context.entityId);
+    for (const row of inMemoryRows) {
+      if (row.user_id === id) {
+        row.user_avatar = stored;
+      }
+    }
+  }
+
+  return { avatar: stored };
 });
 
 const app = express();

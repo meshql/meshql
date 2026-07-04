@@ -14,7 +14,8 @@ export async function ensureSchema(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL
+      name TEXT NOT NULL,
+      avatar TEXT
     );
 
     CREATE TABLE IF NOT EXISTS tokens (
@@ -23,5 +24,9 @@ export async function ensureSchema(): Promise<void> {
       access_token TEXT NOT NULL,
       expires_at TEXT NOT NULL
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;
   `);
 }
