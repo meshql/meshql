@@ -27,15 +27,17 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "check-types": "tsc --noEmit",
     "publish:jsr": "jsr publish"
   },
   "dependencies": {
-    "@meshql/core": "workspace:*"
+    "@meshql/core": "workspace:*",
+    "busboy": "^1.6.0"
   },
   "devDependencies": {
     "@meshql/typescript-config": "workspace:*",
+    "@types/busboy": "^1.5.4",
     "@types/express": "^5.0.0",
     "@types/node": "^22.15.3",
     "express": "^5.1.0",

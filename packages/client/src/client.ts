@@ -29,6 +29,24 @@ export interface MeshClientOptions {
   onTokenExpired?: () => Promise<AuthTokens>;
 }
 
+/** File input for {@link MeshClient.upload}. */
+export type UploadFileInput =
+  | Blob
+  | ArrayBuffer
+  | Uint8Array
+  | { buffer: ArrayBuffer | Uint8Array; filename?: string; mimetype?: string };
+
+/** Options for {@link MeshClient.upload}. */
+export interface UploadOptions {
+  entity: string;
+  field: string;
+  /** Attach to an existing record; omit to create. */
+  id?: string;
+  file: UploadFileInput;
+  /** Optional JSON metadata sent as a multipart `meta` part. */
+  meta?: Record<string, unknown>;
+}
+
 /** Typed MeshQL HTTP client. */
 export interface MeshClient {
   /**
@@ -45,6 +63,14 @@ export interface MeshClient {
     selection: QuerySelection,
     options?: { entityId?: string; list?: ListOptions },
   ): Promise<T>;
+  /**
+   * Upload a file to an entity field.
+   *
+   * Hashes the file, signs a payload including `contentHash`, and POSTs
+   * `multipart/form-data` to `/:entity/:id/:field` (or `/:entity` when `id`
+   * is omitted).
+   */
+  upload<T = Record<string, unknown>>(options: UploadOptions): Promise<T>;
   /** Update signing credentials after login or refresh. */
   setAuth(tokens: Partial<Pick<AuthTokens, "signingToken" | "token">>): void;
 }
@@ -123,8 +149,66 @@ export function createClient(options: MeshClientOptions): MeshClient {
     return (await response.json()) as T;
   }
 
+  async function executeUpload<T>(uploadOptions: UploadOptions): Promise<T> {
+    const { buffer, filename, mimetype } = await normalizeUploadFile(uploadOptions.file);
+    const contentHash = await hashBuffer(buffer);
+    const raw = JSON.stringify({
+      [uploadOptions.entity]: {
+        [uploadOptions.field]: { upload: true },
+      },
+      contentHash,
+    });
+
+    const path = uploadOptions.id
+      ? `${options.url}/${uploadOptions.entity}/${uploadOptions.id}/${uploadOptions.field}`
+      : `${options.url}/${uploadOptions.entity}`;
+
+    const signedHeaders = signQuery(raw, {
+      format: "json",
+      secret: auth.secret,
+      signingToken: auth.signingToken,
+      token: auth.token,
+    });
+
+    const form = new FormData();
+    const bytes = new Uint8Array(buffer.byteLength);
+    bytes.set(buffer);
+    form.append("file", new Blob([bytes], { type: mimetype }), filename);
+    if (uploadOptions.meta) {
+      form.append("meta", JSON.stringify(uploadOptions.meta));
+    }
+
+    const response = await fetchFn(path, {
+      method: "POST",
+      headers: {
+        ...options.headers,
+        ...signedHeaders,
+      },
+      body: form,
+    });
+
+    if (response.status === 401 && auth.onTokenExpired) {
+      const refreshed = await auth.onTokenExpired();
+      auth.signingToken = refreshed.signingToken;
+      auth.token = refreshed.token;
+      return executeUpload(uploadOptions);
+    }
+
+    if (!response.ok) {
+      const errorBody = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      throw new Error(
+        errorBody.message ?? `MeshQL upload failed (${response.status})`,
+      );
+    }
+
+    return (await response.json()) as T;
+  }
+
   return {
     query: executeQuery,
+    upload: executeUpload,
     setAuth(tokens) {
       if (tokens.signingToken !== undefined) {
         auth.signingToken = tokens.signingToken;
@@ -134,6 +218,62 @@ export function createClient(options: MeshClientOptions): MeshClient {
       }
     },
   };
+}
+
+async function hashBuffer(buffer: Uint8Array): Promise<string> {
+  const bytes = new Uint8Array(buffer.byteLength);
+  bytes.set(buffer);
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+  return `sha256:${bufferToHex(new Uint8Array(digest))}`;
+}
+
+function bufferToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function normalizeUploadFile(file: UploadFileInput): Promise<{
+  buffer: Uint8Array;
+  filename: string;
+  mimetype: string;
+}> {
+  if (typeof Blob !== "undefined" && file instanceof Blob) {
+    const buffer = new Uint8Array(await file.arrayBuffer());
+    return {
+      buffer,
+      filename: "name" in file && typeof file.name === "string" ? file.name : "upload",
+      mimetype: file.type || "application/octet-stream",
+    };
+  }
+
+  if (file instanceof ArrayBuffer) {
+    return {
+      buffer: new Uint8Array(file),
+      filename: "upload",
+      mimetype: "application/octet-stream",
+    };
+  }
+
+  if (file instanceof Uint8Array) {
+    return {
+      buffer: file,
+      filename: "upload",
+      mimetype: "application/octet-stream",
+    };
+  }
+
+  if (file && typeof file === "object" && "buffer" in file) {
+    const buffer =
+      file.buffer instanceof ArrayBuffer
+        ? new Uint8Array(file.buffer)
+        : file.buffer;
+    return {
+      buffer,
+      filename: file.filename ?? "upload",
+      mimetype: file.mimetype ?? "application/octet-stream",
+    };
+  }
+
+  throw new Error("Unsupported upload file type");
 }
 
 /** Options for {@link createAuthClient}. */

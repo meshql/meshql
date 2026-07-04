@@ -55,7 +55,8 @@ function statusForError(error: MeshError): number {
   return 400;
 }
 
-function toErrorResponse(error: unknown): {
+/** Map any thrown value to an HTTP status and JSON error body. */
+export function toErrorResponse(error: unknown): {
   status: number;
   body: Record<string, unknown>;
 } {
@@ -125,4 +126,11 @@ export type {
   QueryFormat,
   SignQueryOptions,
 } from "./transport/decode.js";
+export { parseMultipart, hashFileContent } from "./transport/multipart.js";
+export type {
+  ParseMultipartOptions,
+  ParsedMultipart,
+} from "./transport/multipart.js";
+export { handleUpload, extractUploadField } from "./handlers/upload.js";
+export type { UploadHttpRequest } from "./handlers/upload.js";
 export type { HttpRequest } from "./handlers/index.js";

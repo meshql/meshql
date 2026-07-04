@@ -1,5 +1,6 @@
 import type { MeshError } from "../errors/index.js";
 import type { JoinPlan } from "../planner/join-plan.js";
+import type { MeshFile } from "../resolver/registry.js";
 import type { MeshPlugin, PlanShortCircuit, PluginContext } from "./types.js";
 import { isPlanShortCircuit } from "./types.js";
 
@@ -12,6 +13,8 @@ import { isPlanShortCircuit } from "./types.js";
  *   so earlier plugins can transform input for later ones.
  * - `onResult` and `onResponse` run in **reverse registration order**
  *   (inner → outer) so the plugin that wrapped a value gets to unwrap it.
+ * - `onUpload` runs in registration order after signature verification and
+ *   before the upload resolver (integrity checks `contentHash` here).
  * - `onError` notifies all plugins in registration order; failures inside
  *   error hooks are not caught here.
  */
@@ -70,6 +73,20 @@ export class PluginRunner {
       const plugin = this.plugins[i];
       if (plugin?.onResponse) {
         current = await plugin.onResponse(current, ctx);
+      }
+    }
+    return current;
+  }
+
+  async runOnUpload(
+    file: MeshFile,
+    plan: JoinPlan,
+    ctx: PluginContext & { contentHash?: string },
+  ): Promise<MeshFile> {
+    let current = file;
+    for (const plugin of this.plugins) {
+      if (plugin.onUpload) {
+        current = await plugin.onUpload(current, plan, ctx);
       }
     }
     return current;

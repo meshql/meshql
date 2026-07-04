@@ -47,8 +47,8 @@ repositioning), then the chosen execution order is:
 | B | CI Postgres integration test (was item 1.10) | ✅ |
 | C | **Phase 0** — split `@meshql/postgres` + `@meshql/sqlite` out of `@meshql/core` | ✅ (shipped in 0.2.0) |
 | D | **Phase 2** — `JoinPlan.list`, filters, cursors, catch-all resolver | ✅ |
-| E | Decide on **Phase 4.5** wire protocol work (persisted queries / compression / CBOR) — placement and timing | ⏭ next |
-| F | **Phase 3** — native multipart uploads with signed body | ⏭ |
+| E | Decide on **Phase 4.5** wire protocol work (persisted queries / compression / CBOR) — placement and timing | ✅ deferred until after Phase 4 (ORMs) |
+| F | **Phase 3** — native multipart uploads with signed body | ✅ implemented (release prep pending) |
 
 Phases 3 → 5 follow the original order. The headline plan below describes
 the *intended* phase progression; the Status table is the source of truth for
@@ -95,9 +95,9 @@ gantt
 | 0 | Reposition: `@meshql/postgres` + `@meshql/sqlite` split out of core | `0.3.0` | 1 evening | ✅ done |
 | 1 | Correctness bugs fixed, Postgres integration test passes | `0.2.0` | 2 weeks | ✅ done |
 | 2 | List queries, filters, cursors, catch-all resolver | `0.4.0` | 1.5 weeks | ✅ done |
-| 3 | Multipart upload with signed body | `0.5.0` | ~2 weeks | ⏭ |
+| 3 | Multipart upload with signed body | `0.5.0` | ~2 weeks | ✅ implemented |
 | 4 | Prisma + Drizzle + Kysely adapters | `0.6.0` | 2 weeks | ⏭ |
-| 4.5 | Wire protocol: persisted queries, compression, optional CBOR | TBD | ~1 week | ⏭ decision pending |
+| 4.5 | Wire protocol: persisted queries, compression, optional CBOR | post-0.6 | ~1 week | ⏭ deferred (after ORMs) |
 | 5 | `schemaFromPrisma` / `schemaFromDrizzle` | `0.7.0` | 1 week | ⏭ |
 | _post_ | Docs, demos, benchmarks, v1.0 cut | `0.9 → 1.0` | 2 weeks | ⏭ |
 
@@ -467,10 +467,22 @@ the cursor.
 
 ---
 
-## Phase 3 — Native uploads with multipart integrity (~2 weeks)
+## Phase 3 — Native uploads with multipart integrity (~2 weeks) ✅ IMPLEMENTED
 
 > Make `@meshql/upload` actually work. File upload is in the original vision and
 > needs to be signed end-to-end, not just at the JSON header level.
+>
+> **What landed:**
+>
+> - Real `local` storage; `s3` / `r2` adapters (peer-dep gated on AWS SDK).
+> - `busboy` multipart parser in `@meshql/http`; upload routes on Express,
+>   Fastify, Hono, and integrity Express router.
+> - `mesh.executeUpload()` + `onUpload` plugin hook; integrity checks
+>   `contentHash` in the signed wire payload against file bytes.
+> - `client.upload({ entity, field, id?, file })` hashes and signs automatically.
+> - `examples/express-postgres` avatar upload to `./uploads/`.
+> - Unit tests for local storage, multipart, integrity, and `executeUpload`.
+> - MinIO CI integration for S3 is deferred (adapter is ready; no service container yet).
 
 ### 3.1 Real storage adapters
 
