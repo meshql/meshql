@@ -22,9 +22,9 @@
   "devDependencies": {
     "@meshql/typescript-config": "workspace:*",
     "@types/express": "^5.0.0",
-    "@types/node": "^22.15.3",
+    "@types/node": "^26.1.0",
     "@types/pg": "^8.15.2",
-    "tsx": "^4.19.4",
-    "typescript": "5.9.2"
+    "tsx": "^4.23.0",
+    "typescript": "6.0.3"
   }
 }
