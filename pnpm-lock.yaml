@@ -107,6 +107,49 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  examples/showcase:
+    dependencies:
+      '@meshql/access':
+        specifier: workspace:*
+        version: link:../../packages/access
+      '@meshql/client':
+        specifier: workspace:*
+        version: link:../../packages/client
+      '@meshql/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@meshql/http':
+        specifier: workspace:*
+        version: link:../../packages/http
+      '@meshql/integrity':
+        specifier: workspace:*
+        version: link:../../packages/integrity
+      '@meshql/sqlite':
+        specifier: workspace:*
+        version: link:../../packages/sqlite
+      '@meshql/upload':
+        specifier: workspace:*
+        version: link:../../packages/upload
+      express:
+        specifier: ^5.1.0
+        version: 5.2.1
+    devDependencies:
+      '@meshql/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.6
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      tsx:
+        specifier: ^4.19.4
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
   packages/access:
     dependencies:
       '@meshql/core':

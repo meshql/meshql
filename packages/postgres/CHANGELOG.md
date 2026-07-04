@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0
+
+### Patch Changes
+
+- Fix SQL SELECT table names when join ref names differ from table names (e.g. `author` → `users`).
+
+
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @meshql/core@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes

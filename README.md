@@ -14,6 +14,7 @@
   <a href="https://jsr.io/@meshql/core">JSR</a> ·
   <a href="./docs/run-example.md">5-minute guide</a> ·
   <a href="./docs/http-adapters.md">HTTP adapters</a> ·
+  <a href="./examples/showcase">Showcase (full stack)</a> ·
   <a href="./examples/express-sqlite">SQLite example</a> ·
   <a href="./examples/express-postgres">Postgres example</a>
 </p>
@@ -241,24 +242,24 @@ A specific `mesh.resolve("user", fn)` always wins over the `"*"` fallback.
 
 ---
 
-## Try the monorepo example
+## Try the showcase
 
-For contributors, Postgres, and future security demos:
+Full-stack blog demo (lists, integrity, access, uploads) on SQLite — no Docker:
 
 ```bash
 git clone https://github.com/meshql/meshql.git
 cd meshql
 pnpm install && pnpm build
-pnpm --filter express-postgres start
+pnpm --filter showcase start
 ```
 
 In another terminal:
 
 ```bash
-pnpm --filter express-postgres exec tsx src/demo-client.ts
+pnpm --filter showcase demo
 ```
 
-Works **without Postgres** (in-memory). See [examples/express-postgres/README.md](./examples/express-postgres/README.md).
+See [examples/showcase/README.md](./examples/showcase/README.md). Minimal adapter examples: [express-sqlite](./examples/express-sqlite), [express-postgres](./examples/express-postgres).
 
 ---
 
