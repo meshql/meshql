@@ -244,7 +244,7 @@ A specific `mesh.resolve("user", fn)` always wins over the `"*"` fallback.
 
 ## Try the showcase
 
-Full-stack blog demo (lists, integrity, access, uploads) on SQLite — no Docker:
+Interactive full-stack blog (HTMX UI + MeshQL API) on SQLite — no Docker:
 
 ```bash
 git clone https://github.com/meshql/meshql.git
@@ -253,11 +253,9 @@ pnpm install && pnpm build
 pnpm --filter showcase start
 ```
 
-In another terminal:
+Open **http://localhost:3010/** — switch roles, tweak field selection / list options, upload an avatar, and inspect the signed wire payload live.
 
-```bash
-pnpm --filter showcase demo
-```
+Optional CLI tour: `pnpm --filter showcase demo`
 
 See [examples/showcase/README.md](./examples/showcase/README.md). Minimal adapter examples: [express-sqlite](./examples/express-sqlite), [express-postgres](./examples/express-postgres).
 
