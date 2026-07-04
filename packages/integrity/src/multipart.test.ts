@@ -32,7 +32,8 @@ describe("integrity multipart uploads", () => {
         sessionId: "s1",
         role: "admin",
       }),
-    }).resolveUpload("user.avatar", upload);
+    });
+    mesh.resolveUpload("user.avatar", upload);
 
     const { signingToken, token } = issueToken(mesh.integrity, {
       userId: "u1",
@@ -75,7 +76,8 @@ describe("integrity multipart uploads", () => {
         userId: "u1",
         sessionId: "s1",
       }),
-    }).resolveUpload("user.avatar", async () => ({ avatar: "ok" }));
+    });
+    mesh.resolveUpload("user.avatar", async () => ({ avatar: "ok" }));
 
     const { signingToken, token } = issueToken(mesh.integrity, {
       userId: "u1",
@@ -111,7 +113,8 @@ describe("integrity multipart uploads", () => {
         userId: "u1",
         sessionId: "s1",
       }),
-    }).resolveUpload("user.avatar", async () => ({ avatar: "ok" }));
+    });
+    mesh.resolveUpload("user.avatar", async () => ({ avatar: "ok" }));
 
     const { signingToken, token } = issueToken(mesh.integrity, {
       userId: "u1",

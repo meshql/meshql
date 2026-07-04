@@ -94,7 +94,7 @@ mesh.resolve("*", async (plan: JoinPlan) => {
 mesh.resolveUpload("user.avatar", async (file, plan) => {
   const entityId = plan.context.entityId ?? "new";
   const key = `user/${entityId}/${file.originalName}`;
-  const stored = await mesh.upload.adapter.put(file, key);
+  const stored = await base.upload.adapter.put(file, key);
 
   if (plan.context.entityId !== undefined) {
     db.prepare("UPDATE users SET avatar = ? WHERE id = ?").run(
