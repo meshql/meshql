@@ -4,7 +4,7 @@ MeshQL ships framework adapters on top of `@meshql/http`. Each adapter wires the
 
 ## Install
 
-MeshQL is on **[JSR](https://jsr.io/@meshql)** (`@meshql` scope). npm packages are coming soon.
+MeshQL is on **[JSR](https://jsr.io/@meshql)** (`@meshql` scope) and **[npm](https://www.npmjs.com/package/meshql-http)** (`meshql-*`).
 
 ```bash
 # Node
@@ -50,15 +50,27 @@ mesh.resolve("user", async (plan) => {
 
 ## Routes
 
-All adapters register the same endpoints (default base path `/mesh`):
+Base adapter (`meshExpressRouter`, `createMeshFastifyPlugin`, `meshHonoRoutes`) registers:
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/mesh/:entity` | List - query via headers |
+| `GET` | `/mesh/:entity` | List — query via headers |
 | `GET` | `/mesh/:entity/:id` | Single resource |
 | `POST` | `/mesh` | Complex query in request body |
-| `PUT` | `/mesh/:entity/:id` | Update - response shape via headers |
-| `DELETE` | `/mesh/:entity/:id` | Delete |
+| `PUT` | `/mesh/:entity/:id` | Point read with PUT transport |
+| `POST` | `/mesh/:entity/:id/:field` | Multipart file upload |
+| `POST` | `/mesh/:entity` | Multipart upload (create) |
+
+With **`@meshql/integrity`** (`meshIntegrityExpressRouter`), these are added:
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/mesh/auth` | Login — returns `signingToken` + `token` |
+| `POST` | `/mesh/logout` | Revoke session (`X-Mesh-Token` header) |
+
+Core mutations (create/update/delete entities) are not in the base HTTP handler yet —
+`DELETE` returns **405** until a mutation story lands in core. The [showcase](../examples/showcase)
+uses a preview `POST /mesh/write` route for signed CRUD demos.
 
 Change the base path with the second argument / `options.basePath`.
 
@@ -73,6 +85,8 @@ Change the base path with the second argument / `options.basePath`.
 | `X-Mesh-Query` | Yes | Base64-encoded query string |
 | `X-Mesh-Format` | No | `json` (default) or `ql` |
 | `X-Mesh-Version` | No | Protocol version, defaults to latest (`1`) |
+| `X-Mesh-Signature` | When integrity enabled | `sha256=` HMAC over `X-Mesh-Query` |
+| `X-Mesh-Token` | When integrity enabled | Wire token from `POST /mesh/auth` |
 
 **JSON format** - object selection:
 
@@ -137,6 +151,49 @@ const headers = encodeQuery(
 ```
 
 `format` is optional (defaults to `ql`).
+
+---
+
+## File uploads
+
+Upload routes expect `multipart/form-data` with a `file` part and signed headers
+(including `contentHash` in the JSON payload). Use `@meshql/upload` on the server
+and `client.upload()` on the client.
+
+```typescript
+await client.upload({
+  entity: "user",
+  field: "avatar",
+  id: "1",
+  file: blobOrBuffer,
+});
+```
+
+See [client.md](./client.md) and [examples/express-postgres](../examples/express-postgres).
+
+---
+
+## Integrity auth
+
+```bash
+# Login
+curl -s -X POST http://localhost:3001/mesh/auth \
+  -H "Content-Type: application/json" \
+  -d '{"email":"ada@example.com","password":"demo"}'
+```
+
+Response:
+
+```json
+{
+  "signingToken": "...",
+  "token": "tok_...",
+  "expiresAt": 1783237119316
+}
+```
+
+Use `createAuthClient` from `@meshql/client` — it handles login and attaches
+`X-Mesh-Signature` + `X-Mesh-Token` on subsequent requests.
 
 ---
 
@@ -241,7 +298,7 @@ The middleware parses the path after `basePath` into `entity` and `id` segments.
 
 ### Example
 
-See [`examples/express-postgres`](../examples/express-postgres) for a full server with in-memory and Postgres modes.
+See [`examples/showcase`](../examples/showcase) for the full React + integrity + access + uploads demo, or [`examples/express-postgres`](../examples/express-postgres) for Postgres + avatar upload.
 
 ---
 
@@ -334,12 +391,13 @@ Use this for adapters we don't ship yet (Koa, NestJS, etc.).
 
 ## Client usage
 
-Pair any adapter with `@meshql/client`:
+See **[client.md](./client.md)** for the full SDK guide (browser, React, auth, list, uploads).
 
 ```typescript
-import { createClient } from "@meshql/client";
+import { createAuthClient } from "@meshql/client";
 
-const client = createClient({ url: "http://localhost:3000/mesh" });
+const client = createAuthClient({ url: "http://localhost:3000/mesh", format: "json" });
+await client.login({ email: "ada@example.com", password: "demo" });
 
 const user = await client.query(
   {
@@ -365,12 +423,14 @@ const admins = await client.query(
 );
 ```
 
-The client sets `X-Mesh-Query`, `X-Mesh-Format`, and `X-Mesh-Version` on every request. List options require `format: "json"` (the default).
+The client sets transport headers on every request. With integrity enabled it also signs the payload.
 
 ---
 
 ## Related
 
-- [Run example](./run-example.md) - JSR install, server setup, curl testing
-- [README](../README.md) - project overview
-- [examples/express-postgres](../examples/express-postgres) - runnable Express demo
+- [Client SDK](./client.md) — browser, auth, list queries, uploads
+- [Run example](./run-example.md) — JSR install, server setup, curl testing
+- [README](../README.md) — project overview
+- [examples/showcase](../examples/showcase) — React dashboard demo
+- [examples/express-postgres](../examples/express-postgres) — Postgres + uploads

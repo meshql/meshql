@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:web": "vite",
+    "build:web": "vite build",
+    "prestart": "pnpm run build:web",
     "start": "tsx src/server.ts",
     "demo": "tsx src/demo.ts",
     "check-types": "tsc --noEmit"
@@ -17,14 +20,21 @@
     "@meshql/integrity": "workspace:*",
     "@meshql/sqlite": "workspace:*",
     "@meshql/upload": "workspace:*",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.0"
   },
   "devDependencies": {
     "@meshql/typescript-config": "workspace:*",
     "@types/express": "^5.0.0",
     "@types/node": "^22.15.3",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.4.1",
     "tsx": "^4.19.4",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "vite": "^6.3.5"
   },
   "engines": {
     "node": ">=22.5"

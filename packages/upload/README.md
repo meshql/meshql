@@ -2,6 +2,16 @@
 
 Optional file upload extension for MeshQL servers.
 
+## Install
+
+```bash
+npx jsr add @meshql/upload
+# or
+npm install meshql-upload
+```
+
+Published on [JSR](https://jsr.io/@meshql/upload). Also on [npm](https://www.npmjs.com/package/meshql-upload) as `meshql-upload`.
+
 ## Example
 
 ```ts

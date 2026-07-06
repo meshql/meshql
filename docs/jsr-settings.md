@@ -9,11 +9,13 @@ For each publishable package, open **Settings** on the package page and set:
 | Package | Create on JSR | Link `meshql/meshql` |
 | --- | --- | --- |
 | `@meshql/core` | done | done |
+| `@meshql/postgres` | done | done |
+| `@meshql/sqlite` | done | done |
 | `@meshql/http` | done | done |
 | `@meshql/client` | done | done |
 | `@meshql/upload` | done | done |
-| `@meshql/integrity` | **before first release** | **before first release** |
-| `@meshql/access` | **before first release** | **before first release** |
+| `@meshql/integrity` | done | done |
+| `@meshql/access` | done | done |
 
 Steps for each new package:
 
@@ -25,11 +27,13 @@ Steps for each new package:
 | Package | Suggested description |
 | --- | --- |
 | `@meshql/core` | Parser, planner, shaper, and executor for client-driven field selection over REST APIs. |
+| `@meshql/postgres` | Postgres `buildSelectSql` with `$1`, `$2`, … placeholders. |
+| `@meshql/sqlite` | SQLite `buildSelectSql` for Node `node:sqlite`, Bun, and D1. |
 | `@meshql/http` | HTTP transport and Express, Fastify, and Hono adapters for MeshQL. |
-| `@meshql/client` | Typed MeshQL client SDK with automatic query encoding. |
-| `@meshql/upload` | Optional file upload extension for MeshQL servers. |
-| `@meshql/integrity` | Request integrity and signing helpers for MeshQL HTTP servers. |
-| `@meshql/access` | Access control helpers for MeshQL resources. |
+| `@meshql/client` | Typed MeshQL client SDK — browser and Node, auth, list queries, uploads. |
+| `@meshql/upload` | Multipart file uploads with signed `contentHash` verification. |
+| `@meshql/integrity` | Request signing and integrity token lifecycle for MeshQL HTTP servers. |
+| `@meshql/access` | Entity, row, and field access control for MeshQL. |
 
 ## Runtime compatibility
 
@@ -38,6 +42,8 @@ Mark these as **Supported** for all publishable packages:
 - Deno
 - Node.js
 - Bun
+
+Mark **Browser** as **Supported** for `@meshql/client` (uses fetch + Web Crypto).
 
 Optionally mark **Cloudflare Workers** as **Unknown support** unless you have tested there.
 

@@ -6,9 +6,11 @@ HTTP transport and framework adapters for MeshQL.
 
 ```bash
 npx jsr add @meshql/http
+# or
+npm install meshql-http
 ```
 
-Published on [JSR](https://jsr.io/@meshql/http). npm coming soon.
+Published on [JSR](https://jsr.io/@meshql/http). Also on [npm](https://www.npmjs.com/package/meshql-http) as `meshql-http`.
 
 ## Example
 
