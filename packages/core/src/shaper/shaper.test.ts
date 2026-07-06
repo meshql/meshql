@@ -5,6 +5,8 @@ import type { ResolvedJoin } from "../planner/join-plan.js";
 
 function tokensJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin {
   return {
+    path: "tokens",
+    joinKey: "user.tokens",
     entity: "token",
     on: "tokens.user_id = users.id",
     fields: ["tokens.accessToken"],
@@ -17,6 +19,8 @@ function tokensJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin {
 
 function rolesJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin {
   return {
+    path: "roles",
+    joinKey: "user.roles",
     entity: "role",
     on: "roles.user_id = users.id",
     fields: ["roles.name"],
@@ -29,9 +33,39 @@ function rolesJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin {
 
 function authorJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin {
   return {
+    path: "author",
+    joinKey: "post.author",
     entity: "user",
     on: "users.id = posts.author_id",
     fields: ["author.name"],
+    type: "one",
+    refName: "author",
+    idField: "id",
+    ...overrides,
+  };
+}
+
+function commentsJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin {
+  return {
+    path: "comments",
+    joinKey: "post.comments",
+    entity: "comment",
+    on: "comments.post_id = posts.id",
+    fields: ["comments.body"],
+    type: "many",
+    refName: "comments",
+    idField: "id",
+    ...overrides,
+  };
+}
+
+function commentAuthorJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin {
+  return {
+    path: "comments.author",
+    joinKey: "comments.author",
+    entity: "user",
+    on: "users.id = comments.author_id",
+    fields: ["comments.author.name"],
     type: "one",
     refName: "author",
     idField: "id",
@@ -164,6 +198,88 @@ describe("shape", () => {
     expect(result).toEqual({
       id: 1,
       tokens: [{ accessToken: "a" }, { accessToken: "b" }],
+    });
+  });
+
+  it("nests grandchildren under a many join (post → comments → author)", () => {
+    const ast = parseQl(
+      "{ post { id comments { id body author { name } } } }",
+    );
+    const rows = [
+      {
+        post_id: 1,
+        comments_id: 10,
+        comments_body: "hello",
+        comments_author_name: "Ada",
+      },
+      {
+        post_id: 1,
+        comments_id: 11,
+        comments_body: "world",
+        comments_author_name: "Grace",
+      },
+    ];
+
+    const result = shape(rows, ast.root, [
+      commentsJoin({ fields: ["comments.id", "comments.body"] }),
+      commentAuthorJoin({ fields: ["comments.author.name"] }),
+    ]);
+
+    expect(result).toEqual({
+      id: 1,
+      comments: [
+        { id: 10, body: "hello", author: { name: "Ada" } },
+        { id: 11, body: "world", author: { name: "Grace" } },
+      ],
+    });
+  });
+
+  it("returns null author when a nested one-join has no match", () => {
+    const ast = parseQl("{ post { id comments { id author { name } } } }");
+    const rows = [
+      {
+        post_id: 1,
+        comments_id: 10,
+        comments_author_id: null,
+        comments_author_name: null,
+      },
+    ];
+
+    const result = shape(rows, ast.root, [
+      commentsJoin({ fields: ["comments.id"] }),
+      commentAuthorJoin({ fields: ["comments.author.id", "comments.author.name"] }),
+    ]);
+
+    expect(result).toEqual({
+      id: 1,
+      comments: [{ id: 10, author: null }],
+    });
+  });
+
+  it("disambiguates post.author vs comments.author when both are users", () => {
+    const ast = parseQl(
+      "{ post { id author { name } comments { body author { name } } } }",
+    );
+    const rows = [
+      {
+        post_id: 1,
+        author_name: "Post Author",
+        comments_id: 10,
+        comments_body: "hi",
+        comments_author_name: "Comment Author",
+      },
+    ];
+
+    const result = shape(rows, ast.root, [
+      authorJoin({ fields: ["author.name"] }),
+      commentsJoin({ fields: ["comments.id", "comments.body"] }),
+      commentAuthorJoin({ fields: ["comments.author.name"] }),
+    ]);
+
+    expect(result).toEqual({
+      id: 1,
+      author: { name: "Post Author" },
+      comments: [{ body: "hi", author: { name: "Comment Author" } }],
     });
   });
 });

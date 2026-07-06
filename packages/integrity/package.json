@@ -1,6 +1,6 @@
 {
   "name": "@meshql/integrity",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "MeshQL full token lifecycle integrity verification",
   "license": "MIT",
   "type": "module",

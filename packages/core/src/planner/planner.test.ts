@@ -32,6 +32,8 @@ describe("buildJoinPlan", () => {
     // Root id was requested; tokens.id is auto-added so the shaper can dedupe.
     expect(plan.fields).toEqual(["users.id", "tokens.accessToken", "tokens.id"]);
     expect(plan.joins).toHaveLength(1);
+    expect(plan.joins[0]?.path).toBe("tokens");
+    expect(plan.joins[0]?.joinKey).toBe("user.tokens");
     expect(plan.joins[0]?.on).toBe("tokens.user_id = users.id");
     expect(plan.joins[0]?.idField).toBe("id");
     expect(plan.joins[0]?.fields).toEqual(["tokens.accessToken", "tokens.id"]);
@@ -161,5 +163,55 @@ describe("buildJoinPlan", () => {
     );
 
     expect(plan.list).toBeUndefined();
+  });
+
+  it("plans nested joins (post → comments → author)", () => {
+    const blogSchema: MeshSchema = {
+      entities: {
+        post: { type: {}, fields: ["id", "title"], table: "posts" },
+        comment: { type: {}, fields: ["id", "body"], table: "comments" },
+        user: { type: {}, fields: ["id", "name"], table: "users" },
+      },
+      joins: {
+        "post.comments": {
+          entity: "comment",
+          on: "comments.post_id = posts.id",
+          type: "many",
+        },
+        "comments.author": {
+          entity: "user",
+          on: "users.id = comments.author_id",
+          type: "one",
+        },
+      },
+    };
+
+    const ast = parseQl(
+      "{ post { id comments { body author { name } } } }",
+    );
+    const plan = buildJoinPlan(
+      ast,
+      blogSchema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+    );
+
+    expect(plan.joins).toHaveLength(2);
+    expect(plan.joins[0]).toMatchObject({
+      path: "comments",
+      joinKey: "post.comments",
+      refName: "comments",
+    });
+    expect(plan.joins[1]).toMatchObject({
+      path: "comments.author",
+      joinKey: "comments.author",
+      refName: "author",
+    });
+    expect(plan.fields).toEqual([
+      "posts.id",
+      "comments.body",
+      "comments.id",
+      "comments.author.name",
+      "comments.author.id",
+    ]);
   });
 });

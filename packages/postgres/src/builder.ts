@@ -4,13 +4,17 @@ import type {
   ListOptions,
   MeshSchema,
   OrderBy,
-  ResolvedJoin,
 } from "@meshql/core";
 import {
   DEFAULT_LIST_LIMIT,
   MAX_LIST_LIMIT,
+  buildPathToSqlAlias,
   entityTable,
-  resolveEntityKey,
+  joinsInDependencyOrder,
+  physicalTableForJoin,
+  resolvePlanField,
+  rewriteJoinOn,
+  rowAliasForPlanField,
 } from "@meshql/core";
 
 /** Parameterized SQL query generated from a join plan. */
@@ -32,95 +36,11 @@ export interface CursorPayload {
   id: unknown;
 }
 
-function parseQualifiedField(qualified: string): { table: string; column: string } {
-  const dot = qualified.lastIndexOf(".");
-  if (dot === -1) {
-    return { table: "", column: qualified };
-  }
-  return {
-    table: qualified.slice(0, dot),
-    column: qualified.slice(dot + 1),
-  };
-}
-
-function joinForTable(
-  table: string,
-  joins: ResolvedJoin[],
-  schema: MeshSchema,
-  rootEntity: string,
-): ResolvedJoin | undefined {
-  return joins.find((join) => {
-    const joinConfig = schema.joins[`${rootEntity}.${join.refName}`];
-    const joinTable =
-      joinConfig?.table ?? entityTable(join.entity, schema.entities[join.entity]);
-    return table === joinTable || table === join.refName || table === join.entity;
-  });
-}
-
-function aliasForField(
-  plan: JoinPlan,
-  schema: MeshSchema,
-  rootTable: string,
-  qualified: string,
-): string {
-  const { table, column } = parseQualifiedField(qualified);
-
-  if (!table || table === rootTable) {
-    return `${plan.rootEntity}_${column}`;
-  }
-
-  const join = joinForTable(table, plan.joins, schema, plan.rootEntity);
-  const prefix = join?.refName ?? resolveEntityKey(table, schema) ?? table;
-  return `${prefix}_${column}`;
-}
-
-function sqlColumn(entityKey: string, field: string, schema: MeshSchema): string {
-  const config = schema.entities[entityKey];
-  return config?.columns?.[field] ?? field;
-}
-
-function entityKeyForTable(
-  table: string,
-  plan: JoinPlan,
-  schema: MeshSchema,
-  rootTable: string,
-): string {
-  if (!table || table === rootTable) {
-    return plan.rootEntity;
-  }
-
-  const join = joinForTable(table, plan.joins, schema, plan.rootEntity);
-  return join?.entity ?? resolveEntityKey(table, schema) ?? table;
-}
-
-/** Map a field prefix (ref name or entity) to the real SQL table name. */
-function sqlTableForPrefix(
-  table: string,
-  plan: JoinPlan,
-  schema: MeshSchema,
-  rootTable: string,
-): string {
-  if (!table || table === rootTable || table === plan.rootEntity) {
-    return rootTable;
-  }
-
-  const join = joinForTable(table, plan.joins, schema, plan.rootEntity);
-  if (!join) {
-    return table;
-  }
-
-  const joinConfig = schema.joins[`${plan.rootEntity}.${join.refName}`];
-  return (
-    joinConfig?.table ??
-    entityTable(join.entity, schema.entities[join.entity])
-  );
-}
-
 /**
  * Encode a cursor payload as a URL-safe opaque string.
  *
  * The current scheme uses `base64url(JSON.stringify(payload))` and only
- * populates the `id` field \u2014 keyset pagination is stable on the
+ * populates the `id` field — keyset pagination is stable on the
  * primary id ordering. Multi-column cursors are a post-v0.3 concern.
  */
 export function encodeCursor(payload: CursorPayload): string {
@@ -173,6 +93,11 @@ const OP_SQL: Record<Filter["op"], string> = {
   in: "= ANY",
   nin: "<> ALL",
 };
+
+function sqlColumn(entityKey: string, field: string, schema: MeshSchema): string {
+  const config = schema.entities[entityKey];
+  return config?.columns?.[field] ?? field;
+}
 
 /**
  * Render a single {@link Filter} into a SQL fragment and push its value(s)
@@ -235,41 +160,38 @@ export function buildSelectSql(
   const rootTable = entityTable(plan.rootEntity, rootConfig);
   const idColumn = options.idColumn ?? "id";
   const params: unknown[] = [];
+  const pathToAlias = buildPathToSqlAlias(plan);
   const selectParts: string[] = [];
 
   for (const qualified of plan.fields) {
-    const { table, column } = parseQualifiedField(qualified);
-    const tableName = sqlTableForPrefix(table, plan, schema, rootTable);
-    const entityKey = entityKeyForTable(table, plan, schema, rootTable);
-    const sqlColumnName = sqlColumn(entityKey, column, schema);
-    const alias = aliasForField(plan, schema, rootTable, qualified);
-    // Aliases are quoted with double quotes so Postgres preserves the
-    // original case. Unquoted identifiers fold to lowercase, which would
-    // silently break the shaper's camelCase field lookup.
-    selectParts.push(`${tableName}.${sqlColumnName} AS "${alias}"`);
+    const { sqlTableRef, sqlColumn: column } = resolvePlanField(
+      qualified,
+      plan,
+      schema,
+      rootTable,
+    );
+    const alias = rowAliasForPlanField(qualified, plan);
+    selectParts.push(`${sqlTableRef}.${column} AS "${alias}"`);
   }
 
   let sql = `SELECT ${selectParts.join(", ")} FROM ${rootTable}`;
 
-  const joinedTables = new Set<string>();
+  const joinedPaths = new Set<string>();
 
-  for (const join of plan.joins) {
-    const joinConfig = schema.joins[`${plan.rootEntity}.${join.refName}`];
-    const joinTable =
-      joinConfig?.table ?? entityTable(join.entity, schema.entities[join.entity]);
-
-    if (joinedTables.has(joinTable)) {
+  for (const join of joinsInDependencyOrder(plan.joins)) {
+    if (joinedPaths.has(join.path)) {
       continue;
     }
 
-    joinedTables.add(joinTable);
-    sql += ` LEFT JOIN ${joinTable} ON ${join.on}`;
+    joinedPaths.add(join.path);
+    const sqlAlias = pathToAlias.get(join.path)!;
+    const physicalTable = physicalTableForJoin(join, schema);
+    const onClause = rewriteJoinOn(join.on, join, plan.joins, pathToAlias, schema);
+    sql += ` LEFT JOIN ${physicalTable} AS ${sqlAlias} ON ${onClause}`;
   }
 
   const whereClauses: string[] = [];
 
-  // Point-read: /api/user/:id. Wins over list filters/cursor to keep the
-  // route contract predictable.
   if (plan.context.entityId !== undefined) {
     params.push(plan.context.entityId);
     whereClauses.push(`${rootTable}.${idColumn} = $${params.length}`);
@@ -293,18 +215,12 @@ export function buildSelectSql(
     sql += ` WHERE ${whereClauses.join(" AND ")}`;
   }
 
-  // ORDER BY: caller's explicit orderBy wins. For list reads with no
-  // orderBy, we default to the id column so cursor pagination is stable.
   if (plan.list?.orderBy && plan.list.orderBy.length > 0) {
     sql += ` ORDER BY ${renderOrderBy(plan.list.orderBy, rootTable, plan.rootEntity, schema)}`;
   } else if (plan.list && plan.context.entityId === undefined) {
     sql += ` ORDER BY ${rootTable}.${idColumn} ASC`;
   }
 
-  // LIMIT only for list reads. Point reads (entityId set) always yield at
-  // most one root row and don't need a cap. When plan.list is unset the
-  // resolver has explicitly opted into an unbounded read \u2014 rare, but
-  // supported for backwards compatibility.
   if (plan.list && plan.context.entityId === undefined) {
     const limit = effectiveLimit(plan.list);
     params.push(limit);

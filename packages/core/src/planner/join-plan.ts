@@ -19,7 +19,7 @@ export interface JoinPlan {
   context: QueryContext;
   /**
    * List-read options (pagination, filtering, ordering). Present only when
-   * the request is a list query \u2014 point reads leave this undefined so
+   * the request is a list query — point reads leave this undefined so
    * resolvers can distinguish the two cases with a simple `plan.list` check.
    */
   list?: ListOptions;
@@ -27,10 +27,22 @@ export interface JoinPlan {
 
 /** A resolved join from the query AST to a schema join definition. */
 export interface ResolvedJoin {
+  /**
+   * Dot-separated ref path from the root selection, e.g. `"comments"` or
+   * `"comments.author"`. Used by the SQL builders and shaper to disambiguate
+   * repeated entity tables and nested field aliases.
+   */
+  path: string;
+  /**
+   * Schema join key: `{parentAstNodeName}.{refName}`, e.g. `"post.comments"`
+   * or `"comments.author"`.
+   */
+  joinKey: string;
   entity: string;
   on: string;
   fields: string[];
   type: "one" | "many";
+  /** Last segment of {@link path} — the ref name in the selection. */
   refName: string;
   /**
    * Identifying field on the joined entity. The shaper uses this to dedupe
@@ -54,6 +66,54 @@ export interface BuildJoinPlanOptions {
  */
 function tablePrefix(entityKey: string, config?: EntityConfig): string {
   return entityTable(entityKey, config);
+}
+
+/** Qualified field path for a join at `joinPath`. */
+export function qualifiedJoinField(joinPath: string, field: string): string {
+  return `${joinPath}.${field}`;
+}
+
+function planNodeRefs(
+  node: ASTNode,
+  entityKey: string,
+  parentJoinPath: string | undefined,
+  fields: string[],
+  joins: ResolvedJoin[],
+  schema: MeshSchema,
+): void {
+  for (const ref of node.refs) {
+    const joinKey = `${node.name}.${ref.name}`;
+    const joinConfig: JoinConfig | undefined = schema.joins[joinKey];
+
+    if (!joinConfig) {
+      throw new ValidationError(`No join defined for '${joinKey}'`);
+    }
+
+    const joinEntityConfig = schema.entities[joinConfig.entity];
+    const joinIdField = entityIdField(joinEntityConfig);
+    const joinPath = parentJoinPath ? `${parentJoinPath}.${ref.name}` : ref.name;
+
+    const refFieldSet = new Set<string>(ref.fields);
+    const joinFields = ref.fields.map((f) => qualifiedJoinField(joinPath, f));
+    if (!refFieldSet.has(joinIdField)) {
+      joinFields.push(qualifiedJoinField(joinPath, joinIdField));
+    }
+
+    fields.push(...joinFields);
+
+    joins.push({
+      path: joinPath,
+      joinKey,
+      entity: joinConfig.entity,
+      on: joinConfig.on,
+      fields: joinFields,
+      type: joinConfig.type,
+      refName: ref.name,
+      idField: joinIdField,
+    });
+
+    planNodeRefs(ref, joinConfig.entity, joinPath, fields, joins, schema);
+  }
 }
 
 /** Build a join plan from a parsed query AST and schema. */
@@ -81,43 +141,11 @@ export function buildJoinPlan(
     fields.push(`${rootPrefix}.${field}`);
     rootFieldSet.add(field);
   }
-  // Ensure the root identifying field is always selected so the shaper can
-  // group rows; the shaper only emits AST-requested fields, so an internally
-  // added id column does not leak into the response.
   if (!rootFieldSet.has(rootIdField)) {
     fields.push(`${rootPrefix}.${rootIdField}`);
   }
 
-  for (const ref of root.refs) {
-    const joinKey = `${root.name}.${ref.name}`;
-    const joinConfig: JoinConfig | undefined = schema.joins[joinKey];
-
-    if (!joinConfig) {
-      throw new ValidationError(`No join defined for '${joinKey}'`);
-    }
-
-    const joinEntityConfig = schema.entities[joinConfig.entity];
-    const joinIdField = entityIdField(joinEntityConfig);
-
-    const refFieldSet = new Set<string>(ref.fields);
-    const joinFields = ref.fields.map((f) => `${ref.name}.${f}`);
-    // Same rationale as root: ensure the nested entity's id is queried so the
-    // shaper can dedupe many-collections produced by Cartesian-product rows.
-    if (!refFieldSet.has(joinIdField)) {
-      joinFields.push(`${ref.name}.${joinIdField}`);
-    }
-
-    fields.push(...joinFields);
-
-    joins.push({
-      entity: joinConfig.entity,
-      on: joinConfig.on,
-      fields: joinFields,
-      type: joinConfig.type,
-      refName: ref.name,
-      idField: joinIdField,
-    });
-  }
+  planNodeRefs(root, rootEntityKey, undefined, fields, joins, schema);
 
   const plan: JoinPlan = {
     rootEntity: rootEntityKey,
@@ -137,4 +165,50 @@ export function buildJoinPlan(
 /** Collect a node and all nested reference nodes from an AST subtree. */
 export function collectAstNodes(node: ASTNode): ASTNode[] {
   return [node, ...node.refs.flatMap(collectAstNodes)];
+}
+
+/** SQL / row alias prefix for a join path (dots → underscores). */
+export function joinPathAlias(path: string): string {
+  return path.replace(/\./g, "_");
+}
+
+/** Row alias for a qualified plan field (matches SQL builder output). */
+export function rowAliasForQualifiedField(
+  qualified: string,
+  rootEntity: string,
+  joinPaths: string[],
+): string {
+  const parsed = parseQualifiedPlanField(qualified, rootEntity, joinPaths);
+  if (!parsed.joinPath) {
+    return `${rootEntity}_${parsed.column}`;
+  }
+  return `${joinPathAlias(parsed.joinPath)}_${parsed.column}`;
+}
+
+/** Parse a plan field into a join path (if nested) and column name. */
+export function parseQualifiedPlanField(
+  qualified: string,
+  rootEntity: string,
+  joinPaths: string[],
+): { joinPath: string | null; column: string } {
+  const sorted = [...joinPaths].sort((a, b) => b.length - a.length);
+  for (const path of sorted) {
+    const prefix = `${path}.`;
+    if (qualified.startsWith(prefix)) {
+      return { joinPath: path, column: qualified.slice(prefix.length) };
+    }
+  }
+
+  const dot = qualified.lastIndexOf(".");
+  if (dot === -1) {
+    return { joinPath: null, column: qualified };
+  }
+
+  const table = qualified.slice(0, dot);
+  const column = qualified.slice(dot + 1);
+  if (table === rootEntity || joinPaths.includes(table)) {
+    return { joinPath: table, column };
+  }
+
+  return { joinPath: null, column };
 }

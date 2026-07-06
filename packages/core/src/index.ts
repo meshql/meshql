@@ -299,12 +299,28 @@ export {
 } from "./errors/index.js";
 export { parseQuery, parseQl, parseJson, tokenize } from "./parser/index.js";
 export type { AST, ASTNode } from "./parser/ast.js";
-export { buildJoinPlan, collectAstNodes } from "./planner/join-plan.js";
+export {
+  buildJoinPlan,
+  collectAstNodes,
+  joinPathAlias,
+  parseQualifiedPlanField,
+  qualifiedJoinField,
+  rowAliasForQualifiedField,
+} from "./planner/join-plan.js";
 export type {
   BuildJoinPlanOptions,
   JoinPlan,
   ResolvedJoin,
 } from "./planner/join-plan.js";
+export {
+  buildPathToSqlAlias,
+  joinsInDependencyOrder,
+  physicalTableForJoin,
+  resolvePlanField,
+  rewriteJoinOn,
+  rowAliasForPlanField,
+  sqlAliasForJoinPath,
+} from "./planner/sql-from-plan.js";
 export {
   stripFieldsFromPlan,
   normalizeFieldPath,
