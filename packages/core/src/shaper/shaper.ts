@@ -1,13 +1,33 @@
 import type { ASTNode } from "../parser/ast.js";
-import type { ResolvedJoin } from "../planner/join-plan.js";
+import {
+  joinPathAlias,
+  type ResolvedJoin,
+} from "../planner/join-plan.js";
 
 const ROW_KEY_SEPARATORS = ["_", "."];
+
+function joinForPath(path: string, joins: ResolvedJoin[]): ResolvedJoin | undefined {
+  return joins.find((join) => join.path === path);
+}
 
 function readField(
   row: Record<string, unknown>,
   nodeName: string,
   field: string,
+  parentJoinPath?: string,
 ): unknown {
+  if (parentJoinPath) {
+    const pathAlias = `${joinPathAlias(parentJoinPath)}_${nodeName}_${field}`;
+    if (pathAlias in row) {
+      return row[pathAlias];
+    }
+    const nestedPath = `${parentJoinPath}.${nodeName}`;
+    const nestedAlias = `${joinPathAlias(nestedPath)}_${field}`;
+    if (nestedAlias in row) {
+      return row[nestedAlias];
+    }
+  }
+
   for (const sep of ROW_KEY_SEPARATORS) {
     const qualified = `${nodeName}${sep}${field}`;
     if (qualified in row) {
@@ -24,7 +44,24 @@ function hasField(
   rows: Record<string, unknown>[],
   nodeName: string,
   field: string,
+  parentJoinPath?: string,
 ): boolean {
+  if (parentJoinPath) {
+    const pathAlias = `${joinPathAlias(parentJoinPath)}_${nodeName}_${field}`;
+    for (const row of rows) {
+      if (pathAlias in row) {
+        return true;
+      }
+    }
+    const nestedPath = `${parentJoinPath}.${nodeName}`;
+    const nestedAlias = `${joinPathAlias(nestedPath)}_${field}`;
+    for (const row of rows) {
+      if (nestedAlias in row) {
+        return true;
+      }
+    }
+  }
+
   for (const sep of ROW_KEY_SEPARATORS) {
     const qualified = `${nodeName}${sep}${field}`;
     for (const row of rows) {
@@ -41,15 +78,41 @@ function hasField(
   return false;
 }
 
-function projectFields(
-  row: Record<string, unknown>,
-  nodeName: string,
-  fields: string[],
+function shapeRefRecord(
+  rows: Record<string, unknown>[],
+  ref: ASTNode,
+  join: ResolvedJoin,
+  joins: ResolvedJoin[],
+  parentJoinPath: string,
 ): Record<string, unknown> {
+  const firstRow = rows[0]!;
   const result: Record<string, unknown> = {};
-  for (const field of fields) {
-    result[field] = readField(row, nodeName, field);
+  const currentPath = parentJoinPath ? `${parentJoinPath}.${ref.name}` : ref.name;
+
+  for (const field of ref.fields) {
+    result[field] = readField(firstRow, ref.name, field, parentJoinPath);
   }
+
+  for (const childRef of ref.refs) {
+    const childPath = `${currentPath}.${childRef.name}`;
+    const childJoin = joinForPath(childPath, joins);
+    if (!childJoin) {
+      result[childRef.name] = rows.map((row) => {
+        const nested: Record<string, unknown> = {};
+        for (const field of childRef.fields) {
+          nested[field] = readField(row, childRef.name, field, currentPath);
+        }
+        return nested;
+      });
+      continue;
+    }
+
+    result[childRef.name] =
+      childJoin.type === "many"
+        ? shapeRefMany(rows, childRef, childJoin, joins, currentPath)
+        : shapeRefOne(rows, childRef, childJoin, joins, currentPath);
+  }
+
   return result;
 }
 
@@ -57,44 +120,48 @@ function shapeRefMany(
   rows: Record<string, unknown>[],
   ref: ASTNode,
   join: ResolvedJoin,
+  joins: ResolvedJoin[],
+  parentJoinPath: string,
 ): Record<string, unknown>[] {
-  // The id column may or may not be in the row. If it is, we use it to dedupe
-  // Cartesian-product duplicates and to detect left-join no-match rows
-  // (id === null). If it's not, we degrade to "accept every row as unique" —
-  // resolvers that don't return the id column lose dedup but stay functional.
-  if (hasField(rows, ref.name, join.idField)) {
+  if (hasField(rows, ref.name, join.idField, parentJoinPath)) {
     const seen = new Map<unknown, Record<string, unknown>>();
     for (const row of rows) {
-      const idValue = readField(row, ref.name, join.idField);
+      const idValue = readField(row, ref.name, join.idField, parentJoinPath);
       if (idValue === null || idValue === undefined) {
         continue;
       }
       if (seen.has(idValue)) {
         continue;
       }
-      seen.set(idValue, projectFields(row, ref.name, ref.fields));
+      const childRows = rows.filter(
+        (candidate) =>
+          readField(candidate, ref.name, join.idField, parentJoinPath) === idValue,
+      );
+      seen.set(idValue, shapeRefRecord(childRows, ref, join, joins, parentJoinPath));
     }
     return [...seen.values()];
   }
 
-  return rows.map((row) => projectFields(row, ref.name, ref.fields));
+  return rows.map((row) => shapeRefRecord([row], ref, join, joins, parentJoinPath));
 }
 
 function shapeRefOne(
   rows: Record<string, unknown>[],
   ref: ASTNode,
   join: ResolvedJoin,
+  joins: ResolvedJoin[],
+  parentJoinPath: string,
 ): Record<string, unknown> | null {
-  const idColumnPresent = hasField(rows, ref.name, join.idField);
+  const idColumnPresent = hasField(rows, ref.name, join.idField, parentJoinPath);
 
   for (const row of rows) {
     if (idColumnPresent) {
-      const idValue = readField(row, ref.name, join.idField);
+      const idValue = readField(row, ref.name, join.idField, parentJoinPath);
       if (idValue === null || idValue === undefined) {
         continue;
       }
     }
-    return projectFields(row, ref.name, ref.fields);
+    return shapeRefRecord([row], ref, join, joins, parentJoinPath);
   }
 
   return null;
@@ -112,21 +179,23 @@ function shapeRecord(
     result[field] = readField(firstRow, node.name, field);
   }
 
-  const joinByRef = new Map(joins.map((j) => [j.refName, j]));
-
   for (const ref of node.refs) {
-    const join = joinByRef.get(ref.name);
+    const join = joinForPath(ref.name, joins);
     if (!join) {
-      // No corresponding join in the plan — treat as a flat field group on the
-      // root rows, no dedup, no left-join handling.
-      result[ref.name] = rows.map((row) => projectFields(row, ref.name, ref.fields));
+      result[ref.name] = rows.map((row) => {
+        const nested: Record<string, unknown> = {};
+        for (const field of ref.fields) {
+          nested[field] = readField(row, ref.name, field);
+        }
+        return nested;
+      });
       continue;
     }
 
     result[ref.name] =
       join.type === "many"
-        ? shapeRefMany(rows, ref, join)
-        : shapeRefOne(rows, ref, join);
+        ? shapeRefMany(rows, ref, join, joins, "")
+        : shapeRefOne(rows, ref, join, joins, "");
   }
 
   return result;
@@ -162,9 +231,6 @@ export function shapeMany(
   }
 
   if (!hasField(rows, node.name, rootIdField)) {
-    // No way to group safely — fall back to treating each row as a separate
-    // record. This matches pre-0.2 behaviour for resolvers that don't return
-    // the id column.
     return rows.map((row) => shapeRecord([row], node, joins));
   }
 

@@ -70,7 +70,7 @@ describe("buildSelectSql (SQLite) — point read", () => {
     // aliases, planner-injected `tokens.id` for the shaper) — the only
     // wire-format difference is the `?` placeholder in the WHERE clause.
     expect(sql).toBe(
-      'SELECT users.id AS "user_id", users.name AS "user_name", tokens.access_token AS "tokens_accessToken", tokens.id AS "tokens_id" FROM users LEFT JOIN tokens ON tokens.user_id = users.id WHERE users.id = ?',
+      'SELECT users.id AS "user_id", users.name AS "user_name", tokens.access_token AS "tokens_accessToken", tokens.id AS "tokens_id" FROM users LEFT JOIN tokens AS tokens ON tokens.user_id = users.id WHERE users.id = ?',
     );
     expect(params).toEqual(["123"]);
   });
