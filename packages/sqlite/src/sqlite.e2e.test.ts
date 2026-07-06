@@ -188,6 +188,71 @@ describeIfSqlite("buildSelectSql round-trips against node:sqlite", () => {
     });
   });
 
+  it("round-trips three-level nesting (post → comments → author)", async () => {
+    const blogSchema: MeshSchema = {
+      entities: {
+        post: { type: {}, fields: ["id", "title"], table: "posts" },
+        comment: { type: {}, fields: ["id", "body"], table: "comments" },
+        user: { type: {}, fields: ["id", "name"], table: "users" },
+      },
+      joins: {
+        "post.comments": {
+          entity: "comment",
+          on: "comments.post_id = posts.id",
+          type: "many",
+          table: "comments",
+        },
+        "comments.author": {
+          entity: "user",
+          on: "users.id = comments.author_id",
+          type: "one",
+          table: "users",
+        },
+      },
+    };
+
+    const db = new DatabaseSync!(":memory:");
+    db.exec(`
+      CREATE TABLE posts (id INTEGER PRIMARY KEY, title TEXT NOT NULL);
+      CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
+      CREATE TABLE comments (
+        id INTEGER PRIMARY KEY,
+        body TEXT NOT NULL,
+        post_id INTEGER NOT NULL REFERENCES posts(id),
+        author_id INTEGER NOT NULL REFERENCES users(id)
+      );
+      INSERT INTO posts (id, title) VALUES (1, 'Hello');
+      INSERT INTO users (id, name) VALUES (1, 'Ada'), (2, 'Grace');
+      INSERT INTO comments (id, body, post_id, author_id) VALUES
+        (10, 'first', 1, 1),
+        (11, 'second', 1, 2);
+    `);
+
+    const mesh = createMesh(blogSchema);
+    mesh.resolve("post", async (plan) => {
+      const { sql, params } = buildSelectSql(plan, blogSchema);
+      return db.prepare(sql).all(...(params as SqliteParam[]));
+    });
+
+    const response = (await mesh.execute(
+      "{ post { id title comments { body author { name } } } }",
+      { context: { requestId: "1", method: "GET", entityId: "1" } },
+    )) as {
+      id: number;
+      title: string;
+      comments: Array<{ body: string; author: { name: string } }>;
+    };
+
+    expect(response).toEqual({
+      id: 1,
+      title: "Hello",
+      comments: [
+        { body: "first", author: { name: "Ada" } },
+        { body: "second", author: { name: "Grace" } },
+      ],
+    });
+  });
+
   describe("list options against node:sqlite", () => {
     type Db = InstanceType<NonNullable<typeof DatabaseSync>>;
 

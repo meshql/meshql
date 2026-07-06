@@ -1,11 +1,18 @@
 # Changelog
 
+## 0.5.1
+
+### Patch Changes
+
+- Fix multi-level nested field selection: recursive join planning, multi-hop SQL joins with distinct table aliases, and recursive shaper. Queries like `post.comments.author.name` now execute end-to-end (previously parsed and validated but only one join hop was planned).
+- Updated dependencies
+  - @meshql/core@0.5.1
+
 ## 0.5.0
 
 ### Patch Changes
 
 - Fix SQL SELECT table names when join ref names differ from table names (e.g. `author` → `users`).
-
 
 ## 0.4.1
 
