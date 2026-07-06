@@ -5,17 +5,17 @@ Parser, planner, shaper, and executor for client-driven field selection over RES
 ## Install
 
 ```bash
-npx jsr add @meshql/core
-# or
 npm install meshql-core
+# or
+npx jsr add @meshql/core
 ```
 
-Published on [JSR](https://jsr.io/@meshql/core). Also on [npm](https://www.npmjs.com/package/meshql-core) as `meshql-core`.
+Published on [npm](https://www.npmjs.com/package/meshql-core) as `meshql-core` and [JSR](https://jsr.io/@meshql/core) as `@meshql/core`.
 
 ## Example
 
 ```ts
-import { buildSelectSql, createMesh } from "@meshql/core";
+import { buildSelectSql, createMesh } from "meshql-core";
 
 const mesh = createMesh({
   entities: {
@@ -35,3 +35,5 @@ const user = await mesh.execute("user { id email tokens { accessToken } }", {
   context: { requestId: "req-1", method: "GET" },
 });
 ```
+
+JSR import: `@meshql/core`.
