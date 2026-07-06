@@ -6,9 +6,11 @@ Parser, planner, shaper, and executor for client-driven field selection over RES
 
 ```bash
 npx jsr add @meshql/core
+# or
+npm install meshql-core
 ```
 
-Published on [JSR](https://jsr.io/@meshql/core). npm coming soon.
+Published on [JSR](https://jsr.io/@meshql/core). Also on [npm](https://www.npmjs.com/package/meshql-core) as `meshql-core`.
 
 ## Example
 

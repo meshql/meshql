@@ -20,7 +20,11 @@ export type {
   AuthClientOptions,
   AuthMeshClient,
   AuthTokens,
+  WriteOptions,
+  WritePayload,
 } from "./client.js";
+export { encodeQuery, signQuery } from "./sign.js";
+export type { QueryFormat, SignQueryOptions } from "./sign.js";
 export {
   selectionToJson,
   selectionToQl,

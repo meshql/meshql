@@ -1,3 +1,5 @@
 uploads/
 *.db
 dist/
+public/index.html
+public/assets/

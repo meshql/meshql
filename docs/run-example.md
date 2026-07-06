@@ -1,10 +1,31 @@
 # Run MeshQL in 5 minutes
 
-Get a working MeshQL server with **no database** — then test it with **curl**.
+Get a working MeshQL stack — reads, signed auth, list queries, and uploads — with **no Docker**.
 
-MeshQL is published on [JSR](https://jsr.io/@meshql) (`@meshql` scope). **npm packages are coming soon** — use JSR for now. Version **0.1.x** is pre-security (no HMAC or signing tokens yet).
+MeshQL is published on **[JSR](https://jsr.io/@meshql)** (`@meshql/*`) and **[npm](https://www.npmjs.com/package/meshql-core)** (`meshql-*`). Current release line: **0.5.x**.
 
-> **SQLite is not supported.** Use in-memory data for local testing (below), or Postgres via the [express-postgres example](../examples/express-postgres).
+---
+
+## Fastest path — interactive showcase
+
+Full-stack blog demo (**React** + `@meshql/client` on SQLite):
+
+```bash
+git clone https://github.com/meshql/meshql.git
+cd meshql
+pnpm install && pnpm build
+pnpm --filter showcase start
+```
+
+Open **http://localhost:3010/** — sign in with `ada@example.com` / `demo` and watch DevTools → Network for `/mesh/*` calls.
+
+Optional CLI tour of the same API:
+
+```bash
+pnpm --filter showcase demo
+```
+
+See [examples/showcase/README.md](../examples/showcase/README.md).
 
 ---
 
@@ -29,239 +50,171 @@ bun init -y
 mkdir src
 ```
 
-### Deno
+---
+
+## Step 2 — Install MeshQL
+
+**JSR:**
 
 ```bash
-mkdir my-meshql-app && cd my-meshql-app
-deno init
+npx jsr add @meshql/core @meshql/sqlite @meshql/http @meshql/client @meshql/integrity
+```
+
+**npm:**
+
+```bash
+npm install meshql-core meshql-sqlite meshql-http meshql-client meshql-integrity
+```
+
+Add Express:
+
+```bash
+npm i express
+npm i -D @types/express   # Node only
 ```
 
 ---
 
-## Step 2 — Install MeshQL from JSR
+## Step 3 — Minimal SQLite server
 
-```bash
-# npm
-npx jsr add @meshql/core @meshql/http @meshql/client
-
-# Bun
-bunx jsr add @meshql/core @meshql/http @meshql/client
-
-# Deno
-deno add jsr:@meshql/core jsr:@meshql/http jsr:@meshql/client
-```
-
-Install a framework:
-
-| Stack | Command |
-|-------|---------|
-| Express | `npm i express` (+ `npm i -D @types/express` on Node) |
-| Hono (Node) | `npm i hono @hono/node-server` |
-| Hono (Bun) | `bun add hono` |
-
----
-
-## Step 3 — Paste a server
-
-All examples use **in-memory data** — no database required.
-
-### Express (`src/index.ts`)
+Uses Node 22.5+ built-in `node:sqlite` — no native deps.
 
 ```typescript
+// src/index.ts
+import { DatabaseSync } from "node:sqlite";
 import { createMesh, type MeshSchema } from "@meshql/core";
-import { meshExpressRouter } from "@meshql/http/express";
+import { buildSelectSql } from "@meshql/sqlite";
+import { meshIntegrityExpressRouter } from "@meshql/integrity/express";
+import { withIntegrity } from "@meshql/integrity";
 import express from "express";
 
 const schema: MeshSchema = {
   entities: {
-    user: { type: {}, fields: ["id", "name"], table: "users" },
-    token: {
-      type: {},
-      fields: ["accessToken"],
-      table: "tokens",
-      columns: { accessToken: "access_token" },
-    },
+    user: { type: {}, fields: ["id", "name", "email"], table: "users" },
   },
-  joins: {
-    "user.tokens": {
-      entity: "token",
-      on: "tokens.user_id = users.id",
-      type: "many",
-    },
-  },
+  joins: {},
 };
 
-const rows = [
-  { user_id: 1, user_name: "Ada Lovelace", tokens_accessToken: "tok_ada" },
-  { user_id: 2, user_name: "Grace Hopper", tokens_accessToken: "tok_grace" },
-];
+const db = new DatabaseSync(":memory:");
+db.exec(`
+  CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT);
+  INSERT INTO users VALUES (1, 'Ada Lovelace', 'ada@example.com');
+`);
 
-const mesh = createMesh(schema);
+const base = createMesh(schema);
+const mesh = withIntegrity(base, {
+  secret: process.env.MESH_SECRET ?? "dev-secret",
+  authenticate: async (creds) => {
+    const { email } = creds as { email?: string };
+    const row = db.prepare("SELECT id FROM users WHERE email = ?").get(email ?? "") as
+      | { id: number }
+      | undefined;
+    if (!row) throw new Error("Invalid credentials");
+    return { userId: String(row.id), sessionId: crypto.randomUUID(), role: "user" };
+  },
+});
 
-mesh.resolve("user", async (plan) => {
-  let result = [...rows];
-  if (plan.context.entityId) {
-    const id = Number(plan.context.entityId);
-    result = result.filter((r) => r.user_id === id);
-  }
-  return result;
+mesh.resolve("*", async (plan) => {
+  const { sql, params } = buildSelectSql(plan, schema);
+  return db.prepare(sql).all(...params);
 });
 
 const app = express();
 app.use(express.json());
-app.get("/health", (_req, res) => res.json({ ok: true }));
-app.use(meshExpressRouter(mesh, "/mesh"));
+app.use(meshIntegrityExpressRouter(mesh, mesh.integrity, "/mesh"));
 
 app.listen(3001, () => {
   console.log("MeshQL on http://localhost:3001/mesh");
 });
 ```
 
-### Hono (`src/index.ts`)
+Run:
 
-```typescript
-import { Hono } from "hono";
-import { createMesh, type MeshSchema } from "@meshql/core";
-import { meshHonoRoutes } from "@meshql/http/hono";
-
-const schema: MeshSchema = {
-  entities: {
-    user: { type: {}, fields: ["id", "name"], table: "users" },
-    token: {
-      type: {},
-      fields: ["accessToken"],
-      table: "tokens",
-      columns: { accessToken: "access_token" },
-    },
-  },
-  joins: {
-    "user.tokens": {
-      entity: "token",
-      on: "tokens.user_id = users.id",
-      type: "many",
-    },
-  },
-};
-
-const rows = [
-  { user_id: 1, user_name: "Ada Lovelace", tokens_accessToken: "tok_ada" },
-  { user_id: 2, user_name: "Grace Hopper", tokens_accessToken: "tok_grace" },
-];
-
-const mesh = createMesh(schema);
-mesh.resolve("user", async (plan) => {
-  let result = [...rows];
-  if (plan.context.entityId) {
-    const id = Number(plan.context.entityId);
-    result = result.filter((r) => r.user_id === id);
-  }
-  return result;
-});
-
-const app = new Hono();
-app.get("/health", (c) => c.json({ ok: true }));
-app.route("/", meshHonoRoutes(mesh, { basePath: "/mesh" }));
-
-export default app;
-```
-
-Run on Node with `@hono/node-server`:
-
-```typescript
-import { serve } from "@hono/node-server";
-import app from "./index.js";
-
-serve({ fetch: app.fetch, port: 3001 }, () => {
-  console.log("MeshQL on http://localhost:3001/mesh");
-});
-```
-
-Or on Bun — add to the bottom of `index.ts`:
-
-```typescript
-export default { port: 3001, fetch: app.fetch };
+```bash
+npx tsx src/index.ts
 ```
 
 ---
 
-## Step 4 — Start the server
+## Step 4 — Test with the client SDK
 
-```bash
-# Node
-npx tsx src/index.ts
+```typescript
+// src/client-demo.ts
+import { createAuthClient } from "@meshql/client";
 
-# Bun
-bun run src/index.ts
+const client = createAuthClient({ url: "http://localhost:3001/mesh", format: "json" });
 
-# Deno
-deno run --allow-net src/index.ts
+await client.login({ email: "ada@example.com" });
+
+// Point read
+const user = await client.query(
+  { user: { id: true, name: true, email: true } },
+  { entityId: "1" },
+);
+console.log("user:", user);
+
+// List read ($list in signed payload)
+const users = await client.query(
+  { user: { id: true, name: true } },
+  { list: { limit: 10, orderBy: [{ field: "id", dir: "asc" }] } },
+);
+console.log("list:", users);
 ```
 
-Check health:
-
 ```bash
-curl -s http://localhost:3001/health
-# {"ok":true}
+npx tsx src/client-demo.ts
 ```
+
+See [client.md](./client.md) for browser usage, uploads, and React integration.
 
 ---
 
 ## Step 5 — Test with curl
 
-MeshQL queries travel in headers on `GET` requests. Base64-encode the query JSON:
+### Login (integrity)
 
 ```bash
-# Helper — add to your shell or run inline
+curl -s -X POST http://localhost:3001/mesh/auth \
+  -H "Content-Type: application/json" \
+  -d '{"email":"ada@example.com"}'
+```
+
+Save `signingToken` and `token` from the response for signed queries.
+
+### Signed GET (manual)
+
+Base64-encode the query JSON:
+
+```bash
 mesh_query() {
   echo -n "$1" | base64 | tr -d '\n'
 }
-```
 
-### Get one user (with nested tokens)
+Q=$(mesh_query '{"user":{"id":true,"name":true}}')
 
-```bash
-Q=$(mesh_query '{"user":{"id":true,"name":true,"tokens":{"accessToken":true}}}')
-
+# Sign with your signingToken (see @meshql/http signQuery or use the client)
 curl -s "http://localhost:3001/mesh/user/1" \
   -H "X-Mesh-Query: $Q" \
-  -H "X-Mesh-Format: json"
+  -H "X-Mesh-Format: json" \
+  -H "X-Mesh-Token: $TOKEN" \
+  -H "X-Mesh-Signature: sha256=..."
 ```
 
-Expected:
+Prefer `@meshql/client` — it handles encoding and signing automatically.
 
-```json
-{
-  "id": 1,
-  "name": "Ada Lovelace",
-  "tokens": [{ "accessToken": "tok_ada" }]
-}
-```
-
-### List all users
+### List with `$list`
 
 ```bash
+Q=$(mesh_query '{"user":{"id":true,"name":true},"$list":{"limit":10}}')
+
 curl -s "http://localhost:3001/mesh/user" \
   -H "X-Mesh-Query: $Q" \
-  -H "X-Mesh-Format: json"
+  -H "X-Mesh-Format: json" \
+  -H "X-Mesh-Token: $TOKEN" \
+  -H "X-Mesh-Signature: sha256=..."
 ```
 
-### QL format (brace syntax)
-
-```bash
-Q=$(mesh_query '{ user { id name tokens { accessToken } } }')
-
-curl -s "http://localhost:3001/mesh/user/1" \
-  -H "X-Mesh-Query: $Q" \
-  -H "X-Mesh-Format: ql"
-```
-
-### POST (query in body — no base64)
-
-```bash
-curl -s -X POST "http://localhost:3001/mesh" \
-  -H "Content-Type: application/json" \
-  -d '{"query":"{ user { id name } }","format":"ql"}'
-```
+List options live in the signed payload, not URL query strings.
 
 ### Missing header (expected error)
 
@@ -278,41 +231,18 @@ curl -s "http://localhost:3001/mesh/user/1"
 
 ---
 
-## Optional — client SDK
+## Other examples
 
-```typescript
-import { createClient } from "@meshql/client";
-
-const client = createClient({ url: "http://localhost:3001/mesh" });
-
-const user = await client.query(
-  { user: { id: true, name: true, tokens: { accessToken: true } } },
-  { entityId: "1" },
-);
-
-console.log(user);
-```
-
-Run with `npx tsx client.ts` (or `bun run client.ts`).
-
----
-
-## Optional — full monorepo example (Postgres)
-
-For Postgres, seeded data, and future security demos:
-
-```bash
-git clone https://github.com/meshql/meshql.git
-cd meshql
-pnpm install && pnpm build
-pnpm --filter express-postgres start
-```
-
-See [examples/express-postgres/README.md](../examples/express-postgres/README.md).
+| Example | Stack | Highlights |
+|---------|-------|------------|
+| [showcase](../examples/showcase) | React + SQLite + integrity + access + uploads | Full dashboard, browser client |
+| [express-sqlite](../examples/express-sqlite) | Express + SQLite | Minimal SQL adapter |
+| [express-postgres](../examples/express-postgres) | Express + Postgres + uploads | Avatar upload demo |
 
 ---
 
 ## Related
 
-- [HTTP adapters](./http-adapters.md) — routes, headers, errors
-- [JSR packages](https://jsr.io/@meshql/core)
+- [HTTP adapters](./http-adapters.md) — routes, headers, uploads, errors
+- [Client SDK](./client.md) — browser, auth, list queries, uploads
+- [README](../README.md) — project overview

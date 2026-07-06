@@ -1,10 +1,10 @@
-import { signQuery } from "@meshql/http";
 import type { ListOptions } from "@meshql/core";
 import {
   selectionToJson,
   selectionToQl,
   type QuerySelection,
 } from "./query-builder.js";
+import { signQuery } from "./sign.js";
 
 /** Auth credentials returned from login. */
 export interface AuthTokens {
@@ -27,6 +27,22 @@ export interface MeshClientOptions {
   token?: string;
   /** Called when token expires for silent re-auth. */
   onTokenExpired?: () => Promise<AuthTokens>;
+}
+
+/** Signed write operation (showcase / preview until core mutations). */
+export interface WritePayload {
+  op: "create" | "update" | "delete";
+  entity: string;
+  id?: number | string;
+  data?: Record<string, unknown>;
+}
+
+/** Options for {@link MeshClient.write}. */
+export interface WriteOptions {
+  op: WritePayload["op"];
+  entity: string;
+  id?: number | string;
+  data?: Record<string, unknown>;
 }
 
 /** File input for {@link MeshClient.upload}. */
@@ -71,6 +87,13 @@ export interface MeshClient {
    * is omitted).
    */
   upload<T = Record<string, unknown>>(options: UploadOptions): Promise<T>;
+  /**
+   * Execute a signed write against `POST /write` (preview API).
+   *
+   * Payload is transported in the signed `X-Mesh-Query` header as
+   * `{ $write: { op, entity, id?, data? } }`.
+   */
+  write<T = Record<string, unknown>>(options: WriteOptions): Promise<T>;
   /** Update signing credentials after login or refresh. */
   setAuth(tokens: Partial<Pick<AuthTokens, "signingToken" | "token">>): void;
 }
@@ -115,7 +138,7 @@ export function createClient(options: MeshClientOptions): MeshClient {
       ? `${options.url}/${rootEntity}/${requestOptions.entityId}`
       : `${options.url}/${rootEntity}`;
 
-    const signedHeaders = signQuery(raw, {
+    const signedHeaders = await signQuery(raw, {
       format,
       secret: auth.secret,
       signingToken: auth.signingToken,
@@ -163,7 +186,7 @@ export function createClient(options: MeshClientOptions): MeshClient {
       ? `${options.url}/${uploadOptions.entity}/${uploadOptions.id}/${uploadOptions.field}`
       : `${options.url}/${uploadOptions.entity}`;
 
-    const signedHeaders = signQuery(raw, {
+    const signedHeaders = await signQuery(raw, {
       format: "json",
       secret: auth.secret,
       signingToken: auth.signingToken,
@@ -206,9 +229,53 @@ export function createClient(options: MeshClientOptions): MeshClient {
     return (await response.json()) as T;
   }
 
+  async function executeWrite<T>(writeOptions: WriteOptions): Promise<T> {
+    const payload: WritePayload = {
+      op: writeOptions.op,
+      entity: writeOptions.entity,
+      id: writeOptions.id,
+      data: writeOptions.data,
+    };
+    const raw = JSON.stringify({ $write: payload });
+
+    const signedHeaders = await signQuery(raw, {
+      format: "json",
+      secret: auth.secret,
+      signingToken: auth.signingToken,
+      token: auth.token,
+    });
+
+    const response = await fetchFn(`${options.url}/write`, {
+      method: "POST",
+      headers: {
+        ...options.headers,
+        ...signedHeaders,
+      },
+    });
+
+    if (response.status === 401 && auth.onTokenExpired) {
+      const refreshed = await auth.onTokenExpired();
+      auth.signingToken = refreshed.signingToken;
+      auth.token = refreshed.token;
+      return executeWrite(writeOptions);
+    }
+
+    if (!response.ok) {
+      const errorBody = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      throw new Error(
+        errorBody.message ?? `MeshQL write failed (${response.status})`,
+      );
+    }
+
+    return (await response.json()) as T;
+  }
+
   return {
     query: executeQuery,
     upload: executeUpload,
+    write: executeWrite,
     setAuth(tokens) {
       if (tokens.signingToken !== undefined) {
         auth.signingToken = tokens.signingToken;
