@@ -1,56 +1,67 @@
 # MeshQL showcase
 
-Interactive **full-stack blog** that exercises the MeshQL stack in the browser
-(HTMX UI + signed MeshQL API).
+Full-stack blog demo built with **React** + **`@meshql/client`**. All browser
+traffic goes to **`/mesh/*`** — login, reads, writes, and uploads.
 
-| Feature | Try it |
-|---------|--------|
-| Integrity login | Switch **Guest / Ada / Admin** in the left panel |
-| Field selection | Toggle title, body, status, author, comments |
-| List + `$list` | Change limit, orderBy, status filter — list updates live |
-| Cursor pagination | **Load more** |
-| Field access | As guest, `user.email` is stripped; as admin it appears |
-| Row access | As guest, open a draft — empty / denied |
-| Uploads | Upload an avatar (signed `contentHash`) |
-| Wire inspector | Right panel shows the signed payload and MeshQL JSON response |
+| Network call | Purpose |
+|--------------|---------|
+| `POST /mesh/auth` | Login via `createAuthClient().login()` |
+| `GET /mesh/post` | List posts (signed query + `$list`) |
+| `GET /mesh/post/:id` | Post detail |
+| `GET /mesh/user/:id` | Profile (field access demo) |
+| `POST /mesh/write` | CRUD writes (preview until core mutations) |
+| `POST /mesh/user/:id/avatar` | Avatar upload via `client.upload()` |
 
-Zero Docker — Node 22.5+ `node:sqlite` (`:memory:` by default).
+The dashboard **MeshQL network** panel shows recent client calls.
 
 ## Quick start
 
 ```bash
 pnpm install && pnpm build
-pnpm --filter showcase start
+pnpm --filter showcase start   # builds React app, then serves
 ```
 
 Open **http://localhost:3010/**
 
-Optional CLI tour (same API):
+### Dev with hot reload
+
+Terminal 1 — API server:
 
 ```bash
-pnpm --filter showcase demo
+pnpm --filter showcase dev
 ```
+
+Terminal 2 — Vite (proxies `/mesh` → :3010):
+
+```bash
+pnpm --filter showcase dev:web
+```
+
+Open **http://localhost:5173/**
 
 ## Demo accounts
 
 | Email | Password | Role |
 |-------|----------|------|
-| `guest@example.com` | `demo` | published posts only, no emails |
-| `ada@example.com` | `demo` | author — drafts + avatar upload |
-| `admin@example.com` | `demo` | sees `user.email` |
+| `guest@example.com` | `demo` | read published posts only |
+| `ada@example.com` | `demo` | author — create & edit own posts |
+| `admin@example.com` | `demo` | full access |
 
 ## Layout
 
 ```
+index.html              # Vite entry
+vite.config.ts
 src/
-  server.ts     # Express: UI + /mesh API
-  mesh.ts       # MeshQL wiring
-  ui.ts         # HTMX pages & partials
-  mesh-call.ts  # signed execute / upload helpers
-  session.ts    # cookie sessions
-  schema.ts / db.ts / demo.ts
-public/
-  styles.css
+  server.ts             # Express: SPA + /mesh API + /mesh/write
+  web/                  # React app (@meshql/client via MeshProvider)
+    main.tsx
+    MeshContext.tsx     # createAuthClient, query, write, upload
+    LoginPage.tsx
+    DashboardPage.tsx
+    ...
+  mesh.ts / crud.ts / write-handler.ts
+public/                 # Vite build output + styles.css
 ```
 
 ## Env

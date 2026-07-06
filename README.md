@@ -14,6 +14,7 @@
   <a href="https://jsr.io/@meshql/core">JSR</a> ·
   <a href="./docs/run-example.md">5-minute guide</a> ·
   <a href="./docs/http-adapters.md">HTTP adapters</a> ·
+  <a href="./docs/client.md">Client SDK</a> ·
   <a href="./examples/showcase">Showcase (full stack)</a> ·
   <a href="./examples/express-sqlite">SQLite example</a> ·
   <a href="./examples/express-postgres">Postgres example</a>
@@ -244,7 +245,7 @@ A specific `mesh.resolve("user", fn)` always wins over the `"*"` fallback.
 
 ## Try the showcase
 
-Interactive full-stack blog (HTMX UI + MeshQL API) on SQLite — no Docker:
+Interactive full-stack blog (**React** + `@meshql/client`) on SQLite — no Docker:
 
 ```bash
 git clone https://github.com/meshql/meshql.git
@@ -253,7 +254,7 @@ pnpm install && pnpm build
 pnpm --filter showcase start
 ```
 
-Open **http://localhost:3010/** — switch roles, tweak field selection / list options, upload an avatar, and inspect the signed wire payload live.
+Open **http://localhost:3010/** — the browser app uses `@meshql/client` against `/mesh/*` for login, reads, writes, and uploads. Check DevTools → Network to see signed MeshQL requests.
 
 Optional CLI tour: `pnpm --filter showcase demo`
 
@@ -325,6 +326,8 @@ express()
 | `@meshql/access` | `meshql-access` | Entity, row, and dynamic field access |
 
 HTTP adapter docs (routes, headers, curl): [docs/http-adapters.md](./docs/http-adapters.md)
+
+Client SDK (browser, auth, uploads): [docs/client.md](./docs/client.md)
 
 ## Security
 
