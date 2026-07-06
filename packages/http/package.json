@@ -39,13 +39,13 @@
     "@meshql/typescript-config": "workspace:*",
     "@types/busboy": "^1.5.4",
     "@types/express": "^5.0.0",
-    "@types/node": "^22.15.3",
+    "@types/node": "^26.1.0",
     "express": "^5.1.0",
-    "fastify": "^5.3.3",
-    "hono": "^4.7.10",
+    "fastify": "^5.10.0",
+    "hono": "^4.12.28",
     "tsup": "^8.4.0",
-    "typescript": "5.9.2",
-    "vitest": "^3.0.0"
+    "typescript": "6.0.3",
+    "vitest": "^4.1.10"
   },
   "peerDependencies": {
     "express": "^4 || ^5",

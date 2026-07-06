@@ -36,9 +36,9 @@
   },
   "devDependencies": {
     "@meshql/typescript-config": "workspace:*",
-    "@types/node": "^22.15.3",
+    "@types/node": "^26.1.0",
     "tsup": "^8.4.0",
-    "typescript": "5.9.2",
-    "vitest": "^3.0.0"
+    "typescript": "6.0.3",
+    "vitest": "^4.1.10"
   }
 }
