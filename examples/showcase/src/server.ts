@@ -5,6 +5,7 @@ import { meshIntegrityExpressRouter } from "@meshql/integrity/express";
 import type { IntegrityConfig } from "@meshql/integrity";
 import { mesh } from "./mesh.js";
 import { mountUi } from "./ui.js";
+import { mountWriteRoute } from "./write-handler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -25,8 +26,11 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, "../public")));
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
-// Interactive HTMX UI
+// Interactive UI shells (browser uses @meshql/client → /mesh)
 mountUi(app);
+
+// Signed writes (preview until core mutations)
+mountWriteRoute(app, mesh.integrity);
 
 // MeshQL API (signed header transport)
 app.use(
@@ -52,7 +56,8 @@ const port = Number(process.env.PORT ?? 3010);
 
 app.listen(port, () => {
   console.log(`MeshQL showcase  http://localhost:${port}`);
-  console.log(`  UI   → http://localhost:${port}/`);
-  console.log(`  API  → http://localhost:${port}/mesh`);
-  console.log(`  Demo → pnpm --filter showcase demo`);
+  console.log(`  Login     → http://localhost:${port}/login`);
+  console.log(`  Dashboard → http://localhost:${port}/dashboard`);
+  console.log(`  API       → http://localhost:${port}/mesh`);
+  console.log(`  Demo      → pnpm --filter showcase demo`);
 });
