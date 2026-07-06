@@ -69,7 +69,7 @@ describe("buildSelectSql — point read", () => {
     // the shaper. `tokens.id` is auto-added by the planner so the shaper can
     // dedupe Cartesian-product rows.
     expect(sql).toBe(
-      'SELECT users.id AS "user_id", users.name AS "user_name", tokens.access_token AS "tokens_accessToken", tokens.id AS "tokens_id" FROM users LEFT JOIN tokens ON tokens.user_id = users.id WHERE users.id = $1',
+      'SELECT users.id AS "user_id", users.name AS "user_name", tokens.access_token AS "tokens_accessToken", tokens.id AS "tokens_id" FROM users LEFT JOIN tokens AS tokens ON tokens.user_id = users.id WHERE users.id = $1',
     );
     expect(params).toEqual(["123"]);
   });
@@ -213,6 +213,53 @@ describe("buildSelectSql — list options", () => {
     expect(sql).not.toContain("role = ");
     expect(sql).not.toContain("LIMIT");
     expect(params).toEqual(["5"]);
+  });
+});
+
+describe("buildSelectSql — nested joins", () => {
+  const blogSchema: MeshSchema = {
+    entities: {
+      post: { type: {}, fields: ["id", "title"], table: "posts" },
+      comment: { type: {}, fields: ["id", "body"], table: "comments" },
+      user: { type: {}, fields: ["id", "name"], table: "users" },
+    },
+    joins: {
+      "post.author": {
+        entity: "user",
+        on: "users.id = posts.author_id",
+        type: "one",
+      },
+      "post.comments": {
+        entity: "comment",
+        on: "comments.post_id = posts.id",
+        type: "many",
+      },
+      "comments.author": {
+        entity: "user",
+        on: "users.id = comments.author_id",
+        type: "one",
+      },
+    },
+  };
+
+  it("uses distinct SQL aliases when the same table joins twice", () => {
+    const ast = parseQl(
+      "{ post { id author { name } comments { body author { name } } } }",
+    );
+    const plan = buildJoinPlan(
+      ast,
+      blogSchema,
+      createQueryContext({ requestId: "1", method: "GET", entityId: "1" }),
+    );
+    const { sql } = buildSelectSql(plan, blogSchema);
+
+    expect(sql).toContain("LEFT JOIN users AS author ON author.id = posts.author_id");
+    expect(sql).toContain("LEFT JOIN comments AS comments ON comments.post_id = posts.id");
+    expect(sql).toContain(
+      "LEFT JOIN users AS comments_author ON comments_author.id = comments.author_id",
+    );
+    expect(sql).toContain('author.name AS "author_name"');
+    expect(sql).toContain('comments_author.name AS "comments_author_name"');
   });
 });
 
