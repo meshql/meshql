@@ -16,9 +16,9 @@ For each publishable package, open **Settings** on the package page and set:
 | `@meshql/upload` | done | done |
 | `@meshql/integrity` | done | done |
 | `@meshql/access` | done | done |
-| `@meshql/prisma` | new | link `meshql/meshql` |
-| `@meshql/drizzle` | new | link `meshql/meshql` |
-| `@meshql/kysely` | new | link `meshql/meshql` |
+| `@meshql/prisma` | done | done |
+| `@meshql/drizzle` | done | done |
+| `@meshql/kysely` | done | done |
 
 Steps for each new package:
 
