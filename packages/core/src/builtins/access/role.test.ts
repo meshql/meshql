@@ -25,6 +25,8 @@ describe("roleAccessPlugin", () => {
     idField: "id",
     joins: [
       {
+        path: "tokens",
+        joinKey: "user.tokens",
         entity: "token",
         on: "tokens.user_id = users.id",
         fields: ["tokens.accessToken"],
