@@ -1,0 +1,33 @@
+{
+  "name": "express-prisma",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push && prisma generate",
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "demo": "tsx src/demo-client.ts",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@meshql/client": "workspace:*",
+    "@meshql/core": "workspace:*",
+    "@meshql/http": "workspace:*",
+    "@meshql/prisma": "workspace:*",
+    "@prisma/client": "^6.9.0",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@meshql/typescript-config": "workspace:*",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.15.3",
+    "prisma": "^6.9.0",
+    "tsx": "^4.19.4",
+    "typescript": "5.9.2"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}

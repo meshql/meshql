@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.6.0
+
+### Minor Changes
+
+- v0.6.0: ORM adapters (Prisma, Drizzle, Kysely) and core support for preshaped resolvers, ORM plan-relation helpers, and cursor exports. Includes `examples/express-prisma` and ORM documentation.
+
+## 0.6.0
+
+### Minor Changes
+
+- v0.6.0: ORM adapter support in core.
+  - **New:** `{ preshaped: true }` on `mesh.resolve()` — skip shaper when resolver returns nested JSON (Prisma/Drizzle).
+  - **New:** ORM helpers exported from `@meshql/core` — `buildPlanRelationTree`, `buildOrmListQuery`, `mapEntityField`, etc.
+  - **New:** `encodeCursor` / `decodeCursor` exported from core for list pagination.
+
 ## 0.5.1
 
 ### Patch Changes

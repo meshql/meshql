@@ -13,11 +13,12 @@
   <a href="https://github.com/meshql/meshql">GitHub</a> ·
   <a href="https://jsr.io/@meshql/core">JSR</a> ·
   <a href="./docs/run-example.md">5-minute guide</a> ·
+  <a href="./docs/orm-adapters.md">ORM adapters</a> ·
+  <a href="./docs/database-connections.md">DB connections</a> ·
   <a href="./docs/http-adapters.md">HTTP adapters</a> ·
   <a href="./docs/client.md">Client SDK</a> ·
   <a href="./examples/showcase">Showcase (full stack)</a> ·
-  <a href="./examples/express-sqlite">SQLite example</a> ·
-  <a href="./examples/express-postgres">Postgres example</a>
+  <a href="./examples/express-prisma">Prisma example</a>
 </p>
 
 <p align="center">
@@ -61,6 +62,9 @@ deno add jsr:@meshql/core jsr:@meshql/http jsr:@meshql/client
 | `@meshql/upload` | [jsr.io/@meshql/upload](https://jsr.io/@meshql/upload) | File uploads (optional) |
 | `@meshql/integrity` | [jsr.io/@meshql/integrity](https://jsr.io/@meshql/integrity) | Request signing and integrity tokens |
 | `@meshql/access` | [jsr.io/@meshql/access](https://jsr.io/@meshql/access) | Entity, row, and field access control |
+| `@meshql/prisma` | [jsr.io/@meshql/prisma](https://jsr.io/@meshql/prisma) | Prisma catch-all resolver (nested `select`) |
+| `@meshql/drizzle` | [jsr.io/@meshql/drizzle](https://jsr.io/@meshql/drizzle) | Drizzle relational query resolver |
+| `@meshql/kysely` | [jsr.io/@meshql/kysely](https://jsr.io/@meshql/kysely) | Kysely + `buildSelectSql` flat-row resolver |
 
 **Core stack** (most apps — pick a DB adapter):
 
@@ -70,6 +74,9 @@ npx jsr add @meshql/core @meshql/sqlite @meshql/http @meshql/client
 
 # Postgres
 npx jsr add @meshql/core @meshql/postgres @meshql/http @meshql/client
+
+# Prisma (catch-all ORM resolver)
+npx jsr add @meshql/core @meshql/prisma @meshql/http @meshql/client
 ```
 
 **With security** (signing + access):
@@ -104,6 +111,9 @@ npm install meshql-core meshql-http meshql-client meshql-upload meshql-integrity
 | `meshql-upload` | [npmjs.com/package/meshql-upload](https://www.npmjs.com/package/meshql-upload) | File uploads (optional) |
 | `meshql-integrity` | [npmjs.com/package/meshql-integrity](https://www.npmjs.com/package/meshql-integrity) | Request signing and integrity tokens |
 | `meshql-access` | [npmjs.com/package/meshql-access](https://www.npmjs.com/package/meshql-access) | Entity, row, and field access control |
+| `meshql-prisma` | [npmjs.com/package/meshql-prisma](https://www.npmjs.com/package/meshql-prisma) | Prisma catch-all resolver |
+| `meshql-drizzle` | [npmjs.com/package/meshql-drizzle](https://www.npmjs.com/package/meshql-drizzle) | Drizzle relational query resolver |
+| `meshql-kysely` | [npmjs.com/package/meshql-kysely](https://www.npmjs.com/package/meshql-kysely) | Kysely + SQL builder resolver |
 
 Imports use the npm package names:
 
@@ -241,6 +251,26 @@ mesh.resolve("*", async (plan) => {
 
 A specific `mesh.resolve("user", fn)` always wins over the `"*"` fallback.
 
+### ORM adapters (v0.6.0)
+
+Use your existing ORM client — MeshQL does not create database connections. See [docs/database-connections.md](./docs/database-connections.md).
+
+**Prisma:**
+
+```typescript
+import { PrismaClient } from "@prisma/client";
+import { withPrisma } from "@meshql/prisma";
+
+const prisma = new PrismaClient();
+withPrisma(mesh, prisma, { schema });
+```
+
+**Drizzle** — `withDrizzle(mesh, db, { schema })` maps to `db.query.*`.
+
+**Kysely** — `withKysely(mesh, db, { schema, dialect: "postgres" })` runs `buildSelectSql` via `executeQuery`.
+
+Full guide: [docs/orm-adapters.md](./docs/orm-adapters.md). Runnable demo: [express-prisma](./examples/express-prisma).
+
 ---
 
 ## Try the showcase
@@ -258,7 +288,7 @@ Open **http://localhost:3010/** — the browser app uses `@meshql/client` agains
 
 Optional CLI tour: `pnpm --filter showcase demo`
 
-See [examples/showcase/README.md](./examples/showcase/README.md). Minimal adapter examples: [express-sqlite](./examples/express-sqlite), [express-postgres](./examples/express-postgres).
+See [examples/showcase/README.md](./examples/showcase/README.md). Examples: [express-sqlite](./examples/express-sqlite), [express-postgres](./examples/express-postgres), [express-prisma](./examples/express-prisma).
 
 ---
 
@@ -324,8 +354,13 @@ express()
 | `@meshql/upload` | `meshql-upload` | File uploads (optional) |
 | `@meshql/integrity` | `meshql-integrity` | Signing token lifecycle and request integrity |
 | `@meshql/access` | `meshql-access` | Entity, row, and dynamic field access |
+| `@meshql/prisma` | `meshql-prisma` | Prisma catch-all resolver |
+| `@meshql/drizzle` | `meshql-drizzle` | Drizzle relational query resolver |
+| `@meshql/kysely` | `meshql-kysely` | Kysely + SQL builder resolver |
 
 HTTP adapter docs (routes, headers, curl): [docs/http-adapters.md](./docs/http-adapters.md)
+
+ORM adapters: [docs/orm-adapters.md](./docs/orm-adapters.md) · DB connections: [docs/database-connections.md](./docs/database-connections.md)
 
 Client SDK (browser, auth, uploads): [docs/client.md](./docs/client.md)
 
@@ -358,7 +393,10 @@ packages/client     SDK
 packages/upload     uploads
 packages/integrity  signing tokens
 packages/access     access control
-examples/           runnable demos (express-sqlite, express-postgres)
+packages/prisma     Prisma adapter
+packages/drizzle    Drizzle adapter
+packages/kysely     Kysely adapter
+examples/           runnable demos (express-sqlite, express-postgres, express-prisma)
 ```
 
 PRs welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md).

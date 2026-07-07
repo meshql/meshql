@@ -1,4 +1,5 @@
 import type { JoinPlan } from "../planner/join-plan.js";
+import type { ResolverOptions } from "./options.js";
 
 /** Wildcard entity name used to register a catch-all resolver. */
 export const CATCH_ALL: "*" = "*";
@@ -33,6 +34,11 @@ export interface MeshFile {
   size: number;
 }
 
+interface ResolverEntry {
+  resolver: Resolver;
+  preshaped: boolean;
+}
+
 /**
  * Registry of entity and upload resolvers for a MeshQL instance.
  *
@@ -43,9 +49,9 @@ export interface MeshFile {
  * to serve every declared entity from a single generic handler.
  */
 export class ResolverRegistry {
-  private readonly resolvers = new Map<string, Resolver>();
+  private readonly resolvers = new Map<string, ResolverEntry>();
   private readonly uploadResolvers = new Map<string, UploadResolver>();
-  private catchAll: Resolver | undefined;
+  private catchAll: ResolverEntry | undefined;
 
   /**
    * Register a resolver for an entity name, or the wildcard `"*"` for a
@@ -56,17 +62,22 @@ export class ResolverRegistry {
    * throws — catch-all ordering must be deterministic for adapter
    * composition.
    */
-  register(entity: string, resolver: Resolver): void {
+  register(entity: string, resolver: Resolver, options: ResolverOptions = {}): void {
+    const entry: ResolverEntry = {
+      resolver,
+      preshaped: options.preshaped ?? false,
+    };
+
     if (entity === CATCH_ALL) {
       if (this.catchAll !== undefined) {
         throw new Error(
           "A catch-all resolver ('*') is already registered. Only one is allowed per mesh.",
         );
       }
-      this.catchAll = resolver;
+      this.catchAll = entry;
       return;
     }
-    this.resolvers.set(entity, resolver);
+    this.resolvers.set(entity, entry);
   }
 
   /** Register an upload handler for a URL path. */
@@ -81,6 +92,11 @@ export class ResolverRegistry {
    * catch-all resolver if one was registered; otherwise `undefined`.
    */
   get(entity: string): Resolver | undefined {
+    return this.getEntry(entity)?.resolver;
+  }
+
+  /** Get resolver metadata for an entity (including preshaped flag). */
+  getEntry(entity: string): ResolverEntry | undefined {
     return this.resolvers.get(entity) ?? this.catchAll;
   }
 
@@ -104,3 +120,5 @@ export class ResolverRegistry {
     return this.catchAll !== undefined;
   }
 }
+
+export type { ResolverOptions } from "./options.js";
