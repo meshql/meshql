@@ -4,3 +4,6 @@ packages:
 
 allowBuilds:
   esbuild: true
+  prisma: true
+  "@prisma/client": true
+  "@prisma/engines": true

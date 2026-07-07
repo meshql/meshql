@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-06
+
+### Added
+
+- **`@meshql/prisma`** (`meshql-prisma`) — catch-all Prisma resolver with nested `select`, list filters, and `withPrisma()` helper
+- **`@meshql/drizzle`** (`meshql-drizzle`) — catch-all resolver for Drizzle's relational query API (`db.query.*`)
+- **`@meshql/kysely`** (`meshql-kysely`) — catch-all resolver executing join plans via Kysely + `buildSelectSql`
+- **`@meshql/core` 0.6.0** — `{ preshaped: true }` resolver option (skip shaper for ORM nested results), ORM plan-relation helpers (`buildPlanRelationTree`, `buildOrmListQuery`, …), `encodeCursor` / `decodeCursor` exported from core
+- **`examples/express-prisma`** — runnable Prisma + SQLite blog demo
+- **Docs** — [ORM adapters](./docs/orm-adapters.md), [Database connections](./docs/database-connections.md), [SQL integration](./docs/sql-integration.md)
+
 ## [0.1.2] - 2026-06-18
 
 ### Added

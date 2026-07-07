@@ -16,6 +16,9 @@ For each publishable package, open **Settings** on the package page and set:
 | `@meshql/upload` | done | done |
 | `@meshql/integrity` | done | done |
 | `@meshql/access` | done | done |
+| `@meshql/prisma` | new | link `meshql/meshql` |
+| `@meshql/drizzle` | new | link `meshql/meshql` |
+| `@meshql/kysely` | new | link `meshql/meshql` |
 
 Steps for each new package:
 
@@ -34,6 +37,9 @@ Steps for each new package:
 | `@meshql/upload` | Multipart file uploads with signed `contentHash` verification. |
 | `@meshql/integrity` | Request signing and integrity token lifecycle for MeshQL HTTP servers. |
 | `@meshql/access` | Entity, row, and field access control for MeshQL. |
+| `@meshql/prisma` | Prisma catch-all resolver — nested `select` from JoinPlan. |
+| `@meshql/drizzle` | Drizzle relational query resolver for MeshQL. |
+| `@meshql/kysely` | Kysely resolver executing MeshQL join plans as parameterized SQL. |
 
 ## Runtime compatibility
 

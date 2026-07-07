@@ -15,6 +15,7 @@ import {
   type MeshFile,
   type QueryContext,
   type Resolver,
+  type ResolverOptions,
   type UploadResolver,
 } from "./resolver/index.js";
 import { shape, shapeMany } from "./shaper/shaper.js";
@@ -88,7 +89,11 @@ export function extractContentHash(raw: string): string | undefined {
 export interface MeshInstance {
   schema: MeshConfig;
   /** Register a data resolver for an entity. */
-  resolve(entity: string, resolver: Resolver): MeshInstance;
+  resolve(
+    entity: string,
+    resolver: Resolver,
+    options?: ResolverOptions,
+  ): MeshInstance;
   /**
    * Register a file upload resolver for a path (`"user.avatar"`).
    */
@@ -114,8 +119,8 @@ export function createMesh(config: MeshConfig): MeshInstance {
   const mesh: MeshInstance = {
     schema: config,
 
-    resolve(entity, resolver) {
-      registry.register(entity, resolver);
+    resolve(entity, resolver, options = {}) {
+      registry.register(entity, resolver, options);
       return mesh;
     },
 
@@ -176,8 +181,8 @@ export function createMesh(config: MeshConfig): MeshInstance {
           return finalResponse as Record<string, unknown> | Record<string, unknown>[];
         }
 
-        const resolver = registry.get(planResult.rootEntity);
-        if (!resolver) {
+        const resolverEntry = registry.getEntry(planResult.rootEntity);
+        if (!resolverEntry) {
           throw new ResolverError(
             `No resolver registered for entity '${planResult.rootEntity}'`,
             planResult.rootEntity,
@@ -186,13 +191,28 @@ export function createMesh(config: MeshConfig): MeshInstance {
 
         let raw: unknown;
         try {
-          raw = await resolver(planResult);
+          raw = await resolverEntry.resolver(planResult);
         } catch (error) {
           const message = error instanceof Error ? error.message : "Resolver failed";
           throw new ResolverError(message, planResult.rootEntity);
         }
 
         raw = await plugins.runOnResult(raw, pluginCtx);
+
+        if (resolverEntry.preshaped) {
+          let response: unknown = raw;
+          if (!listMode) {
+            if (Array.isArray(raw)) {
+              response = raw[0] ?? {};
+            }
+          } else if (!Array.isArray(raw)) {
+            response = raw === null || raw === undefined ? [] : [raw];
+          }
+
+          return (await plugins.runOnResponse(response, pluginCtx)) as
+            | Record<string, unknown>
+            | Record<string, unknown>[];
+        }
 
         const rows = Array.isArray(raw) ? raw : [raw as Record<string, unknown>];
 
@@ -328,6 +348,17 @@ export {
 } from "./planner/strip-fields.js";
 export { validateAst } from "./planner/validator.js";
 export {
+  buildPlanRelationTree,
+  buildOrmListQuery,
+  buildOrmPointRead,
+  mapEntityField,
+  type OrmFilter,
+  type OrmListQuery,
+  type PlanRelationTree,
+  type RelationNode,
+} from "./orm/plan-relations.js";
+export { decodeCursor, encodeCursor, type CursorPayload } from "./planner/cursor.js";
+export {
   DEFAULT_LIST_LIMIT,
   FILTER_OPS,
   MAX_LIST_LIMIT,
@@ -350,6 +381,7 @@ export {
   ResolverRegistry,
   type QueryContext,
   type Resolver,
+  type ResolverOptions,
   type UploadResolver,
   type MeshFile,
 } from "./resolver/index.js";

@@ -5,5 +5,6 @@ export {
   ResolverRegistry,
   type MeshFile,
   type Resolver,
+  type ResolverOptions,
   type UploadResolver,
 } from "./registry.js";
