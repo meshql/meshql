@@ -44,6 +44,7 @@ function getBumpedPackages() {
     try {
       previous = JSON.parse(run(`git show ${parent}:${rel}`));
     } catch {
+      bumped.push({ pkg: pkgDir, version: current.version });
       continue;
     }
 
