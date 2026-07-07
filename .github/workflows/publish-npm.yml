@@ -6,6 +6,9 @@ on:
       - "npm/core/v*"
       - "npm/postgres/v*"
       - "npm/sqlite/v*"
+      - "npm/prisma/v*"
+      - "npm/drizzle/v*"
+      - "npm/kysely/v*"
       - "npm/http/v*"
       - "npm/upload/v*"
       - "npm/client/v*"
@@ -25,6 +28,9 @@ on:
           - core
           - postgres
           - sqlite
+          - prisma
+          - drizzle
+          - kysely
           - http
           - upload
           - client
@@ -69,6 +75,9 @@ jobs:
               npm/core/v*) selection="core" ;;
               npm/postgres/v*) selection="postgres" ;;
               npm/sqlite/v*) selection="sqlite" ;;
+              npm/prisma/v*) selection="prisma" ;;
+              npm/drizzle/v*) selection="drizzle" ;;
+              npm/kysely/v*) selection="kysely" ;;
               npm/http/v*) selection="http" ;;
               npm/upload/v*) selection="upload" ;;
               npm/client/v*) selection="client" ;;
@@ -86,13 +95,13 @@ jobs:
           case "$selection" in
             all)
               if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                packages='["core","postgres","sqlite","http","upload","client","integrity","access"]'
+                packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client","integrity","access"]'
               else
-                packages='["core","postgres","sqlite","http","upload","client"]'
+                packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client"]'
               fi
               ;;
             security) packages='["integrity","access"]' ;;
-            core|postgres|sqlite|http|upload|client|integrity|access)
+            core|postgres|sqlite|prisma|drizzle|kysely|http|upload|client|integrity|access)
               packages="[\"$selection\"]"
               ;;
             *)
@@ -176,7 +185,7 @@ jobs:
           mkdir -p artifacts
           packed=""
 
-          publish_order=(core postgres sqlite http upload client integrity access)
+          publish_order=(core postgres sqlite prisma drizzle kysely http upload client integrity access)
           selected=$(node -e 'JSON.parse(process.env.PACKAGES).forEach((p) => console.log(p))')
 
           for pkg in "${publish_order[@]}"; do

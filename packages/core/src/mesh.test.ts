@@ -154,3 +154,24 @@ describe("createMesh — catch-all resolver", () => {
     );
   });
 });
+
+describe("createMesh — preshaped resolvers", () => {
+  it("skips the shaper when preshaped: true", async () => {
+    const mesh = createMesh(schema).resolve(
+      "user",
+      vi.fn(async () => ({
+        id: 1,
+        name: "Ada",
+        nested: { already: "shaped" },
+      })),
+      { preshaped: true },
+    );
+
+    const result = await mesh.execute("{ user { id name } }");
+    expect(result).toEqual({
+      id: 1,
+      name: "Ada",
+      nested: { already: "shaped" },
+    });
+  });
+});

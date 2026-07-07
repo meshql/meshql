@@ -1,5 +1,15 @@
 # express-sqlite
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies
+  - @meshql/core@0.6.0
+  - @meshql/client@0.5.2
+  - @meshql/http@0.5.2
+  - @meshql/sqlite@0.5.2
+
 ## 0.1.4
 
 ### Patch Changes
