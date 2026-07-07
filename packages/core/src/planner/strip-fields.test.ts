@@ -36,6 +36,8 @@ describe("stripFieldsFromPlan", () => {
         fields: ["users.id", "users.email", "tokens.accessToken"],
         joins: [
           {
+            path: "tokens",
+            joinKey: "user.tokens",
             entity: "token",
             on: "on",
             fields: ["tokens.accessToken"],
