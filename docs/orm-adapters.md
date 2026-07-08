@@ -1,6 +1,6 @@
 # ORM adapters
 
-**v0.6.0** adds catch-all resolvers for Prisma, Drizzle, and Kysely. One `mesh.resolve("*", …)` handles every entity in your schema — the same pattern as raw SQL, but your ORM runs the query.
+**v0.6.0** added catch-all resolvers for Prisma, Drizzle, and Kysely. **v0.7.0** adds schema inference — you can skip hand-writing `MeshSchema` and import it from your ORM.
 
 MeshQL still owns parsing, planning, list filters, and access plugins. The adapter maps `JoinPlan` → ORM calls.
 
@@ -17,9 +17,35 @@ Prisma and Drizzle return already-nested objects, so register with `{ preshaped:
 
 ## Shared requirements
 
-1. **MeshQL schema** — entities, fields, joins (same as SQL path). Entity names should match Prisma model keys or Drizzle `db.query` keys.
+1. **MeshQL schema** — hand-written, or inferred via `schemaFromPrisma` / `schemaFromDrizzle`. Entity names should match Prisma model keys or Drizzle `db.query` keys.
 2. **Catch-all resolver** — `mesh.resolve("*", …)`. Entity-specific resolvers always override `"*"`.
 3. **Shared DB client** — create once at startup; see [Database connections](./database-connections.md).
+
+## Schema inference (v0.7.0)
+
+```typescript
+import { createMesh, extendSchema } from "@meshql/core";
+import { schemaFromPrisma, withPrisma } from "@meshql/prisma";
+
+const schema = extendSchema(await schemaFromPrisma("./prisma/schema.prisma"), {
+  entities: { user: { fields: ["id", "name"] } }, // hide email / role
+});
+
+const mesh = createMesh(schema);
+withPrisma(mesh, prisma, { schema });
+```
+
+Drizzle:
+
+```typescript
+import { schemaFromDrizzle, withDrizzle } from "@meshql/drizzle";
+import * as tables from "./db/schema.js";
+
+const schema = schemaFromDrizzle(tables);
+withDrizzle(mesh, db, { schema });
+```
+
+`extendSchema` from `@meshql/core` merges overrides: entity `fields` arrays are **replaced** (so you can hide), and joins can be added or removed.
 
 ## Prisma
 
@@ -36,10 +62,10 @@ npx jsr add @meshql/prisma @meshql/core
 ```typescript
 import { PrismaClient } from "@prisma/client";
 import { createMesh } from "@meshql/core";
-import { withPrisma } from "@meshql/prisma";
-import { schema } from "./schema.js";
+import { schemaFromPrisma, withPrisma } from "@meshql/prisma";
 
 const prisma = new PrismaClient();
+const schema = await schemaFromPrisma("./prisma/schema.prisma");
 const mesh = createMesh(schema);
 
 withPrisma(mesh, prisma, { schema });
@@ -83,20 +109,14 @@ npx jsr add @meshql/drizzle @meshql/core
 ### Setup
 
 ```typescript
-import { withDrizzle } from "@meshql/drizzle";
+import { schemaFromDrizzle, withDrizzle } from "@meshql/drizzle";
+import * as tables from "./db/schema.js";
 
+const schema = schemaFromDrizzle(tables);
 withDrizzle(mesh, db, { schema });
 ```
 
 Requires Drizzle's relational query API: `db.query.posts.findMany({ with: { … } })`. Entity `post` with `table: "posts"` maps to `db.query.posts`.
-
-### Example
-
-```typescript
-import { drizzleResolver } from "@meshql/drizzle";
-
-mesh.resolve("*", drizzleResolver(db, { schema }), { preshaped: true });
-```
 
 Package reference: [packages/drizzle/README.md](../packages/drizzle/README.md).
 
@@ -145,9 +165,9 @@ Multi-level nesting (e.g. `post.comments.author.name`) is supported end-to-end s
 
 ## What's not included yet
 
-- `schemaFromPrisma()` / `schemaFromDrizzle()` — manual MeshQL schema for now (Phase 5)
 - Automatic transaction wrapping
 - Write/mutation resolvers (reads only in adapters)
+- `schemaFromKysely` (Kysely still uses a hand-written MeshSchema + SQL builders)
 
 ## Related
 

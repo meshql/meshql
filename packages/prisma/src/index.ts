@@ -16,3 +16,8 @@ export {
   type PrismaModelDelegate,
   type PrismaResolverOptions,
 } from "./resolver.js";
+export {
+  schemaFromPrisma,
+  schemaFromPrismaSource,
+  type SchemaFromPrismaOptions,
+} from "./schema-from-prisma.js";

@@ -2,6 +2,8 @@
 
 Prisma catch-all resolver for MeshQL. Maps `JoinPlan` to nested Prisma `select`, `where`, and list args. Register with `{ preshaped: true }` because Prisma returns nested JSON directly.
 
+**v0.7.0+** can also build your MeshQL schema from `schema.prisma` via `schemaFromPrisma`.
+
 ## Install
 
 ```bash
@@ -13,9 +15,26 @@ npm i @prisma/client
 
 Published on npm as `meshql-prisma` and [JSR](https://jsr.io/@meshql/prisma) as `@meshql/prisma`.
 
-Requires `@meshql/core` **0.6.0+** (preshaped resolver support).
+Requires `@meshql/core` **0.7.0+** (`extendSchema` + schema inference support).
 
-## Example
+## Example — infer schema from Prisma
+
+```ts
+import { PrismaClient } from "@prisma/client";
+import { createMesh, extendSchema } from "@meshql/core";
+import { schemaFromPrisma, withPrisma } from "@meshql/prisma";
+
+const prisma = new PrismaClient();
+const schema = extendSchema(await schemaFromPrisma("./prisma/schema.prisma"), {
+  // optional: hide fields clients shouldn't select
+  entities: { user: { fields: ["id", "name"] } },
+});
+const mesh = createMesh(schema);
+
+withPrisma(mesh, prisma, { schema });
+```
+
+## Example — hand-written schema
 
 ```ts
 import { PrismaClient } from "@prisma/client";
@@ -46,6 +65,7 @@ Runnable demo: [examples/express-prisma](../../examples/express-prisma).
 
 ## Exports
 
+- `schemaFromPrisma(path)` / `schemaFromPrismaSource(source)` — infer `MeshSchema`
 - `withPrisma(mesh, client, { schema })` — register catch-all resolver
 - `prismaResolver(client, { schema })` — resolver function
 - `buildPrismaSelect`, `buildPrismaWhere`, `buildPrismaListArgs` — lower-level mapping helpers
