@@ -49,7 +49,9 @@ if (manifest.peerDependencies) {
       continue;
     }
     if (!manifest.dependencies[dep]) {
-      manifest.dependencies[dep] = `npm:${dep}@${specifier}`;
+      // Deno/JSR rejects open ranges like ">=0.30.0" in npm: specifiers.
+      const npmRange = specifier.replace(/^>=/, "^");
+      manifest.dependencies[dep] = `npm:${dep}@${npmRange}`;
     }
   }
 }
