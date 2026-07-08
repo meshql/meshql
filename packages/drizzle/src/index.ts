@@ -15,3 +15,7 @@ export {
   type DrizzleQueryApi,
   type DrizzleResolverOptions,
 } from "./resolver.js";
+export {
+  schemaFromDrizzle,
+  type SchemaFromDrizzleOptions,
+} from "./schema-from-drizzle.js";

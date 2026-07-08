@@ -36,7 +36,7 @@ express()
 
 Every gap between this snippet and what the repo does today is a roadmap item.
 
-## Status (as of 0.5.0)
+## Status (as of 0.6.0)
 
 **Current sequence** — Phase 1 landed first (correctness took precedence over
 repositioning), then the chosen execution order is:
@@ -48,9 +48,11 @@ repositioning), then the chosen execution order is:
 | C | **Phase 0** — split `@meshql/postgres` + `@meshql/sqlite` out of `@meshql/core` | ✅ (shipped in 0.2.0) |
 | D | **Phase 2** — `JoinPlan.list`, filters, cursors, catch-all resolver | ✅ |
 | E | Decide on **Phase 4.5** wire protocol work (persisted queries / compression / CBOR) — placement and timing | ✅ deferred until after Phase 4 (ORMs) |
-| F | **Phase 3** — native multipart uploads with signed body | ✅ |
+| F | **Phase 3** — native multipart uploads with signed body | ✅ (0.5.0) |
 | G | Showcase blog app (`examples/showcase`) | ✅ |
-| H | **Phase 4** — ORM adapters (Prisma, Drizzle, Kysely) | ⏭ next |
+| H | Multi-level nested fields | ✅ (0.5.1) |
+| I | **Phase 4** — ORM adapters (Prisma, Drizzle, Kysely) | ✅ (0.6.0) |
+| J | **Phase 5** — `schemaFromPrisma` / `schemaFromDrizzle` / `extendSchema` | ✅ (0.7.0) |
 
 Phases 3 → 5 follow the original order. The headline plan below describes
 the *intended* phase progression; the Status table is the source of truth for
@@ -98,9 +100,9 @@ gantt
 | 1 | Correctness bugs fixed, Postgres integration test passes | `0.2.0` | 2 weeks | ✅ done |
 | 2 | List queries, filters, cursors, catch-all resolver | `0.4.0` | 1.5 weeks | ✅ done |
 | 3 | Multipart upload with signed body | `0.5.0` | ~2 weeks | ✅ done |
-| 4 | Prisma + Drizzle + Kysely adapters | `0.6.0` | 2 weeks | ⏭ |
-| 4.5 | Wire protocol: persisted queries, compression, optional CBOR | post-0.6 | ~1 week | ⏭ deferred (after ORMs) |
-| 5 | `schemaFromPrisma` / `schemaFromDrizzle` | `0.7.0` | 1 week | ⏭ |
+| 4 | Prisma + Drizzle + Kysely adapters | `0.6.0` | 2 weeks | ✅ done |
+| 4.5 | Wire protocol: persisted queries, compression, optional CBOR | post-0.7 | ~1 week | ⏭ deferred (after schema inference) |
+| 5 | `schemaFromPrisma` / `schemaFromDrizzle` / `extendSchema` | `0.7.0` | 1 week | ✅ done |
 | _post_ | Docs, demos, benchmarks, v1.0 cut | `0.9 → 1.0` | 2 weeks | ⏭ |
 
 Use Changesets (already configured) for every phase. Bump majors freely until 1.0.
@@ -843,7 +845,8 @@ Three lines.
 - Field hiding via `extendSchema` works without breaking the resolver.
 - Blog demo uses inferred schema and still passes its end-to-end tests.
 
-**Release: 0.6.0** — feature complete for the original vision.
+**Release: 0.7.0** — schema inference from ORMs. Completes the original
+“ten-line Express + Prisma” vision from the top of this document.
 
 ---
 

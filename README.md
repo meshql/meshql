@@ -251,21 +251,24 @@ mesh.resolve("*", async (plan) => {
 
 A specific `mesh.resolve("user", fn)` always wins over the `"*"` fallback.
 
-### ORM adapters (v0.6.0)
+### ORM adapters (v0.6.0+) and schema inference (v0.7.0)
 
 Use your existing ORM client — MeshQL does not create database connections. See [docs/database-connections.md](./docs/database-connections.md).
 
-**Prisma:**
+**Prisma (infer schema from `schema.prisma`):**
 
 ```typescript
 import { PrismaClient } from "@prisma/client";
-import { withPrisma } from "@meshql/prisma";
+import { createMesh } from "@meshql/core";
+import { schemaFromPrisma, withPrisma } from "@meshql/prisma";
 
 const prisma = new PrismaClient();
+const schema = await schemaFromPrisma("./prisma/schema.prisma");
+const mesh = createMesh(schema);
 withPrisma(mesh, prisma, { schema });
 ```
 
-**Drizzle** — `withDrizzle(mesh, db, { schema })` maps to `db.query.*`.
+**Drizzle** — `schemaFromDrizzle(tables)` + `withDrizzle(mesh, db, { schema })`.
 
 **Kysely** — `withKysely(mesh, db, { schema, dialect: "postgres" })` runs `buildSelectSql` via `executeQuery`.
 
