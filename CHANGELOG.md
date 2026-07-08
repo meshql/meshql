@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-08
+
+### Added
+
+- **`extendSchema()`** in `@meshql/core` — override inferred schemas (hide fields, add/remove joins)
+- **`schemaFromPrisma()` / `schemaFromPrismaSource()`** in `@meshql/prisma` — build `MeshSchema` from `schema.prisma` via `@mrleebo/prisma-ast`
+- **`schemaFromDrizzle()`** in `@meshql/drizzle` — build `MeshSchema` from Drizzle table + `relations()` exports
+- **`examples/express-prisma`** now uses `schemaFromPrisma` (no hand-written MeshQL schema)
+
 ## [0.6.0] - 2026-07-06
 
 ### Added

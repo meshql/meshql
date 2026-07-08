@@ -1,6 +1,6 @@
 # express-prisma
 
-MeshQL blog API backed by Prisma — one catch-all resolver, nested reads included.
+MeshQL blog API backed by Prisma — schema inferred from `schema.prisma`, one catch-all resolver, nested reads included.
 
 ## Quick start
 
@@ -10,14 +10,20 @@ pnpm --filter express-prisma start
 pnpm --filter express-prisma demo
 ```
 
-The server registers:
+The server does:
 
 ```ts
+const schema = await schemaFromPrisma("./prisma/schema.prisma");
+const mesh = createMesh(schema);
 withPrisma(mesh, prisma, { schema });
 ```
 
-which is equivalent to:
+No hand-written MeshQL schema required. Hide fields with `extendSchema`:
 
 ```ts
-mesh.resolve("*", prismaResolver(prisma, { schema }), { preshaped: true });
+import { extendSchema } from "@meshql/core";
+
+const schema = extendSchema(await schemaFromPrisma(path), {
+  entities: { user: { fields: ["id", "name"] } },
+});
 ```

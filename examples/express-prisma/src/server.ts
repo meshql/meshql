@@ -1,11 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 import { createMesh } from "@meshql/core";
 import { meshExpressRouter } from "@meshql/http/express";
-import { withPrisma } from "@meshql/prisma";
+import { schemaFromPrisma, withPrisma } from "@meshql/prisma";
 import express from "express";
-import { schema } from "./schema.js";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
 const prisma = new PrismaClient();
+const root = dirname(fileURLToPath(import.meta.url));
+const schemaPath = join(root, "../prisma/schema.prisma");
 
 async function seed() {
   const count = await prisma.user.count();
@@ -49,22 +52,24 @@ async function seed() {
   console.log(`Seeded post #${post.id} by user #${ada.id}`);
 }
 
-const mesh = createMesh(schema);
-withPrisma(mesh, prisma, { schema });
+async function main() {
+  const schema = await schemaFromPrisma(schemaPath);
+  const mesh = createMesh(schema);
+  withPrisma(mesh, prisma, { schema });
 
-const app = express();
-app.use(express.json());
-app.use("/api", meshExpressRouter(mesh));
+  const app = express();
+  app.use(express.json());
+  app.use("/api", meshExpressRouter(mesh));
 
-const port = Number(process.env.PORT ?? 3020);
+  const port = Number(process.env.PORT ?? 3020);
 
-seed()
-  .then(() => {
-    app.listen(port, () => {
-      console.log(`express-prisma listening on http://localhost:${port}/api`);
-    });
-  })
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
+  await seed();
+  app.listen(port, () => {
+    console.log(`express-prisma listening on http://localhost:${port}/api`);
   });
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

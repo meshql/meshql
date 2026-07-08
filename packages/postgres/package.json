@@ -1,6 +1,6 @@
 {
   "name": "@meshql/postgres",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "MeshQL Postgres helper - build parameterized SELECT statements from a join plan",
   "license": "MIT",
   "type": "module",
