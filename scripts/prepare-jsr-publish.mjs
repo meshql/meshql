@@ -37,6 +37,23 @@ function rewriteMeshqlDeps(section) {
 
 rewriteMeshqlDeps("dependencies");
 rewriteMeshqlDeps("peerDependencies");
+
+// JSR/Deno needs resolvable package.json dependencies for npm peers that
+// are imported from published TypeScript source. Promote those peers into
+// dependencies for the publish rewrite (restore happens via git checkout
+// on each CI job; local runs should restore packages/*/package.json).
+if (manifest.peerDependencies) {
+  manifest.dependencies ??= {};
+  for (const [dep, specifier] of Object.entries(manifest.peerDependencies)) {
+    if (dep.startsWith("@meshql/")) {
+      continue;
+    }
+    if (!manifest.dependencies[dep]) {
+      manifest.dependencies[dep] = `npm:${dep}@${specifier}`;
+    }
+  }
+}
+
 delete manifest.devDependencies;
 
 fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
