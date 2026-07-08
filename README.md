@@ -13,6 +13,7 @@
   <a href="https://github.com/meshql/meshql">GitHub</a> ·
   <a href="https://jsr.io/@meshql/core">JSR</a> ·
   <a href="./docs/run-example.md">5-minute guide</a> ·
+  <a href="./specs">Protocol specs</a> ·
   <a href="./docs/orm-adapters.md">ORM adapters</a> ·
   <a href="./docs/database-connections.md">DB connections</a> ·
   <a href="./docs/http-adapters.md">HTTP adapters</a> ·
@@ -364,6 +365,8 @@ express()
 HTTP adapter docs (routes, headers, curl): [docs/http-adapters.md](./docs/http-adapters.md)
 
 ORM adapters: [docs/orm-adapters.md](./docs/orm-adapters.md) · DB connections: [docs/database-connections.md](./docs/database-connections.md)
+
+**Protocol specs** (for language ports): [specs/](./specs) · [docs.meshql.dev/specs](https://docs.meshql.dev/specs)
 
 Client SDK (browser, auth, uploads): [docs/client.md](./docs/client.md)
 
