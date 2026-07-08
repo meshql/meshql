@@ -1,0 +1,9 @@
+{
+  "user": {
+    "id": true,
+    "name": true,
+    "tokens": {
+      "accessToken": true
+    }
+  }
+}

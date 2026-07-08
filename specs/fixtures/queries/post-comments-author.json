@@ -1,0 +1,14 @@
+{
+  "post": {
+    "id": true,
+    "title": true,
+    "comments": {
+      "id": true,
+      "body": true,
+      "author": {
+        "id": true,
+        "name": true
+      }
+    }
+  }
+}

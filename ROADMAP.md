@@ -857,7 +857,8 @@ ORM-driven, drop-in REST middleware." To actually ship 1.0 you still need:
 
 1. **Documentation** — tutorial (build a blog API in 30 minutes), reference
    docs per package, comparison page vs PostgREST / Hasura / hand-rolled
-   Express+Prisma.
+   Express+Prisma. Language-agnostic protocol specs live under
+   [`specs/`](./specs) (hosted at docs.meshql.dev/specs).
 2. **Three demo apps** — `express-prisma`, `fastify-drizzle`,
    `hono-kysely` (edge runtime, Turso/SQLite).
 3. **Benchmarks** — reproducible script that compares MeshQL vs PostgREST
