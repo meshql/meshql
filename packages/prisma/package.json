@@ -1,6 +1,6 @@
 {
   "name": "@meshql/prisma",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "MeshQL Prisma adapter — catch-all resolver with nested select",
   "license": "MIT",
   "type": "module",
@@ -20,7 +20,8 @@
     "publish:jsr": "jsr publish"
   },
   "dependencies": {
-    "@meshql/core": "workspace:*"
+    "@meshql/core": "workspace:*",
+    "@mrleebo/prisma-ast": "^0.16.0"
   },
   "peerDependencies": {
     "@prisma/client": ">=5.0.0"
