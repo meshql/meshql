@@ -16,7 +16,7 @@
     "@meshql/core": "workspace:*",
     "@meshql/http": "workspace:*",
     "@meshql/prisma": "workspace:*",
-    "@prisma/client": "^6.9.0",
+    "@prisma/client": "^7.8.0",
     "express": "^5.1.0"
   },
   "devDependencies": {

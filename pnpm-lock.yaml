@@ -88,8 +88,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/prisma
       '@prisma/client':
-        specifier: ^6.9.0
-        version: 6.19.3(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2)
+        specifier: ^7.8.0
+        version: 7.8.0(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2)
       express:
         specifier: ^5.1.0
         version: 5.2.1
@@ -284,7 +284,7 @@ importers:
         version: 22.15.3
       drizzle-orm:
         specifier: ^0.44.7
-        version: 0.44.7(@prisma/client@6.19.3(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.20.0)(kysely@0.29.2)(pg@8.21.0)(prisma@6.19.3(typescript@5.9.2))
+        version: 0.44.7(@prisma/client@7.8.0(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.20.0)(kysely@0.29.2)(pg@8.21.0)(prisma@6.19.3(typescript@5.9.2))
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)
@@ -1276,12 +1276,27 @@ packages:
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
 
+  '@prisma/client-runtime-utils@7.8.0':
+    resolution: {integrity: sha512-5NQZztQ0oY/ADFkmd9gPuweH5A1/CCY8YQPorLLO0Mu6a87mY5gsnDkzmFmIHs9NFaLnZojzgddFVN4RpKYrdw==}
+
   '@prisma/client@6.19.3':
     resolution: {integrity: sha512-mKq3jQFhjvko5LTJFHGilsuQs+W+T3Gm451NzuTDGQxwCzwXHYnIu2zGkRoW+Exq3Rob7yp2MfzSrdIiZVhrBg==}
     engines: {node: '>=18.18'}
     peerDependencies:
       prisma: '*'
       typescript: '>=5.1.0'
+    peerDependenciesMeta:
+      prisma:
+        optional: true
+      typescript:
+        optional: true
+
+  '@prisma/client@7.8.0':
+    resolution: {integrity: sha512-HFp3Dawv/3sU3JtlPha90IB+48lS7zHiH4LKZPjmcE8YH5P9DOXGPvo8dqOtO7MqLDd1p2hOWMcFlRT1DMblHw==}
+    engines: {node: ^20.19 || ^22.12 || >=24.0}
+    peerDependencies:
+      prisma: '*'
+      typescript: '>=5.4.0'
     peerDependenciesMeta:
       prisma:
         optional: true
@@ -3807,7 +3822,16 @@ snapshots:
 
   '@pinojs/redact@0.4.0': {}
 
+  '@prisma/client-runtime-utils@7.8.0': {}
+
   '@prisma/client@6.19.3(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2)':
+    optionalDependencies:
+      prisma: 6.19.3(typescript@5.9.2)
+      typescript: 5.9.2
+
+  '@prisma/client@7.8.0(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2)':
+    dependencies:
+      '@prisma/client-runtime-utils': 7.8.0
     optionalDependencies:
       prisma: 6.19.3(typescript@5.9.2)
       typescript: 5.9.2
@@ -4320,9 +4344,9 @@ snapshots:
 
   dotenv@16.6.1: {}
 
-  drizzle-orm@0.44.7(@prisma/client@6.19.3(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.20.0)(kysely@0.29.2)(pg@8.21.0)(prisma@6.19.3(typescript@5.9.2)):
+  drizzle-orm@0.44.7(@prisma/client@7.8.0(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.20.0)(kysely@0.29.2)(pg@8.21.0)(prisma@6.19.3(typescript@5.9.2)):
     optionalDependencies:
-      '@prisma/client': 6.19.3(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2)
+      '@prisma/client': 7.8.0(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2)
       '@types/pg': 8.20.0
       kysely: 0.29.2
       pg: 8.21.0
