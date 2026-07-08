@@ -407,6 +407,8 @@ examples/           runnable demos (express-sqlite, express-postgres, express-pr
 
 PRs welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
+**Evaluating MeshQL?** See the [FAQ](./docs/faq.md) for GraphQL comparison, security, ORMs, and migration questions.
+
 ## License
 
 MIT. Security issues: [SECURITY.md](./SECURITY.md).
