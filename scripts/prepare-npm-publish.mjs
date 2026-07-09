@@ -16,6 +16,7 @@ const NPM_NAME_BY_DIR = {
   upload: "meshql-upload",
   integrity: "meshql-integrity",
   access: "meshql-access",
+  "persisted-queries": "meshql-persisted-queries",
 };
 
 const DIR_BY_SCOPE = Object.fromEntries(
@@ -34,6 +35,7 @@ const PUBLISH_ORDER = [
   "client",
   "integrity",
   "access",
+  "persisted-queries",
 ];
 
 /** Longest paths first so @meshql/core/builtins is rewritten before @meshql/core. */
