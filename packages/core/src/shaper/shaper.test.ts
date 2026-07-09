@@ -73,6 +73,34 @@ function commentAuthorJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin 
   };
 }
 
+function tagsJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin {
+  return {
+    path: "tags",
+    joinKey: "post.tags",
+    entity: "tag",
+    on: "tags.post_id = posts.id",
+    fields: ["tags.name"],
+    type: "many",
+    refName: "tags",
+    idField: "id",
+    ...overrides,
+  };
+}
+
+function repliesJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin {
+  return {
+    path: "comments.replies",
+    joinKey: "comment.replies",
+    entity: "reply",
+    on: "replies.comment_id = comments.id",
+    fields: ["comments.replies.body"],
+    type: "many",
+    refName: "replies",
+    idField: "id",
+    ...overrides,
+  };
+}
+
 describe("shape", () => {
   it("nests flat rows for a single root record", () => {
     const ast = parseQl("{ user { id name tokens { accessToken } } }");
@@ -202,9 +230,7 @@ describe("shape", () => {
   });
 
   it("nests grandchildren under a many join (post → comments → author)", () => {
-    const ast = parseQl(
-      "{ post { id comments { id body author { name } } } }",
-    );
+    const ast = parseQl("{ post { id comments { id body author { name } } } }");
     const rows = [
       {
         post_id: 1,
@@ -354,5 +380,183 @@ describe("shapeMany", () => {
     const result = shapeMany(rows, ast.root, [], "id");
 
     expect(result).toEqual([{ name: "Ada" }, { name: "Grace" }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Regression pins for the O(N²) shapeRefMany rewrite.
+//
+// These fixtures cover behaviour the refactor MUST preserve. If any of them
+// break after the rewrite, either the rewrite has a correctness bug or one of
+// these pins encoded an accidental behaviour we now want to change on
+// purpose — in that case, the changeset must call it out explicitly.
+// ---------------------------------------------------------------------------
+
+describe("shaper \u2014 regression pins for O(N\u00b2) rewrite", () => {
+  describe("shape (single record)", () => {
+    it("returns {} for empty rows", () => {
+      const ast = parseQl("{ user { id name } }");
+      expect(shape([], ast.root)).toEqual({});
+    });
+
+    it("shapes a point read with no joins", () => {
+      const ast = parseQl("{ user { id name email } }");
+      const result = shape(
+        [{ user_id: 1, user_name: "Ada", user_email: "ada@example.com" }],
+        ast.root,
+      );
+      expect(result).toEqual({
+        id: 1,
+        name: "Ada",
+        email: "ada@example.com",
+      });
+    });
+
+    it("preserves null field values on the root record", () => {
+      const ast = parseQl("{ user { id name bio } }");
+      const result = shape(
+        [{ user_id: 1, user_name: "Ada", user_bio: null }],
+        ast.root,
+      );
+      expect(result).toEqual({ id: 1, name: "Ada", bio: null });
+    });
+
+    it("dedupes two independent many-joins in a single parent (5 comments \u00d7 3 tags = 15 rows)", () => {
+      // The Cartesian fanout of two independent many-joins in one parent —
+      // the exact shape shapeRefMany must handle without duplication or loss.
+      const ast = parseQl(
+        "{ post { id title comments { id body } tags { id name } } }",
+      );
+      const rows: Record<string, unknown>[] = [];
+      for (let c = 1; c <= 5; c++) {
+        for (let t = 1; t <= 3; t++) {
+          rows.push({
+            post_id: 1,
+            post_title: "Hello",
+            comments_id: c,
+            comments_body: `comment ${c}`,
+            tags_id: t,
+            tags_name: `tag-${t}`,
+          });
+        }
+      }
+
+      const result = shape(rows, ast.root, [
+        commentsJoin({ fields: ["comments.id", "comments.body"] }),
+        tagsJoin({ fields: ["tags.id", "tags.name"] }),
+      ]);
+
+      expect(result).toEqual({
+        id: 1,
+        title: "Hello",
+        comments: [1, 2, 3, 4, 5].map((c) => ({
+          id: c,
+          body: `comment ${c}`,
+        })),
+        tags: [1, 2, 3].map((t) => ({ id: t, name: `tag-${t}` })),
+      });
+    });
+
+    it("dedupes nested many-in-many (3 comments \u00d7 2 replies = 6 rows)", () => {
+      // Nested many-in-many. Row keys use the path-aliased form
+      // `comments_replies_id`, so this also pins parentJoinPath propagation
+      // through the shape recursion.
+      const ast = parseQl("{ post { id comments { id body replies { id body } } } }");
+      const rows: Record<string, unknown>[] = [];
+      for (let c = 1; c <= 3; c++) {
+        for (let r = 1; r <= 2; r++) {
+          rows.push({
+            post_id: 1,
+            comments_id: c,
+            comments_body: `c${c}`,
+            comments_replies_id: c * 10 + r,
+            comments_replies_body: `c${c}-r${r}`,
+          });
+        }
+      }
+
+      const result = shape(rows, ast.root, [
+        commentsJoin({ fields: ["comments.id", "comments.body"] }),
+        repliesJoin({
+          fields: ["comments.replies.id", "comments.replies.body"],
+        }),
+      ]);
+
+      expect(result).toEqual({
+        id: 1,
+        comments: [1, 2, 3].map((c) => ({
+          id: c,
+          body: `c${c}`,
+          replies: [1, 2].map((r) => ({
+            id: c * 10 + r,
+            body: `c${c}-r${r}`,
+          })),
+        })),
+      });
+    });
+  });
+
+  describe("shapeMany (list)", () => {
+    it("returns [] for empty rows", () => {
+      const ast = parseQl("{ user { id name } }");
+      expect(shapeMany([], ast.root, [], "id")).toEqual([]);
+    });
+
+    it("groups fields-only rows with no joins", () => {
+      const ast = parseQl("{ user { id name } }");
+      const rows = [
+        { user_id: 1, user_name: "Ada" },
+        { user_id: 2, user_name: "Grace" },
+      ];
+      const result = shapeMany(rows, ast.root, [], "id");
+      expect(result).toEqual([
+        { id: 1, name: "Ada" },
+        { id: 2, name: "Grace" },
+      ]);
+    });
+
+    it("handles multi-parent multi-join fanout (3 posts \u00d7 3 comments \u00d7 2 tags = 18 rows)", () => {
+      // Each post has its own Cartesian fanout — verifies that shapeMany's
+      // per-group shaping doesn't leak rows across parents.
+      const ast = parseQl("{ post { id comments { id body } tags { id name } } }");
+      const rows: Record<string, unknown>[] = [];
+      for (let p = 1; p <= 3; p++) {
+        for (let c = 1; c <= 3; c++) {
+          for (let t = 1; t <= 2; t++) {
+            rows.push({
+              post_id: p,
+              comments_id: p * 10 + c,
+              comments_body: `p${p}-c${c}`,
+              tags_id: p * 10 + t,
+              tags_name: `p${p}-t${t}`,
+            });
+          }
+        }
+      }
+
+      const result = shapeMany(
+        rows,
+        ast.root,
+        [
+          commentsJoin({ fields: ["comments.id", "comments.body"] }),
+          tagsJoin({ fields: ["tags.id", "tags.name"] }),
+        ],
+        "id",
+      );
+
+      expect(result).toEqual(
+        [1, 2, 3].map((p) => ({
+          id: p,
+          comments: [1, 2, 3].map((c) => ({
+            id: p * 10 + c,
+            body: `p${p}-c${c}`,
+          })),
+          tags: [1, 2].map((t) => ({
+            id: p * 10 + t,
+            name: `p${p}-t${t}`,
+          })),
+        })),
+      );
+    });
   });
 });

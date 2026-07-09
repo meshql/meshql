@@ -103,11 +103,17 @@ function validateListOptions(
       throw new ValidationError("'list.orderBy' must not be empty when present");
     }
     for (const [i, order] of list.orderBy.entries()) {
-      if (!knownFields.has(order.field)) {
+      if (knownFields.has(order.field)) continue;
+      if (order.field.includes(".")) {
         throw new ValidationError(
-          `'list.orderBy[${i}].field' - unknown field '${order.field}' on entity '${rootEntityKey}'`,
+          `'list.orderBy[${i}].field' - '${order.field}' is a cross-entity path; ` +
+            `MeshQL list ordering must reference root entity '${rootEntityKey}' ` +
+            `fields only. Use a resolver for cross-entity ordering.`,
         );
       }
+      throw new ValidationError(
+        `'list.orderBy[${i}].field' - unknown field '${order.field}' on entity '${rootEntityKey}'`,
+      );
     }
   }
 
@@ -116,11 +122,17 @@ function validateListOptions(
       throw new ValidationError("'list.filter' must not be empty when present");
     }
     for (const [i, filter] of list.filter.entries()) {
-      if (!knownFields.has(filter.field)) {
+      if (knownFields.has(filter.field)) continue;
+      if (filter.field.includes(".")) {
         throw new ValidationError(
-          `'list.filter[${i}].field' - unknown field '${filter.field}' on entity '${rootEntityKey}'`,
+          `'list.filter[${i}].field' - '${filter.field}' is a cross-entity path; ` +
+            `MeshQL list filters must reference root entity '${rootEntityKey}' ` +
+            `fields only. Use a resolver for cross-entity filtering.`,
         );
       }
+      throw new ValidationError(
+        `'list.filter[${i}].field' - unknown field '${filter.field}' on entity '${rootEntityKey}'`,
+      );
     }
   }
 }

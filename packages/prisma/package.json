@@ -1,6 +1,6 @@
 {
   "name": "@meshql/prisma",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "MeshQL Prisma adapter — catch-all resolver with nested select",
   "license": "MIT",
   "type": "module",

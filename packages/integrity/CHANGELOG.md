@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @meshql/core@0.7.1
+  - @meshql/http@0.5.4
+
 ## 0.5.3
 
 ### Patch Changes

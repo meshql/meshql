@@ -1,8 +1,5 @@
 import type { ASTNode } from "../parser/ast.js";
-import {
-  joinPathAlias,
-  type ResolvedJoin,
-} from "../planner/join-plan.js";
+import { joinPathAlias, type ResolvedJoin } from "../planner/join-plan.js";
 
 const ROW_KEY_SEPARATORS = ["_", "."];
 
@@ -38,6 +35,46 @@ function readField(
     return row[field];
   }
   return undefined;
+}
+
+/**
+ * Reader closure that caches the resolved row-alias key for a specific
+ * (nodeName, field, parentJoinPath) tuple. Zero string allocations after
+ * the first hit — pay the cost once, reuse across rows.
+ *
+ * Use in hot loops that read the same field across many rows (grouping,
+ * dedup). For one-off single-row reads prefer {@link readField}, which
+ * doesn't pay the upfront closure/keys-array allocation.
+ */
+type FieldReader = (row: Record<string, unknown>) => unknown;
+
+function makeFieldReader(
+  nodeName: string,
+  field: string,
+  parentJoinPath?: string,
+): FieldReader {
+  const keys: string[] = [];
+  if (parentJoinPath) {
+    keys.push(`${joinPathAlias(parentJoinPath)}_${nodeName}_${field}`);
+    keys.push(`${joinPathAlias(`${parentJoinPath}.${nodeName}`)}_${field}`);
+  }
+  keys.push(`${nodeName}_${field}`);
+  keys.push(`${nodeName}.${field}`);
+  keys.push(field);
+
+  let cachedKey: string | undefined;
+  return (row) => {
+    if (cachedKey !== undefined) {
+      return row[cachedKey];
+    }
+    for (const k of keys) {
+      if (k in row) {
+        cachedKey = k;
+        return row[k];
+      }
+    }
+    return undefined;
+  };
 }
 
 function hasField(
@@ -123,26 +160,31 @@ function shapeRefMany(
   joins: ResolvedJoin[],
   parentJoinPath: string,
 ): Record<string, unknown>[] {
-  if (hasField(rows, ref.name, join.idField, parentJoinPath)) {
-    const seen = new Map<unknown, Record<string, unknown>>();
-    for (const row of rows) {
-      const idValue = readField(row, ref.name, join.idField, parentJoinPath);
-      if (idValue === null || idValue === undefined) {
-        continue;
-      }
-      if (seen.has(idValue)) {
-        continue;
-      }
-      const childRows = rows.filter(
-        (candidate) =>
-          readField(candidate, ref.name, join.idField, parentJoinPath) === idValue,
-      );
-      seen.set(idValue, shapeRefRecord(childRows, ref, join, joins, parentJoinPath));
-    }
-    return [...seen.values()];
+  if (!hasField(rows, ref.name, join.idField, parentJoinPath)) {
+    return rows.map((row) => shapeRefRecord([row], ref, join, joins, parentJoinPath));
   }
 
-  return rows.map((row) => shapeRefRecord([row], ref, join, joins, parentJoinPath));
+  // Pre-group rows by id in a single O(N) pass. Preserves the previous
+  // "first-seen id wins the output slot" ordering because JS Map iteration
+  // is insertion-ordered.
+  const readId = makeFieldReader(ref.name, join.idField, parentJoinPath);
+  const groups = new Map<unknown, Record<string, unknown>[]>();
+  for (const row of rows) {
+    const idValue = readId(row);
+    if (idValue === null || idValue === undefined) {
+      continue;
+    }
+    const bucket = groups.get(idValue);
+    if (bucket) {
+      bucket.push(row);
+    } else {
+      groups.set(idValue, [row]);
+    }
+  }
+
+  return [...groups.values()].map((childRows) =>
+    shapeRefRecord(childRows, ref, join, joins, parentJoinPath),
+  );
 }
 
 function shapeRefOne(
@@ -234,9 +276,10 @@ export function shapeMany(
     return rows.map((row) => shapeRecord([row], node, joins));
   }
 
+  const readRootId = makeFieldReader(node.name, rootIdField);
   const groups = new Map<unknown, Record<string, unknown>[]>();
   for (const row of rows) {
-    const rootId = readField(row, node.name, rootIdField);
+    const rootId = readRootId(row);
     if (rootId === null || rootId === undefined) {
       continue;
     }
