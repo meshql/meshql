@@ -1,7 +1,7 @@
 {
-  "name": "@meshql/integrity",
-  "version": "0.5.5",
-  "description": "MeshQL full token lifecycle integrity verification",
+  "name": "@meshql/persisted-queries",
+  "version": "0.2.0",
+  "description": "MeshQL persisted query registry and X-Mesh-Query-Id transport",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

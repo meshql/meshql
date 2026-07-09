@@ -1,5 +1,13 @@
 # express-prisma
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @meshql/http@0.6.0
+  - @meshql/client@0.6.0
+
 ## 0.1.3
 
 ### Patch Changes
