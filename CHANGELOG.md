@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-07-09
+
+### Changed
+
+- **`@meshql/core` 0.7.1** — shaper performance: `shapeRefMany` grouping rewritten from O(N²) nested scans to O(N) single-pass `Map`; `makeFieldReader()` caches resolved row aliases in hot loops (`shapeMany` + `shapeRefMany`). Up to ~138× faster on heavy many-join fanout. Response shapes unchanged.
+- **List validation** — `list.filter[].field` and `list.orderBy[].field` reject dotted cross-entity paths with a clear 400 (documented in `specs/05-list-options.md`).
+
+### Dependencies
+
+- Patch bumps across the workspace (`updateInternalDependencies: patch`) for packages that depend on `@meshql/core`.
+
 ## [0.7.0] - 2026-07-08
 
 ### Added

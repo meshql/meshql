@@ -2,7 +2,7 @@
 
 Get a working MeshQL stack — reads, signed auth, list queries, and uploads — with **no Docker**.
 
-MeshQL is published on **[JSR](https://jsr.io/@meshql)** (`@meshql/*`) and **[npm](https://www.npmjs.com/package/meshql-core)** (`meshql-*`). Current release line: **0.5.x**.
+MeshQL is published on **[JSR](https://jsr.io/@meshql)** (`@meshql/*`) and **[npm](https://www.npmjs.com/package/meshql-core)** (`meshql-*`). Current release line: **0.7.x**.
 
 ---
 
