@@ -868,6 +868,14 @@ ORM-driven, drop-in REST middleware." To actually ship 1.0 you still need:
    semver on the rest.
 5. **Security pass** — threat-model the integrity layer, add nonce/timestamp
    to prevent replay if not already there, document the threat model.
+6. **Schema naming polish** — warn at `createMesh()` when an entity name
+   ends in an irregular-plural pattern (`address`, `category`, `person`, ...)
+   but declares no `table:` override. `entityTable()` currently pluralizes
+   with a naive `+s` rule, so `entities.address` silently resolves to table
+   `address` instead of `addresses`. Users can already fix this by declaring
+   `entities.address.table = "addresses"`; the polish is a boot-time
+   warning to surface the footgun before it becomes a runtime "table not
+   found" error. Doc-only fix + one `console.warn`.
 
 These are tracked separately and not part of the "till ORMs" plan.
 

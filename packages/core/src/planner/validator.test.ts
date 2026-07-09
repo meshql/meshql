@@ -139,6 +139,28 @@ describe("validateAst — list options", () => {
     );
   });
 
+  it("rejects orderBy with a cross-entity dotted path", () => {
+    // MeshQL intentionally does not resolve dotted paths in filter/orderBy.
+    // Cross-entity ordering and filtering must be handled by a resolver.
+    const ast = parseJson(
+      withList({ orderBy: [{ field: "author.name", dir: "asc" }] }),
+    );
+    expect(() => validateAst(ast, schema)).toThrow(
+      "'list.orderBy[0].field' - 'author.name' is a cross-entity path",
+    );
+  });
+
+  it("rejects filter with a cross-entity dotted path", () => {
+    const ast = parseJson(
+      withList({
+        filter: [{ field: "comments.body", op: "like", value: "%hello%" }],
+      }),
+    );
+    expect(() => validateAst(ast, schema)).toThrow(
+      "'list.filter[0].field' - 'comments.body' is a cross-entity path",
+    );
+  });
+
   it("rejects an empty orderBy array", () => {
     const ast = parseJson(withList({ orderBy: [] }));
     expect(() => validateAst(ast, schema)).toThrow(

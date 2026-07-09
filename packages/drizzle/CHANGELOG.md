@@ -1,5 +1,12 @@
 # @meshql/drizzle
 
+## 0.7.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @meshql/core@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes
