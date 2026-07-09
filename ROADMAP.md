@@ -36,7 +36,7 @@ express()
 
 Every gap between this snippet and what the repo does today is a roadmap item.
 
-## Status (as of 0.6.0)
+## Status (as of 0.7.1)
 
 **Current sequence** — Phase 1 landed first (correctness took precedence over
 repositioning), then the chosen execution order is:
@@ -53,10 +53,28 @@ repositioning), then the chosen execution order is:
 | H | Multi-level nested fields | ✅ (0.5.1) |
 | I | **Phase 4** — ORM adapters (Prisma, Drizzle, Kysely) | ✅ (0.6.0) |
 | J | **Phase 5** — `schemaFromPrisma` / `schemaFromDrizzle` / `extendSchema` | ✅ (0.7.0) |
+| K | **Slice B** — shaper `shapeRefMany` O(N²)→O(N) + `makeFieldReader` hot-loop caching | ✅ (0.7.1) |
+| L | Language-agnostic **protocol specs** + conformance fixtures (`specs/`, docs.meshql.dev/specs) | ✅ |
+| M | **FAQ** on docs site + list `$list` field validation (no cross-entity filter/orderBy) | ✅ (0.7.1) |
 
 Phases 3 → 5 follow the original order. The headline plan below describes
 the *intended* phase progression; the Status table is the source of truth for
 *actual* sequencing through 0.x.
+
+### Next up (v1.0 track)
+
+| Priority | Item | Target | Effort |
+|---|---|---|---|
+| P0 | **Fix release CI** — tag push must trigger `publish-jsr` / `publish-npm` (today requires manual `workflow_dispatch`) | infra | 1 evening |
+| P1 | **Docs + marketing sync** — changelog 0.7.1, version strings, deploy docs + landing | 0.7.1 | 1 evening |
+| P2 | **Schema naming polish** — `console.warn` at `createMesh()` for irregular plurals without `table:` | 0.7.2 | 1 evening |
+| P3 | **`examples/express-drizzle`** — parity with express-prisma, inferred schema | 0.8.0 | 2–3 evenings |
+| P4 | **Benchmarks** — formal script vs PostgREST + hand-rolled Express+Prisma (seed: `measure-shaper.mjs`) | 0.8.0 | 1 week |
+| P5 | **More demos** — `fastify-drizzle`, `hono-kysely` (edge/SQLite) | 0.8.x | 1 week |
+| P6 | **API audit** — mark internals, freeze public surface for 1.0 | 0.9.0 | 1 week |
+| P7 | **Security pass** — replay nonces/timestamps, threat-model doc | 0.9.0 | 1 week |
+| P8 | **Phase 4.5** — persisted queries / compression / optional CBOR | 1.x | deferred |
+| P9 | **`@meshql/codemods`** — GraphQL SDL → MeshQL migration tool | 1.x | deferred |
 
 ## Goals (v1.0 scope)
 
@@ -103,7 +121,8 @@ gantt
 | 4 | Prisma + Drizzle + Kysely adapters | `0.6.0` | 2 weeks | ✅ done |
 | 4.5 | Wire protocol: persisted queries, compression, optional CBOR | post-0.7 | ~1 week | ⏭ deferred (after schema inference) |
 | 5 | `schemaFromPrisma` / `schemaFromDrizzle` / `extendSchema` | `0.7.0` | 1 week | ✅ done |
-| _post_ | Docs, demos, benchmarks, v1.0 cut | `0.9 → 1.0` | 2 weeks | ⏭ |
+| 5b | Shaper perf: O(N) `shapeRefMany`, cached field readers | `0.7.1` | 2 evenings | ✅ done |
+| _post_ | Docs, demos, benchmarks, v1.0 cut | `0.8 → 1.0` | 4–6 weeks | 🔄 in progress |
 
 Use Changesets (already configured) for every phase. Bump majors freely until 1.0.
 
@@ -847,6 +866,40 @@ Three lines.
 
 **Release: 0.7.0** — schema inference from ORMs. Completes the original
 “ten-line Express + Prisma” vision from the top of this document.
+
+---
+
+## Slice B — Shaper performance (2 evenings) ✅ DONE
+
+> Cartesian fanout from multiple `many` joins made `shapeRefMany` O(N²).
+> Realistic nested queries (100 comments × 20 tags) blocked the event loop.
+
+### B.1 O(N) grouping in `shapeRefMany`
+
+Replace outer-loop + `rows.filter(...)` with a single-pass
+`Map<idValue, Row[]>`. Preserve insertion-ordered dedup semantics.
+
+### B.2 `makeFieldReader` for hot loops
+
+Closure factory that pre-computes candidate SQL aliases once and caches
+the first hit per reader instance. Used in `shapeMany` root grouping
+and `shapeRefMany` child grouping.
+
+### B.3 Regression pins + measurement script
+
+Eight high-fanout shaper tests. `packages/core/scripts/measure-shaper.mjs`
+as a throwaway benchmark seed (not wired to CI).
+
+### Acceptance
+
+- Byte-identical response shapes vs 0.7.0.
+- ~45–138× median speedup on single-parent heavy fanout (see CHANGELOG).
+- All shaper tests pass.
+
+**Release: 0.7.1**
+
+Also shipped in 0.7.1: explicit rejection of cross-entity `list.filter` /
+`list.orderBy` field paths (spec + validator).
 
 ---
 
