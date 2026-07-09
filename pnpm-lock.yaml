@@ -397,6 +397,37 @@ importers:
         specifier: ^3.0.0
         version: 3.2.6(@types/node@22.15.3)(jiti@2.7.0)(tsx@4.22.4)
 
+  packages/persisted-queries:
+    dependencies:
+      '@meshql/core':
+        specifier: workspace:*
+        version: link:../core
+      '@meshql/http':
+        specifier: workspace:*
+        version: link:../http
+    devDependencies:
+      '@meshql/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.6
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      express:
+        specifier: ^5.1.0
+        version: 5.2.1
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.6(@types/node@22.15.3)(jiti@2.7.0)(tsx@4.22.4)
+
   packages/postgres:
     dependencies:
       '@meshql/core':

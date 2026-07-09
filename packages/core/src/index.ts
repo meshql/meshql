@@ -28,6 +28,7 @@ import {
   isPlanShortCircuit,
 } from "./plugin/index.js";
 import { entityIdField, resolveEntityKey } from "./schema/schema.js";
+import { warnAmbiguousEntityTables } from "./schema/entity-table-warnings.js";
 
 /** Options passed to {@link MeshInstance.execute}. */
 export interface ExecuteOptions {
@@ -113,6 +114,7 @@ export interface MeshInstance {
 
 /** Create a MeshQL instance from a schema configuration. */
 export function createMesh(config: MeshConfig): MeshInstance {
+  warnAmbiguousEntityTables(config);
   const registry = new ResolverRegistry();
   const plugins = new PluginRunner();
 

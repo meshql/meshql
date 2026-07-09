@@ -4,7 +4,7 @@ import {
   selectionToQl,
   type QuerySelection,
 } from "./query-builder.js";
-import { signQuery } from "./sign.js";
+import { signPersistedQuery, signQuery } from "./sign.js";
 
 /** Auth credentials returned from login. */
 export interface AuthTokens {
@@ -12,6 +12,16 @@ export interface AuthTokens {
   token: string;
   expiresAt: number;
 }
+
+/** Persisted query transport options. */
+export type PersistedQueriesOption =
+  | boolean
+  | {
+      /** Register unknown queries on first use. Defaults to true. */
+      autoRegister?: boolean;
+      /** Client-side cache of raw query → persisted ID. */
+      cache?: Map<string, string>;
+    };
 
 /** Options for {@link createClient}. */
 export interface MeshClientOptions {
@@ -27,6 +37,12 @@ export interface MeshClientOptions {
   token?: string;
   /** Called when token expires for silent re-auth. */
   onTokenExpired?: () => Promise<AuthTokens>;
+  /**
+   * Send `X-Mesh-Query-Id` instead of the full `X-Mesh-Query` header.
+   * When enabled, unknown queries are registered via `POST /{base}/queries`
+   * on first use unless a cached ID already exists.
+   */
+  persistedQueries?: PersistedQueriesOption;
 }
 
 /** Signed write operation (showcase / preview until core mutations). */
@@ -110,6 +126,65 @@ export function createClient(options: MeshClientOptions): MeshClient {
     onTokenExpired: options.onTokenExpired,
   };
 
+  const persistedConfig =
+    options.persistedQueries === true
+      ? { autoRegister: true, cache: new Map<string, string>() }
+      : options.persistedQueries
+        ? {
+            autoRegister: options.persistedQueries.autoRegister ?? true,
+            cache: options.persistedQueries.cache ?? new Map<string, string>(),
+          }
+        : undefined;
+
+  async function resolveSignedHeaders(raw: string): Promise<Record<string, string>> {
+    const signOptions = {
+      format,
+      secret: auth.secret,
+      signingToken: auth.signingToken,
+      token: auth.token,
+    };
+
+    if (!persistedConfig) {
+      return signQuery(raw, signOptions);
+    }
+
+    const cacheKey = `${format}\0${raw}`;
+    let queryId = persistedConfig.cache.get(cacheKey);
+
+    if (!queryId && persistedConfig.autoRegister) {
+      const response = await fetchFn(`${options.url}/queries`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+        body: JSON.stringify({ query: raw, format }),
+      });
+
+      if (!response.ok) {
+        const errorBody = (await response.json().catch(() => ({}))) as {
+          message?: string;
+        };
+        throw new Error(
+          errorBody.message ??
+            `MeshQL query registration failed (${response.status})`,
+        );
+      }
+
+      const body = (await response.json()) as { id: string };
+      queryId = body.id;
+      persistedConfig.cache.set(cacheKey, queryId);
+    }
+
+    if (!queryId) {
+      throw new Error(
+        "Persisted query ID not found — enable autoRegister or pre-register queries",
+      );
+    }
+
+    return signPersistedQuery(queryId, signOptions);
+  }
+
   async function executeQuery<T>(
     selection: QuerySelection,
     requestOptions: { entityId?: string; list?: ListOptions } = {},
@@ -138,12 +213,7 @@ export function createClient(options: MeshClientOptions): MeshClient {
       ? `${options.url}/${rootEntity}/${requestOptions.entityId}`
       : `${options.url}/${rootEntity}`;
 
-    const signedHeaders = await signQuery(raw, {
-      format,
-      secret: auth.secret,
-      signingToken: auth.signingToken,
-      token: auth.token,
-    });
+    const signedHeaders = await resolveSignedHeaders(raw);
 
     const response = await fetchFn(path, {
       method: "GET",
@@ -186,12 +256,7 @@ export function createClient(options: MeshClientOptions): MeshClient {
       ? `${options.url}/${uploadOptions.entity}/${uploadOptions.id}/${uploadOptions.field}`
       : `${options.url}/${uploadOptions.entity}`;
 
-    const signedHeaders = await signQuery(raw, {
-      format: "json",
-      secret: auth.secret,
-      signingToken: auth.signingToken,
-      token: auth.token,
-    });
+    const signedHeaders = await resolveSignedHeaders(raw);
 
     const form = new FormData();
     const bytes = new Uint8Array(buffer.byteLength);
@@ -238,12 +303,7 @@ export function createClient(options: MeshClientOptions): MeshClient {
     };
     const raw = JSON.stringify({ $write: payload });
 
-    const signedHeaders = await signQuery(raw, {
-      format: "json",
-      secret: auth.secret,
-      signingToken: auth.signingToken,
-      token: auth.token,
-    });
+    const signedHeaders = await resolveSignedHeaders(raw);
 
     const response = await fetchFn(`${options.url}/write`, {
       method: "POST",

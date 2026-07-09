@@ -14,6 +14,7 @@ on:
       - "npm/client/v*"
       - "npm/integrity/v*"
       - "npm/access/v*"
+      - "npm/persisted-queries/v*"
       - "npm/all/v*"
       - "npm/security/v*"
   workflow_dispatch:
@@ -36,6 +37,7 @@ on:
           - client
           - integrity
           - access
+          - persisted-queries
           - security
       publish_registry:
         description: Publish to registry.npmjs.org (requires NPM_TOKEN)
@@ -83,6 +85,7 @@ jobs:
               npm/client/v*) selection="client" ;;
               npm/integrity/v*) selection="integrity" ;;
               npm/access/v*) selection="access" ;;
+              npm/persisted-queries/v*) selection="persisted-queries" ;;
               npm/security/v*) selection="security" ;;
               npm/all/v*) selection="all" ;;
               *)
@@ -95,13 +98,13 @@ jobs:
           case "$selection" in
             all)
               if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client","integrity","access"]'
+                packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client","integrity","access","persisted-queries"]'
               else
                 packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client"]'
               fi
               ;;
             security) packages='["integrity","access"]' ;;
-            core|postgres|sqlite|prisma|drizzle|kysely|http|upload|client|integrity|access)
+            core|postgres|sqlite|prisma|drizzle|kysely|http|upload|client|integrity|access|persisted-queries)
               packages="[\"$selection\"]"
               ;;
             *)
@@ -185,7 +188,7 @@ jobs:
           mkdir -p artifacts
           packed=""
 
-          publish_order=(core postgres sqlite prisma drizzle kysely http upload client integrity access)
+          publish_order=(core postgres sqlite prisma drizzle kysely http upload client integrity access persisted-queries)
           selected=$(node -e 'JSON.parse(process.env.PACKAGES).forEach((p) => console.log(p))')
 
           for pkg in "${publish_order[@]}"; do
