@@ -28,6 +28,7 @@ import {
   TransportError,
   ValidationError,
 } from "@meshql/core";
+import type { DecodeQueryOptions } from "./transport/decode.js";
 import {
   handleGet,
   handlePost,
@@ -38,6 +39,7 @@ import {
 /** Options for {@link createHttpHandler}. */
 export interface HttpHandlerOptions {
   basePath?: string;
+  resolveQueryId?: DecodeQueryOptions["resolveQueryId"];
 }
 
 /** Low-level HTTP handler for MeshQL requests. */
@@ -83,20 +85,24 @@ export function toErrorResponse(error: unknown): {
 /** Create a framework-agnostic MeshQL HTTP handler. */
 export function createHttpHandler(
   mesh: MeshInstance,
-  _options: HttpHandlerOptions = {},
+  options: HttpHandlerOptions = {},
 ): MeshHttpHandler {
+  const decodeOptions: DecodeQueryOptions = {
+    resolveQueryId: options.resolveQueryId,
+  };
+
   return async function meshHttpHandler(req: HttpRequest) {
     try {
       const method = req.method.toUpperCase();
 
       if (method === "GET") {
-        return { status: 200, body: await handleGet(mesh, req) };
+        return { status: 200, body: await handleGet(mesh, req, decodeOptions) };
       }
       if (method === "POST") {
         return { status: 200, body: await handlePost(mesh, req) };
       }
       if (method === "PUT") {
-        return { status: 200, body: await handlePut(mesh, req) };
+        return { status: 200, body: await handlePut(mesh, req, decodeOptions) };
       }
 
       // DELETE and other mutating verbs are not part of v0.2 — a generic
@@ -118,12 +124,16 @@ export function createHttpHandler(
 export {
   decodeQuery,
   encodeQuery,
+  encodePersistedQuery,
   readTransportHeaders,
   signQuery,
+  signPersistedQuery,
 } from "./transport/decode.js";
 export type {
   DecodedQuery,
+  DecodeQueryOptions,
   QueryFormat,
+  ResolvedQueryId,
   SignQueryOptions,
 } from "./transport/decode.js";
 export { parseMultipart, hashFileContent } from "./transport/multipart.js";

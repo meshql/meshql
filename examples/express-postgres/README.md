@@ -2,7 +2,7 @@
 
 Runnable MeshQL server with **in-memory** or **Postgres** storage. Includes optional security demos (monorepo only — not on JSR 0.1.x yet).
 
-> **SQLite is not supported.** Default mode uses in-memory seed data — no database setup required.
+> **Postgres or in-memory.** Default mode uses in-memory seed data — no database setup required. For SQLite, see [`express-sqlite`](../express-sqlite).
 
 ## Prerequisites
 

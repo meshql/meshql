@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+### Minor Changes
+
+- Add persisted query registration and `X-Mesh-Query-Id` transport for production apps.
+
 ## 0.5.4
 
 ### Patch Changes

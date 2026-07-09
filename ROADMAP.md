@@ -47,7 +47,7 @@ repositioning), then the chosen execution order is:
 | B | CI Postgres integration test (was item 1.10) | ✅ |
 | C | **Phase 0** — split `@meshql/postgres` + `@meshql/sqlite` out of `@meshql/core` | ✅ (shipped in 0.2.0) |
 | D | **Phase 2** — `JoinPlan.list`, filters, cursors, catch-all resolver | ✅ |
-| E | Decide on **Phase 4.5** wire protocol work (persisted queries / compression / CBOR) — placement and timing | ✅ deferred until after Phase 4 (ORMs) |
+| E | Decide on **Phase 4.5** wire protocol work (persisted queries / compression / CBOR) — placement and timing | ✅ scoped to **0.8.0** (persisted queries; CBOR deferred) |
 | F | **Phase 3** — native multipart uploads with signed body | ✅ (0.5.0) |
 | G | Showcase blog app (`examples/showcase`) | ✅ |
 | H | Multi-level nested fields | ✅ (0.5.1) |
@@ -61,20 +61,56 @@ Phases 3 → 5 follow the original order. The headline plan below describes
 the *intended* phase progression; the Status table is the source of truth for
 *actual* sequencing through 0.x.
 
-### Next up (v1.0 track)
+### This week (ship before v0.8.0 work)
 
-| Priority | Item | Target | Effort |
+Focus shifts from polish to expand — docs and protocol specs are done. These are
+quick wins with outsized impact:
+
+| Priority | Item | Why now | Effort |
 |---|---|---|---|
-| P0 | **Fix release CI** — tag push must trigger `publish-jsr` / `publish-npm` (today requires manual `workflow_dispatch`) | infra | 1 evening |
-| P1 | **Docs + marketing sync** — changelog 0.7.1, version strings, deploy docs + landing | 0.7.1 | 1 evening |
-| P2 | **Schema naming polish** — `console.warn` at `createMesh()` for irregular plurals without `table:` | 0.7.2 | 1 evening |
-| P3 | **`examples/express-drizzle`** — parity with express-prisma, inferred schema | 0.8.0 | 2–3 evenings |
-| P4 | **Benchmarks** — formal script vs PostgREST + hand-rolled Express+Prisma (seed: `measure-shaper.mjs`) | 0.8.0 | 1 week |
-| P5 | **More demos** — `fastify-drizzle`, `hono-kysely` (edge/SQLite) | 0.8.x | 1 week |
-| P6 | **API audit** — mark internals, freeze public surface for 1.0 | 0.9.0 | 1 week |
-| P7 | **Security pass** — replay nonces/timestamps, threat-model doc | 0.9.0 | 1 week |
-| P8 | **Phase 4.5** — persisted queries / compression / optional CBOR | 1.x | deferred |
-| P9 | **`@meshql/codemods`** — GraphQL SDL → MeshQL migration tool | 1.x | deferred |
+| **P0** | **Docs SEO** — add `meta name="description"` to docs.meshql.dev | Other mesh projects drown out MeshQL in Google; fix discoverability | ✅ done |
+| **P1** | **Fix stale SQLite README** — `express-postgres` still says "SQLite is not supported" | Embarrassing if someone finds it; `@meshql/sqlite` is first-class | ✅ done |
+| **P2** | **Fix release CI** — tag push must trigger `publish-jsr` / `publish-npm` | Blocks every release until fixed | ✅ done |
+| **P3** | **Schema naming polish** — `console.warn` at `createMesh()` for irregular plurals without `table:` | Cheap footgun fix before 0.8 | ✅ done |
+
+### v0.8.0 — Performance & production wire protocol
+
+Must ship. Biggest perf and trust gaps for production adopters.
+
+| Priority | Item | Notes | Effort |
+|---|---|---|---|
+| **P0** | **`@meshql/persisted-queries`** | Register query → get ID; `X-Mesh-Query-Id: q_a3f1` (10 bytes vs ~300); biggest production perf win; solves large-query header limits | ✅ shipped (0.8.0) |
+| **P1** | **`@meshql/access-cache`** | Redis / Upstash / in-memory; cache permission results per user; 60s default TTL; manual invalidation API | 1 week |
+| **P1** | **Core test coverage** | Parser, planner, shaper — the trust gap right now | 1–2 weeks |
+| **P2** | **`examples/express-drizzle`** | Parity with express-prisma, inferred schema | 2–3 evenings |
+| **P3** | **More demos** — `fastify-drizzle`, `hono-kysely` (edge/SQLite) | Stretch if time allows | 1 week |
+
+Deferred from old Phase 4.5 plan: compression / optional CBOR — revisit after
+persisted queries land.
+
+### v0.9.0 — Real-time & federation
+
+| Priority | Item | Notes | Effort |
+|---|---|---|---|
+| **P0** | **`@meshql/sse`** | Field-aware SSE subscriptions; same field selection as queries; access control applies automatically | 1–2 weeks |
+| **P0** | **`@meshql/pubsub`** | Memory (dev), Redis (prod), Postgres LISTEN/NOTIFY (zero extra infra) | 1 week |
+| **P1** | **`@meshql/gateway` V1** | Federated multi-service queries; replace GraphQL subgraphs; static service config first; parallel fetch + stitch | 2–3 weeks |
+| **P1** | **`@meshql/codemods`** | GraphQL SDL → MeshQL schema; biggest migration unlock | 1–2 weeks |
+| **P2** | **API audit** | Mark internals, freeze public surface heading into 1.0 | 1 week |
+| **P2** | **Security pass** | Replay nonces/timestamps, threat-model doc (complements v1.0 integrity audit) | 1 week |
+
+### v1.0.0 — Stability contract
+
+Non-negotiables for the 1.0 cut:
+
+| Item | Notes |
+|---|---|
+| **Zero breaking changes** from 0.9 → 1.0 | Semver freeze starts here |
+| **`@meshql` npm org resolved** | Migrate `meshql-*` → `@meshql/*` cleanly |
+| **Security audit of `@meshql/integrity`** | External or structured self-audit with published findings |
+| **Performance benchmarks published** | vs GraphQL + dataloaders — numbers, not claims (`measure-shaper.mjs` is the seed) |
+| **Auth adapters** | `@meshql/auth-clerk`, `@meshql/auth-auth0`, `@meshql/auth-jwt` |
+| **Go port planning started** | Spec already published ✅; find Go maintainer; placeholder repo |
 
 ## Goals (v1.0 scope)
 
@@ -88,7 +124,7 @@ the *intended* phase progression; the Status table is the source of truth for
 
 ## Non-goals (v1.0)
 
-- Subscriptions / live queries
+- WebSocket subscriptions (SSE ships in 0.9; full duplex deferred)
 - Owning a SQL builder for every database — the resolver layer is the abstraction
 - Custom mutation verbs beyond entity CRUD — defer to a plugin in v1.x
 - A query IDE / GraphiQL clone
@@ -119,10 +155,10 @@ gantt
 | 2 | List queries, filters, cursors, catch-all resolver | `0.4.0` | 1.5 weeks | ✅ done |
 | 3 | Multipart upload with signed body | `0.5.0` | ~2 weeks | ✅ done |
 | 4 | Prisma + Drizzle + Kysely adapters | `0.6.0` | 2 weeks | ✅ done |
-| 4.5 | Wire protocol: persisted queries, compression, optional CBOR | post-0.7 | ~1 week | ⏭ deferred (after schema inference) |
+| 4.5 | Wire protocol: persisted queries, access cache | `0.8.0` | ~2 weeks | 🔄 planned |
 | 5 | `schemaFromPrisma` / `schemaFromDrizzle` / `extendSchema` | `0.7.0` | 1 week | ✅ done |
 | 5b | Shaper perf: O(N) `shapeRefMany`, cached field readers | `0.7.1` | 2 evenings | ✅ done |
-| _post_ | Docs, demos, benchmarks, v1.0 cut | `0.8 → 1.0` | 4–6 weeks | 🔄 in progress |
+| _post_ | Perf wire protocol, real-time, federation, v1.0 cut | `0.8 → 1.0` | 8–12 weeks | 🔄 in progress |
 
 Use Changesets (already configured) for every phase. Bump majors freely until 1.0.
 
@@ -905,32 +941,22 @@ Also shipped in 0.7.1: explicit rejection of cross-entity `list.filter` /
 
 ## After Phase 5 — what's left for v1.0
 
-The user-facing roadmap above gets MeshQL from "v0.1 toy" to "DB-agnostic,
-ORM-driven, drop-in REST middleware." To actually ship 1.0 you still need:
+Phases 0–5 plus docs/specs landed the ORM-driven core. The **v0.8 → v1.0**
+track above is now the source of truth. Summary of what remains:
 
-1. **Documentation** — tutorial (build a blog API in 30 minutes), reference
-   docs per package, comparison page vs PostgREST / Hasura / hand-rolled
-   Express+Prisma. Language-agnostic protocol specs live under
-   [`specs/`](./specs) (hosted at docs.meshql.dev/specs).
-2. **Three demo apps** — `express-prisma`, `fastify-drizzle`,
-   `hono-kysely` (edge runtime, Turso/SQLite).
-3. **Benchmarks** — reproducible script that compares MeshQL vs PostgREST
-   on Postgres and MeshQL vs hand-rolled Express+Prisma. Target: within 2x of
-   PostgREST, faster than hand-rolled for nested queries.
-4. **API audit** — walk every exported symbol, mark internal-only, commit to
-   semver on the rest.
-5. **Security pass** — threat-model the integrity layer, add nonce/timestamp
-   to prevent replay if not already there, document the threat model.
-6. **Schema naming polish** — warn at `createMesh()` when an entity name
-   ends in an irregular-plural pattern (`address`, `category`, `person`, ...)
-   but declares no `table:` override. `entityTable()` currently pluralizes
-   with a naive `+s` rule, so `entities.address` silently resolves to table
-   `address` instead of `addresses`. Users can already fix this by declaring
-   `entities.address.table = "addresses"`; the polish is a boot-time
-   warning to surface the footgun before it becomes a runtime "table not
-   found" error. Doc-only fix + one `console.warn`.
+| Area | Status | Target |
+|---|---|---|
+| Documentation + protocol specs | ✅ done | — |
+| Showcase + express-prisma demos | ✅ done | more demos in 0.8 |
+| Production wire protocol (persisted queries) | 🔄 | 0.8.0 |
+| Access cache + core test coverage | 🔄 | 0.8.0 |
+| Real-time (SSE + pubsub) + gateway + codemods | 📋 | 0.9.0 |
+| Benchmarks, auth adapters, npm org, Go port, integrity audit | 📋 | 1.0.0 |
+| API audit + security pass | 📋 | 0.9.0 (prep) / 1.0.0 (freeze) |
+| Schema naming polish + stale README fixes | ✅ | this week |
 
-These are tracked separately and not part of the "till ORMs" plan.
+See **This week**, **v0.8.0**, **v0.9.0**, and **v1.0.0** at the top of this doc
+for the prioritized checklist.
 
 ---
 

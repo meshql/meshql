@@ -24,6 +24,18 @@ when talking to storage).
 Core write mutations (create/update/delete) are **not** part of protocol v1.
 `DELETE` SHOULD return **405** until a mutation profile is specified.
 
+## Routes (persisted queries — optional)
+
+Persisted queries are an optional production optimization. When enabled,
+clients MAY send a short query ID instead of the full base64 payload.
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/{base}/queries` | Register `{ "query": "...", "format": "json" }` → `{ "id": "q_a3f1b2c8" }` |
+
+Execution uses `X-Mesh-Query-Id` on GET/PUT instead of `X-Mesh-Query`.
+The two headers are mutually exclusive.
+
 ## Routes (integrity — L3)
 
 | Method | Path | Purpose |
@@ -44,12 +56,14 @@ See [07 — Uploads](./07-uploads.md).
 
 | Header | Required | Description |
 |--------|----------|-------------|
-| `X-Mesh-Query` | **Yes** | Base64-encoded query payload (UTF-8). Padding MAY be present. |
+| `X-Mesh-Query` | One of `X-Mesh-Query` / `X-Mesh-Query-Id` | Base64-encoded query payload (UTF-8). Padding MAY be present. |
+| `X-Mesh-Query-Id` | One of `X-Mesh-Query` / `X-Mesh-Query-Id` | Persisted query ID from `POST /{base}/queries` (e.g. `q_a3f1b2c8`) |
 | `X-Mesh-Format` | No | `json` (default) or `ql` |
 | `X-Mesh-Version` | No | Protocol version; default `1` |
-| `X-Mesh-Signature` | L3 | `sha256=` + hex HMAC over the **exact** `X-Mesh-Query` header value |
+| `X-Mesh-Signature` | L3 | `sha256=` + hex HMAC over the **exact** `X-Mesh-Query` or `X-Mesh-Query-Id` header value |
 | `X-Mesh-Token` | L3 | Opaque wire token from auth |
 
+`X-Mesh-Query` and `X-Mesh-Query-Id` are mutually exclusive.
 `X-Mesh-Query` MUST NOT be passed as a URL query parameter for L1 compliance.
 
 ### Encoding
