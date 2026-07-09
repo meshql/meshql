@@ -1,6 +1,6 @@
 import type { MeshInstance } from "@meshql/core";
 import { MeshError } from "@meshql/core";
-import { decodeQuery } from "../transport/decode.js";
+import { decodeQuery, type DecodeQueryOptions } from "../transport/decode.js";
 
 export interface HttpRequest {
   method: string;
@@ -9,10 +9,16 @@ export interface HttpRequest {
   body?: unknown;
 }
 
-export function handleGet(mesh: MeshInstance, req: HttpRequest) {
+export type HttpHandlerContext = DecodeQueryOptions;
+
+export function handleGet(
+  mesh: MeshInstance,
+  req: HttpRequest,
+  context: HttpHandlerContext = {},
+) {
   const entity = req.params.entity;
   const entityId = req.params.id;
-  const { raw, format, transport } = decodeQuery(req);
+  const { raw, format, transport } = decodeQuery(req, context);
 
   return mesh.execute(raw, {
     format,
@@ -47,10 +53,14 @@ export async function handlePost(mesh: MeshInstance, req: HttpRequest) {
   });
 }
 
-export function handlePut(mesh: MeshInstance, req: HttpRequest) {
+export function handlePut(
+  mesh: MeshInstance,
+  req: HttpRequest,
+  context: HttpHandlerContext = {},
+) {
   const entity = req.params.entity;
   const entityId = req.params.id;
-  const { raw, format, transport } = decodeQuery(req);
+  const { raw, format, transport } = decodeQuery(req, context);
 
   return mesh.execute(raw, {
     format,
