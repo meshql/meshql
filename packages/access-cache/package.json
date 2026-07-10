@@ -1,0 +1,33 @@
+{
+  "name": "@meshql/access-cache",
+  "version": "0.2.0",
+  "description": "MeshQL access permission result cache (memory, Upstash, Redis-compatible)",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "check-types": "tsc --noEmit",
+    "publish:jsr": "jsr publish"
+  },
+  "dependencies": {
+    "@meshql/access": "workspace:*",
+    "@meshql/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@meshql/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3",
+    "tsup": "^8.4.0",
+    "typescript": "5.9.2",
+    "vitest": "^3.0.0"
+  }
+}
