@@ -14,6 +14,7 @@ on:
       - "client/v*"
       - "integrity/v*"
       - "access/v*"
+      - "access-cache/v*"
       - "persisted-queries/v*"
       - "security/v*"
       - "all/v*"
@@ -38,6 +39,7 @@ on:
           - client
           - integrity
           - access
+          - access-cache
           - persisted-queries
           - security
 
@@ -82,6 +84,7 @@ jobs:
               client/v*) selection="client" ;;
               integrity/v*) selection="integrity" ;;
               access/v*) selection="access" ;;
+              access-cache/v*) selection="access-cache" ;;
               persisted-queries/v*) selection="persisted-queries" ;;
               security/v*) selection="security" ;;
               all/v*|v*) selection="all" ;;
@@ -95,13 +98,13 @@ jobs:
           case "$selection" in
             all)
               if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client","integrity","access","persisted-queries"]'
+                packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client","integrity","access","access-cache","persisted-queries"]'
               else
                 packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client"]'
               fi
               ;;
             security) packages='["integrity","access"]' ;;
-            core|postgres|sqlite|prisma|drizzle|kysely|http|upload|client|integrity|access|persisted-queries)
+            core|postgres|sqlite|prisma|drizzle|kysely|http|upload|client|integrity|access|access-cache|persisted-queries)
               packages="[\"$selection\"]"
               ;;
             *)
