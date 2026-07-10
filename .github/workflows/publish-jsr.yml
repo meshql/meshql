@@ -143,33 +143,14 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: Verify tag version matches package manifests
-        if: needs.resolve.outputs.tag_version != ''
+      - name: Verify JSR manifests and registry setup
         env:
           TAG_VERSION: ${{ needs.resolve.outputs.tag_version }}
           PACKAGES: ${{ needs.resolve.outputs.packages }}
         run: |
           set -euo pipefail
-          node <<'NODE'
-          const fs = require("node:fs");
-          const tagVersion = process.env.TAG_VERSION;
-          const packages = JSON.parse(process.env.PACKAGES);
-
-          let failed = false;
-          for (const pkg of packages) {
-            const manifest = JSON.parse(
-              fs.readFileSync(`packages/${pkg}/jsr.json`, "utf8"),
-            );
-            if (manifest.version !== tagVersion) {
-              console.error(
-                `::error::Tag version ${tagVersion} does not match packages/${pkg}/jsr.json version ${manifest.version}`,
-              );
-              failed = true;
-            }
-          }
-
-          if (failed) process.exit(1);
-          NODE
+          node scripts/verify-jsr-publish.mjs \
+            $(node -e 'JSON.parse(process.env.PACKAGES).forEach((p) => console.log(p))')
 
       - name: Publish selected packages
         env:
@@ -179,5 +160,15 @@ jobs:
           for pkg in $(node -e 'JSON.parse(process.env.PACKAGES).forEach((p) => console.log(p))'); do
             echo "Publishing @meshql/${pkg}..."
             node scripts/prepare-jsr-publish.mjs "${pkg}"
-            (cd "packages/${pkg}" && npx jsr publish --allow-dirty)
+            log="/tmp/jsr-publish-${pkg}.log"
+            if ! (cd "packages/${pkg}" && npx jsr publish --allow-dirty 2>&1 | tee "${log}"); then
+              echo "::group::JSR publish output for ${pkg}"
+              cat "${log}"
+              echo "::endgroup::"
+              if grep -q "don't exist" "${log}"; then
+                short_name="$(node -pe "JSON.parse(require('node:fs').readFileSync('packages/${pkg}/jsr.json','utf8')).name.replace('@meshql/','')")"
+                echo "::error::JSR package @meshql/${short_name} is not registered. Create it at https://jsr.io/new?scope=meshql&package=${short_name} and link meshql/meshql in Settings."
+              fi
+              exit 1
+            fi
           done
