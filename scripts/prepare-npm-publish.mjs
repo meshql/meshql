@@ -16,6 +16,7 @@ const NPM_NAME_BY_DIR = {
   upload: "meshql-upload",
   integrity: "meshql-integrity",
   access: "meshql-access",
+  "access-cache": "meshql-access-cache",
   "persisted-queries": "meshql-persisted-queries",
 };
 
@@ -35,6 +36,7 @@ const PUBLISH_ORDER = [
   "client",
   "integrity",
   "access",
+  "access-cache",
   "persisted-queries",
 ];
 
