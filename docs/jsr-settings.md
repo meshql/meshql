@@ -19,6 +19,8 @@ For each publishable package, open **Settings** on the package page and set:
 | `@meshql/prisma` | done | done |
 | `@meshql/drizzle` | done | done |
 | `@meshql/kysely` | done | done |
+| `@meshql/persisted-queries` | done | done |
+| `@meshql/access-cache` | done | done |
 
 Steps for each new package:
 
@@ -40,6 +42,8 @@ Steps for each new package:
 | `@meshql/prisma` | Prisma catch-all resolver — nested `select` from JoinPlan. |
 | `@meshql/drizzle` | Drizzle relational query resolver for MeshQL. |
 | `@meshql/kysely` | Kysely resolver executing MeshQL join plans as parameterized SQL. |
+| `@meshql/persisted-queries` | Persisted query IDs for MeshQL HTTP transport and client auto-registration. |
+| `@meshql/access-cache` | Cache MeshQL access permission results in memory, Upstash, or Redis-compatible stores. |
 
 ## Runtime compatibility
 

@@ -134,8 +134,10 @@ For **each** publishable package:
 | `@meshql/upload` | yes | yes |
 | `@meshql/integrity` | **required before first tag** | **required before first tag** |
 | `@meshql/access` | **required before first tag** | **required before first tag** |
+| `@meshql/persisted-queries` | yes | yes |
+| `@meshql/access-cache` | yes | yes |
 
-Without linking, CI fails with `actorNotAuthorized`. See [docs/jsr-settings.md](./docs/jsr-settings.md) for descriptions and runtime compatibility.
+Without linking, CI fails with `actorNotAuthorized` or `Following packages don't exist`. See [docs/jsr-settings.md](./docs/jsr-settings.md) for descriptions and runtime compatibility.
 
 ### Local JSR publish
 
