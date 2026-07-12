@@ -405,6 +405,27 @@ packages/kysely     Kysely adapter
 examples/           runnable demos (express-sqlite, express-postgres, express-prisma)
 ```
 
+### Testing
+
+**260+ unit tests** across the monorepo (`pnpm test`). The engine is the focus:
+
+| Package | Tests | Coverage highlights |
+|---------|------:|---------------------|
+| `@meshql/core` | 158 | Parser (QL + JSON `$list`), join planner, response shaper, spec [conformance fixtures](./specs/fixtures/) |
+| `@meshql/postgres` | 19 | `buildSelectSql`, nested joins, cursor keyset |
+| `@meshql/sqlite` | 31 | Same SQL builder contract as Postgres |
+| Other packages | 52+ | HTTP transport, ORM adapters, integrity, access, persisted-queries, … |
+
+Core tests exercise the full parse → plan → shape pipeline, including golden
+queries from [`specs/fixtures/`](./specs/fixtures/) so alternative implementations
+can match the published protocol.
+
+```bash
+pnpm test                  # all package unit tests (CI)
+pnpm test:integration      # Postgres integration (requires Docker)
+pnpm --filter @meshql/core test   # engine only
+```
+
 PRs welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 **Evaluating MeshQL?** See the [FAQ](./docs/faq.md) for GraphQL comparison, security, ORMs, and migration questions.
