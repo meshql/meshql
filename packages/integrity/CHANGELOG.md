@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.6
+
+### Patch Changes
+
+- Updated dependencies [644ea86]
+  - @meshql/http@0.6.1
+
 ## 0.5.5
 
 ### Patch Changes
