@@ -1,5 +1,13 @@
 # showcase
 
+## 0.5.6
+
+### Patch Changes
+
+- Updated dependencies [644ea86]
+  - @meshql/http@0.6.1
+  - @meshql/integrity@0.5.6
+
 ## 0.5.5
 
 ### Patch Changes
