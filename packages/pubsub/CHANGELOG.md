@@ -4,4 +4,6 @@
 
 ### Minor Changes
 
-- Initial release: `PubSubStore` interface, `InMemoryPubSubStore`, and MeshQL channel naming helpers.
+- Initial release: `PubSubStore`, `InMemoryPubSubStore`, MeshQL channel helpers.
+- Redis adapter (`@meshql/pubsub/redis`) and Postgres LISTEN/NOTIFY adapter (`@meshql/pubsub/postgres`).
+- `notifyEntityUpdate()` helper for mutation → subscription fan-out.

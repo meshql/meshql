@@ -10,24 +10,50 @@ npm install meshql-pubsub
 npx jsr add @meshql/pubsub
 ```
 
-## Example (in-memory, dev)
+## Backends
+
+| Backend | Import | Use case |
+|---------|--------|----------|
+| In-memory | `@meshql/pubsub` | Dev, single-node |
+| Redis | `@meshql/pubsub/redis` | Production, multi-node |
+| Postgres | `@meshql/pubsub/postgres` | Zero extra infra (`LISTEN/NOTIFY`) |
+
+## Example (in-memory)
 
 ```ts
 import {
   InMemoryPubSubStore,
   entityRecordChannel,
+  notifyEntityUpdate,
 } from "@meshql/pubsub";
 
 const pubsub = new InMemoryPubSubStore();
 
-const channel = entityRecordChannel("post", 1);
-pubsub.subscribe(channel, (message) => {
+pubsub.subscribe(entityRecordChannel("post", 1), (message) => {
   console.log("update", message.payload);
 });
 
-pubsub.publish(channel, { type: "updated", id: 1 });
+notifyEntityUpdate(pubsub, "post", 1);
 ```
 
-Redis and Postgres `LISTEN/NOTIFY` adapters ship in follow-up releases.
+## Redis
 
-See [ROADMAP.md](../../ROADMAP.md) for v0.9.0 (`@meshql/sse` builds on this package).
+```ts
+import { createRedisPubSubStore } from "@meshql/pubsub/redis";
+
+const pubsub = createRedisPubSubStore({
+  url: process.env.REDIS_URL!,
+});
+```
+
+## Postgres
+
+```ts
+import { Pool } from "pg";
+import { createPostgresPubSubStore } from "@meshql/pubsub/postgres";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pubsub = createPostgresPubSubStore({ pool });
+```
+
+Pairs with [`@meshql/sse`](../sse) for browser subscriptions.

@@ -3,12 +3,10 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: {
     index: "src/index.ts",
-    redis: "src/redis.ts",
-    postgres: "src/postgres.ts",
+    "adapters/express": "src/adapters/express.ts",
   },
   format: ["esm"],
   dts: true,
   clean: true,
   sourcemap: true,
-  external: ["pg", "redis"],
 });
