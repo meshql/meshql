@@ -93,7 +93,7 @@ persisted queries land.
 | Priority | Item | Notes | Effort |
 |---|---|---|---|
 | **P0** | **`@meshql/pubsub`** | Memory, Redis, Postgres LISTEN/NOTIFY | ✅ shipped (0.9.0) |
-| **P0** | **`@meshql/sse`** | Field-aware SSE subscriptions; same field selection as queries | 🔄 in progress (Express adapter shipped) |
+| **P0** | **`@meshql/sse`** | Field-aware SSE subscriptions; Express adapter | ✅ shipped (0.9.0) |
 | **P1** | **`@meshql/gateway` V1** | Federated multi-service queries; replace GraphQL subgraphs; static service config first; parallel fetch + stitch | 2–3 weeks |
 | **P1** | **`@meshql/codemods`** | GraphQL SDL → MeshQL schema; biggest migration unlock | 1–2 weeks |
 | **P2** | **API audit** | Mark internals, freeze public surface heading into 1.0 | 1 week |

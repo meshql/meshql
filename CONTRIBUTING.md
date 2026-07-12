@@ -65,6 +65,7 @@ MeshQL is a **pnpm + Turbo monorepo** with **independent per-package versions**.
 | `@meshql/persisted-queries` | `meshql-persisted-queries` | `@meshql/persisted-queries` |
 | `@meshql/access-cache` | `meshql-access-cache` | `@meshql/access-cache` |
 | `@meshql/pubsub` | `meshql-pubsub` | `@meshql/pubsub` |
+| `@meshql/pubsub` | `meshql-pubsub` | `@meshql/pubsub` |
 | `@meshql/sse` | `meshql-sse` | `@meshql/sse` |
 
 `@meshql/typescript-config` is private and never published.
