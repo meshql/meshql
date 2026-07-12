@@ -62,10 +62,12 @@ MeshQL is a **pnpm + Turbo monorepo** with **independent per-package versions**.
 | `@meshql/prisma` | `meshql-prisma` | `@meshql/prisma` |
 | `@meshql/drizzle` | `meshql-drizzle` | `@meshql/drizzle` |
 | `@meshql/kysely` | `meshql-kysely` | `@meshql/kysely` |
+| `@meshql/persisted-queries` | `meshql-persisted-queries` | `@meshql/persisted-queries` |
+| `@meshql/access-cache` | `meshql-access-cache` | `@meshql/access-cache` |
 
 `@meshql/typescript-config` is private and never published.
 
-**Publish order** (when multiple packages release together): `core → postgres → sqlite → prisma → drizzle → kysely → http → upload → client → integrity → access`.
+**Publish order** (when multiple packages release together): `core → postgres → sqlite → prisma → drizzle → kysely → http → upload → client → integrity → access → persisted-queries → access-cache`.
 
 ### Standard release flow (Changesets)
 

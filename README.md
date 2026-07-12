@@ -63,6 +63,8 @@ deno add jsr:@meshql/core jsr:@meshql/http jsr:@meshql/client
 | `@meshql/upload` | [jsr.io/@meshql/upload](https://jsr.io/@meshql/upload) | File uploads (optional) |
 | `@meshql/integrity` | [jsr.io/@meshql/integrity](https://jsr.io/@meshql/integrity) | Request signing and integrity tokens |
 | `@meshql/access` | [jsr.io/@meshql/access](https://jsr.io/@meshql/access) | Entity, row, and field access control |
+| `@meshql/persisted-queries` | [jsr.io/@meshql/persisted-queries](https://jsr.io/@meshql/persisted-queries) | Persisted query IDs, `X-Mesh-Query-Id` transport (v0.8.0) |
+| `@meshql/access-cache` | [jsr.io/@meshql/access-cache](https://jsr.io/@meshql/access-cache) | Cache permission results per user (v0.8.0) |
 | `@meshql/prisma` | [jsr.io/@meshql/prisma](https://jsr.io/@meshql/prisma) | Prisma catch-all resolver (nested `select`) |
 | `@meshql/drizzle` | [jsr.io/@meshql/drizzle](https://jsr.io/@meshql/drizzle) | Drizzle relational query resolver |
 | `@meshql/kysely` | [jsr.io/@meshql/kysely](https://jsr.io/@meshql/kysely) | Kysely + `buildSelectSql` flat-row resolver |
@@ -112,6 +114,8 @@ npm install meshql-core meshql-http meshql-client meshql-upload meshql-integrity
 | `meshql-upload` | [npmjs.com/package/meshql-upload](https://www.npmjs.com/package/meshql-upload) | File uploads (optional) |
 | `meshql-integrity` | [npmjs.com/package/meshql-integrity](https://www.npmjs.com/package/meshql-integrity) | Request signing and integrity tokens |
 | `meshql-access` | [npmjs.com/package/meshql-access](https://www.npmjs.com/package/meshql-access) | Entity, row, and field access control |
+| `meshql-persisted-queries` | [npmjs.com/package/meshql-persisted-queries](https://www.npmjs.com/package/meshql-persisted-queries) | Persisted query IDs, `X-Mesh-Query-Id` (v0.8.0) |
+| `meshql-access-cache` | [npmjs.com/package/meshql-access-cache](https://www.npmjs.com/package/meshql-access-cache) | Cache permission results per user (v0.8.0) |
 | `meshql-prisma` | [npmjs.com/package/meshql-prisma](https://www.npmjs.com/package/meshql-prisma) | Prisma catch-all resolver |
 | `meshql-drizzle` | [npmjs.com/package/meshql-drizzle](https://www.npmjs.com/package/meshql-drizzle) | Drizzle relational query resolver |
 | `meshql-kysely` | [npmjs.com/package/meshql-kysely](https://www.npmjs.com/package/meshql-kysely) | Kysely + SQL builder resolver |
