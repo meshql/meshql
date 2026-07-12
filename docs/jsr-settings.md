@@ -21,6 +21,8 @@ For each publishable package, open **Settings** on the package page and set:
 | `@meshql/kysely` | done | done |
 | `@meshql/persisted-queries` | done | done |
 | `@meshql/access-cache` | done | done |
+| `@meshql/pubsub` | **required before first tag** | **required before first tag** |
+| `@meshql/sse` | **required before first tag** | **required before first tag** |
 
 Steps for each new package:
 
@@ -44,6 +46,8 @@ Steps for each new package:
 | `@meshql/kysely` | Kysely resolver executing MeshQL join plans as parameterized SQL. |
 | `@meshql/persisted-queries` | Persisted query IDs for MeshQL HTTP transport and client auto-registration. |
 | `@meshql/access-cache` | Cache MeshQL access permission results in memory, Upstash, or Redis-compatible stores. |
+| `@meshql/pubsub` | Pub/sub for real-time subscriptions (memory, Redis, Postgres LISTEN/NOTIFY). |
+| `@meshql/sse` | Field-aware MeshQL subscriptions over Server-Sent Events. |
 
 ## Runtime compatibility
 

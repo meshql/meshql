@@ -1,6 +1,6 @@
 {
   "name": "@meshql/sse",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Field-aware MeshQL subscriptions over Server-Sent Events",
   "license": "MIT",
   "type": "module",
@@ -32,7 +32,9 @@
     "express": "^4 || ^5"
   },
   "peerDependenciesMeta": {
-    "express": { "optional": true }
+    "express": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@meshql/typescript-config": "workspace:*",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1
+
+### Patch Changes
+
+- 644ea86: Add Redis and Postgres pub/sub adapters, `@meshql/sse` for field-aware SSE subscriptions, and export HTTP handler helpers for SSE refresh.
+
 ## 0.6.0
 
 ### Minor Changes

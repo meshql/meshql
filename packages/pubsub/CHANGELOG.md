@@ -1,5 +1,11 @@
 # @meshql/pubsub
 
+## 0.2.0
+
+### Minor Changes
+
+- 644ea86: Add Redis and Postgres pub/sub adapters, `@meshql/sse` for field-aware SSE subscriptions, and export HTTP handler helpers for SSE refresh.
+
 ## 0.1.0
 
 ### Minor Changes
