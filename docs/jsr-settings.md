@@ -21,8 +21,8 @@ For each publishable package, open **Settings** on the package page and set:
 | `@meshql/kysely` | done | done |
 | `@meshql/persisted-queries` | done | done |
 | `@meshql/access-cache` | done | done |
-| `@meshql/pubsub` | **required before first tag** | **required before first tag** |
-| `@meshql/sse` | **required before first tag** | **required before first tag** |
+| `@meshql/pubsub` | done | done |
+| `@meshql/sse` | done | done |
 
 Steps for each new package:
 

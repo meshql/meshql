@@ -69,9 +69,17 @@ function readManifest(pkg) {
 }
 
 async function jsrPackageExists(shortName) {
-  const url = `https://jsr.io/@meshql/${shortName}/meta.json`;
-  const response = await fetch(url, { redirect: "follow" });
-  return response.status === 200;
+  const metaUrl = `https://jsr.io/@meshql/${shortName}/meta.json`;
+  const metaResponse = await fetch(metaUrl, { redirect: "follow" });
+  if (metaResponse.status === 200) {
+    return true;
+  }
+
+  // Newly registered packages have no versions yet, so meta.json 404s until
+  // the first publish. The package page still exists.
+  const pageUrl = `https://jsr.io/@meshql/${shortName}`;
+  const pageResponse = await fetch(pageUrl, { redirect: "follow" });
+  return pageResponse.status === 200;
 }
 
 let failed = false;
