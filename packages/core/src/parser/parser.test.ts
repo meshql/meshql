@@ -36,6 +36,22 @@ describe("parseQl", () => {
     const ast = parseQl("{ user { id } }");
     expect(ast.list).toBeUndefined();
   });
+
+  it("rejects queries that do not start with '{'", () => {
+    expect(() => parseQl("user { id }")).toThrow("Query must start with '{'");
+  });
+
+  it("rejects missing '{' after entity name", () => {
+    expect(() => parseQl("{ user id }")).toThrow("Expected '{' after entity 'user'");
+  });
+
+  it("rejects unclosed braces", () => {
+    expect(() => parseQl("{ user { id ")).toThrow("Expected '}' closing entity 'user'");
+  });
+
+  it("rejects an empty root selection", () => {
+    expect(() => parseQl("{ }")).toThrow("Expected root entity name");
+  });
 });
 
 describe("parseJson", () => {
@@ -211,6 +227,45 @@ describe("parseJson", () => {
       });
       expect(() => parseJson(raw)).toThrow("'$list.cursor' must be a non-empty string");
     });
+  });
+
+  it("rejects invalid JSON", () => {
+    expect(() => parseJson("{not json}")).toThrow("Invalid JSON query");
+  });
+
+  it("rejects non-object roots", () => {
+    expect(() => parseJson(JSON.stringify([]))).toThrow(
+      "JSON query must be an object",
+    );
+  });
+
+  it("rejects null entity selections", () => {
+    expect(() => parseJson(JSON.stringify({ user: null }))).toThrow(
+      "Entity 'user' must be an object",
+    );
+  });
+
+  it("rejects invalid scalar selections", () => {
+    expect(() => parseJson(JSON.stringify({ user: { id: false } }))).toThrow(
+      "Invalid selection for 'user.id'",
+    );
+  });
+
+  it("rejects non-object $list payloads", () => {
+    expect(() => parseJson(JSON.stringify({ user: { id: true }, $list: null }))).toThrow(
+      "'$list' must be an object",
+    );
+  });
+
+  it("rejects non-array $list.filter", () => {
+    expect(() =>
+      parseJson(
+        JSON.stringify({
+          user: { id: true },
+          $list: { filter: { field: "id", op: "eq", value: 1 } },
+        }),
+      ),
+    ).toThrow("'$list.filter' must be an array");
   });
 });
 

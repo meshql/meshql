@@ -81,7 +81,7 @@ Must ship. Biggest perf and trust gaps for production adopters.
 |---|---|---|---|
 | **P0** | **`@meshql/persisted-queries`** | Register query → get ID; `X-Mesh-Query-Id: q_a3f1` (10 bytes vs ~300); biggest production perf win; solves large-query header limits | ✅ shipped (0.8.0) |
 | **P1** | **`@meshql/access-cache`** | Redis / Upstash / in-memory; cache permission results per user; 60s default TTL; manual invalidation API | ✅ shipped (0.8.0) |
-| **P1** | **Core test coverage** | Parser, planner, shaper — the trust gap right now | 1–2 weeks |
+| **P1** | **Core test coverage** | Parser, planner, shaper — conformance fixtures, sql-from-plan, error paths (158 tests in `@meshql/core`) | 🔄 in progress |
 | **P2** | **`examples/express-drizzle`** | Parity with express-prisma, inferred schema | 2–3 evenings |
 | **P3** | **More demos** — `fastify-drizzle`, `hono-kysely` (edge/SQLite) | Stretch if time allows | 1 week |
 

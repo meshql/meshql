@@ -559,4 +559,17 @@ describe("shaper \u2014 regression pins for O(N\u00b2) rewrite", () => {
       );
     });
   });
+
+  it("reads root fields from dot-form and bare id row keys", () => {
+    const ast = parseQl("{ user { id name } }");
+
+    expect(
+      shape([{ "user.id": 1, "user.name": "Ada" }], ast.root, []),
+    ).toEqual({ id: 1, name: "Ada" });
+
+    expect(shape([{ id: 2, name: "Bob" }], ast.root, [])).toEqual({
+      id: 2,
+      name: "Bob",
+    });
+  });
 });
