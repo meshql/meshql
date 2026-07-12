@@ -81,9 +81,9 @@ Must ship. Biggest perf and trust gaps for production adopters.
 |---|---|---|---|
 | **P0** | **`@meshql/persisted-queries`** | Register query → get ID; `X-Mesh-Query-Id: q_a3f1` (10 bytes vs ~300); biggest production perf win; solves large-query header limits | ✅ shipped (0.8.0) |
 | **P1** | **`@meshql/access-cache`** | Redis / Upstash / in-memory; cache permission results per user; 60s default TTL; manual invalidation API | ✅ shipped (0.8.0) |
-| **P1** | **Core test coverage** | Parser, planner, shaper — conformance fixtures, sql-from-plan, error paths (158 tests in `@meshql/core`) | 🔄 in progress |
-| **P2** | **`examples/express-drizzle`** | Parity with express-prisma, inferred schema | 2–3 evenings |
-| **P3** | **More demos** — `fastify-drizzle`, `hono-kysely` (edge/SQLite) | Stretch if time allows | 1 week |
+| **P1** | **Core test coverage** | Parser, planner, shaper — conformance fixtures, sql-from-plan, error paths (158 tests in `@meshql/core`) | ✅ shipped (0.8.0) |
+| **P2** | **`examples/express-drizzle`** | Parity with express-prisma, inferred schema | deferred |
+| **P3** | **More demos** — `fastify-drizzle`, `hono-kysely` (edge/SQLite) | deferred |
 
 Deferred from old Phase 4.5 plan: compression / optional CBOR — revisit after
 persisted queries land.
@@ -155,7 +155,7 @@ gantt
 | 2 | List queries, filters, cursors, catch-all resolver | `0.4.0` | 1.5 weeks | ✅ done |
 | 3 | Multipart upload with signed body | `0.5.0` | ~2 weeks | ✅ done |
 | 4 | Prisma + Drizzle + Kysely adapters | `0.6.0` | 2 weeks | ✅ done |
-| 4.5 | Wire protocol: persisted queries, access cache | `0.8.0` | ~2 weeks | 🔄 planned |
+| 4.5 | Wire protocol: persisted queries, access cache, core tests | `0.8.0` | ~2 weeks | ✅ done |
 | 5 | `schemaFromPrisma` / `schemaFromDrizzle` / `extendSchema` | `0.7.0` | 1 week | ✅ done |
 | 5b | Shaper perf: O(N) `shapeRefMany`, cached field readers | `0.7.1` | 2 evenings | ✅ done |
 | _post_ | Perf wire protocol, real-time, federation, v1.0 cut | `0.8 → 1.0` | 8–12 weeks | 🔄 in progress |
@@ -947,9 +947,9 @@ track above is now the source of truth. Summary of what remains:
 | Area | Status | Target |
 |---|---|---|
 | Documentation + protocol specs | ✅ done | — |
-| Showcase + express-prisma demos | ✅ done | more demos in 0.8 |
-| Production wire protocol (persisted queries) | 🔄 | 0.8.0 |
-| Access cache + core test coverage | 🔄 | 0.8.0 |
+| Showcase + express-prisma demos | ✅ done | — |
+| Production wire protocol (persisted queries) | ✅ done | 0.8.0 |
+| Access cache + core test coverage | ✅ done | 0.8.0 |
 | Real-time (SSE + pubsub) + gateway + codemods | 📋 | 0.9.0 |
 | Benchmarks, auth adapters, npm org, Go port, integrity audit | 📋 | 1.0.0 |
 | API audit + security pass | 📋 | 0.9.0 (prep) / 1.0.0 (freeze) |
