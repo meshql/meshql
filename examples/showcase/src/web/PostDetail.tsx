@@ -7,6 +7,7 @@ type PostDetailProps = {
   role: string;
   post: PostRow | null;
   editing: boolean;
+  live?: boolean;
   flash?: string;
   err?: string;
   onCancelEdit: () => void;
@@ -19,6 +20,7 @@ export function PostDetail({
   role,
   post,
   editing,
+  live,
   flash,
   err,
   onCancelEdit,
@@ -55,7 +57,10 @@ export function PostDetail({
 
   return (
     <div className="panel detail-panel" id="post-detail">
-      <h2>{post.title ?? `Post #${post.id}`}</h2>
+      <h2>
+        {post.title ?? `Post #${post.id}`}
+        {live ? <span className="badge live">live</span> : null}
+      </h2>
       {flash ? <div className="flash">{flash}</div> : null}
       {err ? <div className="flash err">{err}</div> : null}
       {post.status ? <span className={`status ${post.status}`}>{post.status}</span> : null}

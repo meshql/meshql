@@ -1,0 +1,36 @@
+{
+  "name": "@meshql/codemods",
+  "version": "0.1.0",
+  "description": "GraphQL SDL to MeshQL schema migration tools",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "meshql-codemod": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "check-types": "tsc --noEmit",
+    "publish:jsr": "jsr publish"
+  },
+  "dependencies": {
+    "@meshql/core": "workspace:*",
+    "graphql": "^16.11.0"
+  },
+  "devDependencies": {
+    "@meshql/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3",
+    "tsup": "^8.4.0",
+    "typescript": "5.9.2",
+    "vitest": "^3.0.0"
+  }
+}

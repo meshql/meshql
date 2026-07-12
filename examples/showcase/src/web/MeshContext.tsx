@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import type { StoredAuth, UserRow, WireEntry } from "./types.js";
+import { subscribeMeshEvents } from "./subscribe.js";
 import {
   clearAuth,
   loadAuth,
@@ -35,6 +36,11 @@ type MeshContextValue = {
     options?: { id?: number; data?: Record<string, unknown> },
   ) => Promise<unknown>;
   uploadAvatar: (file: File) => Promise<void>;
+  subscribe: <T>(
+    selection: QuerySelection,
+    options: { entity: string; entityId: string },
+    onUpdate: (data: T) => void,
+  ) => () => void;
 };
 
 const MeshContext = createContext<MeshContextValue | null>(null);
@@ -193,9 +199,44 @@ export function MeshProvider({ children }: { children: ReactNode }) {
     [auth?.userId, getClient, logWire],
   );
 
+  const subscribe = useCallback(
+    <T,>(
+      selection: QuerySelection,
+      options: { entity: string; entityId: string },
+      onUpdate: (data: T) => void,
+    ) => {
+      const stored = auth ?? loadAuth();
+      if (!stored) {
+        throw new Error("Not signed in");
+      }
+
+      const path = `${MESH_URL}/${options.entity}/${options.entityId}/events`;
+      logWire({
+        method: "SSE",
+        url: path,
+        payload: selection,
+        response: { subscribed: true },
+      });
+
+      return subscribeMeshEvents(selection, {
+        entity: options.entity,
+        entityId: options.entityId,
+        auth: stored,
+        onUpdate: (data) => {
+          logWire({ method: "SSE", url: path, payload: selection, response: data });
+          onUpdate(data as T);
+        },
+        onError: (message) => {
+          logWire({ method: "SSE", url: path, payload: selection, error: message });
+        },
+      });
+    },
+    [auth, logWire],
+  );
+
   const value = useMemo(
-    () => ({ auth, wireLog, login, logout, query, write, uploadAvatar }),
-    [auth, wireLog, login, logout, query, write, uploadAvatar],
+    () => ({ auth, wireLog, login, logout, query, write, uploadAvatar, subscribe }),
+    [auth, wireLog, login, logout, query, write, uploadAvatar, subscribe],
   );
 
   return <MeshContext.Provider value={value}>{children}</MeshContext.Provider>;

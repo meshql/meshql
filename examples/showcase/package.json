@@ -20,6 +20,8 @@
     "@meshql/integrity": "workspace:*",
     "@meshql/sqlite": "workspace:*",
     "@meshql/upload": "workspace:*",
+    "@meshql/pubsub": "workspace:*",
+    "@meshql/sse": "workspace:*",
     "express": "^5.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
