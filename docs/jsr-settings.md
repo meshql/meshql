@@ -23,6 +23,8 @@ For each publishable package, open **Settings** on the package page and set:
 | `@meshql/access-cache` | done | done |
 | `@meshql/pubsub` | done | done |
 | `@meshql/sse` | done | done |
+| `@meshql/codemods` | done | done |
+| `@meshql/gateway` | done | done |
 
 Steps for each new package:
 
@@ -48,6 +50,8 @@ Steps for each new package:
 | `@meshql/access-cache` | Cache MeshQL access permission results in memory, Upstash, or Redis-compatible stores. |
 | `@meshql/pubsub` | Pub/sub for real-time subscriptions (memory, Redis, Postgres LISTEN/NOTIFY). |
 | `@meshql/sse` | Field-aware MeshQL subscriptions over Server-Sent Events. |
+| `@meshql/codemods` | GraphQL SDL → MeshQL schema migration tools and CLI. |
+| `@meshql/gateway` | Static multi-service MeshQL gateway — parallel fetch and stitch (V1). |
 
 ## Runtime compatibility
 
