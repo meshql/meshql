@@ -144,3 +144,4 @@ export type {
 export { handleUpload, extractUploadField } from "./handlers/upload.js";
 export type { UploadHttpRequest } from "./handlers/upload.js";
 export type { HttpRequest } from "./handlers/index.js";
+export { handleGet, handlePost, handlePut } from "./handlers/index.js";

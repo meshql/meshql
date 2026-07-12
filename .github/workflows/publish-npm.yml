@@ -17,6 +17,7 @@ on:
       - "npm/access-cache/v*"
       - "npm/persisted-queries/v*"
       - "npm/pubsub/v*"
+      - "npm/sse/v*"
       - "npm/all/v*"
       - "npm/security/v*"
   workflow_dispatch:
@@ -42,6 +43,7 @@ on:
           - access-cache
           - persisted-queries
           - pubsub
+          - sse
           - security
       publish_registry:
         description: Publish to registry.npmjs.org (requires NPM_TOKEN)
@@ -92,6 +94,7 @@ jobs:
               npm/access-cache/v*) selection="access-cache" ;;
               npm/persisted-queries/v*) selection="persisted-queries" ;;
               npm/pubsub/v*) selection="pubsub" ;;
+              npm/sse/v*) selection="sse" ;;
               npm/security/v*) selection="security" ;;
               npm/all/v*) selection="all" ;;
               *)
@@ -104,13 +107,13 @@ jobs:
           case "$selection" in
             all)
               if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client","integrity","access","access-cache","persisted-queries","pubsub"]'
+                packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client","integrity","access","access-cache","persisted-queries","pubsub","sse"]'
               else
                 packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client"]'
               fi
               ;;
             security) packages='["integrity","access"]' ;;
-            core|postgres|sqlite|prisma|drizzle|kysely|http|upload|client|integrity|access|access-cache|persisted-queries|pubsub)
+            core|postgres|sqlite|prisma|drizzle|kysely|http|upload|client|integrity|access|access-cache|persisted-queries|pubsub|sse)
               packages="[\"$selection\"]"
               ;;
             *)
@@ -194,7 +197,7 @@ jobs:
           mkdir -p artifacts
           packed=""
 
-          publish_order=(core postgres sqlite prisma drizzle kysely http upload client integrity access access-cache persisted-queries pubsub)
+          publish_order=(core postgres sqlite prisma drizzle kysely http upload client integrity access access-cache persisted-queries pubsub sse)
           selected=$(node -e 'JSON.parse(process.env.PACKAGES).forEach((p) => console.log(p))')
 
           for pkg in "${publish_order[@]}"; do

@@ -1,7 +1,7 @@
 {
-  "name": "@meshql/pubsub",
+  "name": "@meshql/sse",
   "version": "0.1.0",
-  "description": "MeshQL pub/sub backends for real-time subscriptions (memory, Redis, Postgres)",
+  "description": "Field-aware MeshQL subscriptions over Server-Sent Events",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,13 +11,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./redis": {
-      "types": "./dist/redis.d.ts",
-      "import": "./dist/redis.js"
-    },
-    "./postgres": {
-      "types": "./dist/postgres.d.ts",
-      "import": "./dist/postgres.js"
+    "./express": {
+      "types": "./dist/adapters/express.d.ts",
+      "import": "./dist/adapters/express.js"
     }
   },
   "scripts": {
@@ -27,20 +23,22 @@
     "check-types": "tsc --noEmit",
     "publish:jsr": "jsr publish"
   },
+  "dependencies": {
+    "@meshql/core": "workspace:*",
+    "@meshql/http": "workspace:*",
+    "@meshql/pubsub": "workspace:*"
+  },
   "peerDependencies": {
-    "pg": "^8.16.0",
-    "redis": "^5.0.0"
+    "express": "^4 || ^5"
   },
   "peerDependenciesMeta": {
-    "pg": { "optional": true },
-    "redis": { "optional": true }
+    "express": { "optional": true }
   },
   "devDependencies": {
     "@meshql/typescript-config": "workspace:*",
+    "@types/express": "^5.0.0",
     "@types/node": "^22.15.3",
-    "@types/pg": "^8.11.10",
-    "pg": "^8.21.0",
-    "redis": "^5.10.0",
+    "express": "^5.1.0",
     "tsup": "^8.4.0",
     "typescript": "5.9.2",
     "vitest": "^3.0.0"
