@@ -18,6 +18,7 @@ const NPM_NAME_BY_DIR = {
   access: "meshql-access",
   "access-cache": "meshql-access-cache",
   "persisted-queries": "meshql-persisted-queries",
+  pubsub: "meshql-pubsub",
 };
 
 const DIR_BY_SCOPE = Object.fromEntries(
@@ -38,6 +39,7 @@ const PUBLISH_ORDER = [
   "access",
   "access-cache",
   "persisted-queries",
+  "pubsub",
 ];
 
 /** Longest paths first so @meshql/core/builtins is rewritten before @meshql/core. */

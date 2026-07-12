@@ -92,8 +92,8 @@ persisted queries land.
 
 | Priority | Item | Notes | Effort |
 |---|---|---|---|
+| **P0** | **`@meshql/pubsub`** | Memory (dev), Redis (prod), Postgres LISTEN/NOTIFY (zero extra infra) | 🔄 in progress (InMemory shipped) |
 | **P0** | **`@meshql/sse`** | Field-aware SSE subscriptions; same field selection as queries; access control applies automatically | 1–2 weeks |
-| **P0** | **`@meshql/pubsub`** | Memory (dev), Redis (prod), Postgres LISTEN/NOTIFY (zero extra infra) | 1 week |
 | **P1** | **`@meshql/gateway` V1** | Federated multi-service queries; replace GraphQL subgraphs; static service config first; parallel fetch + stitch | 2–3 weeks |
 | **P1** | **`@meshql/codemods`** | GraphQL SDL → MeshQL schema; biggest migration unlock | 1–2 weeks |
 | **P2** | **API audit** | Mark internals, freeze public surface heading into 1.0 | 1 week |
@@ -950,7 +950,7 @@ track above is now the source of truth. Summary of what remains:
 | Showcase + express-prisma demos | ✅ done | — |
 | Production wire protocol (persisted queries) | ✅ done | 0.8.0 |
 | Access cache + core test coverage | ✅ done | 0.8.0 |
-| Real-time (SSE + pubsub) + gateway + codemods | 📋 | 0.9.0 |
+| Real-time (SSE + pubsub) + gateway + codemods | 🔄 | 0.9.0 (pubsub started) |
 | Benchmarks, auth adapters, npm org, Go port, integrity audit | 📋 | 1.0.0 |
 | API audit + security pass | 📋 | 0.9.0 (prep) / 1.0.0 (freeze) |
 | Schema naming polish + stale README fixes | ✅ | this week |
