@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeFieldPath, stripFieldsFromPlan } from "./strip-fields.js";
+import { normalizeFieldPath, stripFieldsFromPlan, isFieldDenied } from "./strip-fields.js";
 import type { MeshSchema } from "../schema/schema.js";
 import { createQueryContext } from "../resolver/context.js";
 
@@ -54,5 +54,30 @@ describe("stripFieldsFromPlan", () => {
 
     expect(plan.fields).toEqual(["users.id"]);
     expect(plan.joins[0]?.fields).toEqual([]);
+  });
+
+  it("returns the same plan when nothing is denied", () => {
+    const plan = stripFieldsFromPlan(
+      {
+        rootEntity: "user",
+        idField: "id",
+        fields: ["users.id"],
+        joins: [],
+        context: createQueryContext({ requestId: "1", method: "GET" }),
+      },
+      [],
+      schema,
+    );
+
+    expect(plan.fields).toEqual(["users.id"]);
+  });
+
+  it("matches prefix deny rules for nested join fields", () => {
+    expect(
+      isFieldDenied("tokens.accessToken", "user.tokens.", schema),
+    ).toBe(true);
+    expect(
+      isFieldDenied("users.email", "user.email", schema),
+    ).toBe(true);
   });
 });
