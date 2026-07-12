@@ -18,6 +18,8 @@ on:
       - "persisted-queries/v*"
       - "pubsub/v*"
       - "sse/v*"
+      - "codemods/v*"
+      - "gateway/v*"
       - "security/v*"
       - "all/v*"
       - "v*" # legacy umbrella tag: publish every package
@@ -45,6 +47,8 @@ on:
           - persisted-queries
           - pubsub
           - sse
+          - codemods
+          - gateway
           - security
 
 # Each package must be created on JSR and linked to meshql/meshql in package settings.
@@ -94,6 +98,8 @@ jobs:
               persisted-queries/v*) selection="persisted-queries" ;;
               pubsub/v*) selection="pubsub" ;;
               sse/v*) selection="sse" ;;
+              codemods/v*) selection="codemods" ;;
+              gateway/v*) selection="gateway" ;;
               security/v*) selection="security" ;;
               all/v*|v*) selection="all" ;;
               *)
@@ -106,13 +112,13 @@ jobs:
           case "$selection" in
             all)
               if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client","integrity","access","access-cache","persisted-queries","pubsub","sse"]'
+                packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client","integrity","access","access-cache","persisted-queries","pubsub","sse","codemods","gateway"]'
               else
                 packages='["core","postgres","sqlite","prisma","drizzle","kysely","http","upload","client"]'
               fi
               ;;
             security) packages='["integrity","access"]' ;;
-            core|postgres|sqlite|prisma|drizzle|kysely|http|upload|client|integrity|access|access-cache|persisted-queries|pubsub|sse)
+            core|postgres|sqlite|prisma|drizzle|kysely|http|upload|client|integrity|access|access-cache|persisted-queries|pubsub|sse|codemods|gateway)
               packages="[\"$selection\"]"
               ;;
             *)

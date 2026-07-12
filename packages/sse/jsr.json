@@ -3,11 +3,15 @@
   "version": "0.2.0",
   "license": "MIT",
   "imports": {
-    "express": "npm:express@^5"
+    "express": "npm:express@^5",
+    "fastify": "npm:fastify@^5",
+    "hono": "npm:hono@^4"
   },
   "exports": {
     ".": "./src/index.ts",
-    "./express": "./src/adapters/express.ts"
+    "./express": "./src/adapters/express.ts",
+    "./fastify": "./src/adapters/fastify.ts",
+    "./hono": "./src/adapters/hono.ts"
   },
   "publish": {
     "exclude": [

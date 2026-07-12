@@ -5,6 +5,8 @@ import { meshIntegrityExpressRouter } from "@meshql/integrity/express";
 import type { IntegrityConfig } from "@meshql/integrity";
 import { mesh } from "./mesh.js";
 import { mountUi } from "./ui.js";
+import { pubsub } from "./pubsub.js";
+import { mountSseRoute } from "./sse-handler.js";
 import { mountWriteRoute } from "./write-handler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -30,7 +32,10 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 mountUi(app);
 
 // Signed writes (preview until core mutations)
-mountWriteRoute(app, mesh.integrity);
+mountWriteRoute(app, mesh.integrity, pubsub);
+
+// Live updates (SSE + pub/sub)
+mountSseRoute(app, "/mesh");
 
 // MeshQL API (signed header transport)
 app.use(
