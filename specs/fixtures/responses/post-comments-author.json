@@ -2,16 +2,16 @@
   "description": "Multi-level nesting uses path aliases (comments_author_*)",
   "rows": [
     {
-      "posts_id": 1,
-      "posts_title": "Hello MeshQL",
+      "post_id": 1,
+      "post_title": "Hello MeshQL",
       "comments_id": 10,
       "comments_body": "Great post!",
       "comments_author_id": 1,
       "comments_author_name": "Ada Lovelace"
     },
     {
-      "posts_id": 1,
-      "posts_title": "Hello MeshQL",
+      "post_id": 1,
+      "post_title": "Hello MeshQL",
       "comments_id": 11,
       "comments_body": "Thanks",
       "comments_author_id": 2,

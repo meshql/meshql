@@ -174,4 +174,31 @@ describe("validateAst — list options", () => {
       "'list.filter' must not be empty when present",
     );
   });
+
+  it("rejects a programmatic list limit below 1", () => {
+    const ast = parseJson(JSON.stringify({ user: { id: true } }));
+    ast.list = { limit: 0 };
+    expect(() => validateAst(ast, schema)).toThrow(
+      "'list.limit' must be at least 1",
+    );
+  });
+
+  it("rejects a join target that points at a missing entity", () => {
+    const brokenSchema: MeshSchema = {
+      entities: {
+        user: { type: {}, fields: ["id"] },
+      },
+      joins: {
+        "user.tokens": {
+          entity: "token",
+          on: "tokens.user_id = users.id",
+          type: "many",
+        },
+      },
+    };
+    const ast = parseQl("{ user { id tokens { accessToken } } }");
+    expect(() => validateAst(ast, brokenSchema)).toThrow(
+      "Unknown entity 'token' (referenced by join 'user.tokens')",
+    );
+  });
 });

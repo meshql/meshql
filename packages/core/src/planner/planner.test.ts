@@ -214,4 +214,34 @@ describe("buildJoinPlan", () => {
       "comments.author.id",
     ]);
   });
+
+  it("rejects a missing join definition", () => {
+    const ast = parseQl("{ user { id tokens { accessToken } } }");
+    const schemaWithoutJoin: MeshSchema = {
+      entities: {
+        user: { type: {}, fields: ["id", "name"] },
+        token: { type: {}, fields: ["accessToken"] },
+      },
+      joins: {},
+    };
+
+    expect(() =>
+      buildJoinPlan(
+        ast,
+        schemaWithoutJoin,
+        createQueryContext({ requestId: "1", method: "GET" }),
+      ),
+    ).toThrow("No join defined for 'user.tokens'");
+  });
+
+  it("rejects an unknown root entity", () => {
+    const ast = parseQl("{ ghost { id } }");
+    expect(() =>
+      buildJoinPlan(
+        ast,
+        schema,
+        createQueryContext({ requestId: "1", method: "GET" }),
+      ),
+    ).toThrow("Unknown entity 'ghost'");
+  });
 });
