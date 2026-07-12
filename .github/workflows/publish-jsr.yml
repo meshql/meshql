@@ -67,9 +67,11 @@ jobs:
             tag_version=""
           else
             tag="${GITHUB_REF#refs/tags/}"
-            tag_version="${tag#*/v}"
-            if [ "$tag_version" = "$tag" ]; then
-              tag_version="${tag#v}"
+            # Per-package tags (core/v1.2.3) carry a version; milestone tags (v0.8.0)
+            # and legacy umbrella tags (all/v*) do not — skip manifest version check.
+            tag_version=""
+            if [[ "$tag" == */v* ]]; then
+              tag_version="${tag#*/v}"
             fi
 
             case "$tag" in
