@@ -7,8 +7,19 @@ import { ProfilePanel } from "./ProfilePanel.js";
 import { WirePanel } from "./WirePanel.js";
 import type { PostRow, UserRow } from "./types.js";
 
+const POST_DETAIL_SELECTION = {
+  post: {
+    id: true,
+    title: true,
+    body: true,
+    status: true,
+    author: { name: true },
+    comments: { id: true, body: true, author: { name: true } },
+  },
+} as const;
+
 export function DashboardPage() {
-  const { auth, wireLog, query, write, logout } = useMesh();
+  const { auth, wireLog, query, write, logout, subscribe } = useMesh();
   const navigate = useNavigate();
 
   const [posts, setPosts] = useState<PostRow[]>([]);
@@ -19,6 +30,7 @@ export function DashboardPage() {
   const [flash, setFlash] = useState<string>();
   const [err, setErr] = useState<string>();
   const [loading, setLoading] = useState(true);
+  const [live, setLive] = useState(false);
 
   const loadPosts = useCallback(async () => {
     const data = await query<PostRow[]>(
@@ -39,19 +51,9 @@ export function DashboardPage() {
   const loadPost = useCallback(
     async (id: number) => {
       try {
-        const data = await query<PostRow>(
-          {
-            post: {
-              id: true,
-              title: true,
-              body: true,
-              status: true,
-              author: { name: true },
-              comments: { id: true, body: true, author: { name: true } },
-            },
-          },
-          { entityId: String(id) },
-        );
+        const data = await query<PostRow>(POST_DETAIL_SELECTION, {
+          entityId: String(id),
+        });
         if (!data || typeof data !== "object" || Array.isArray(data)) return null;
         if (Object.keys(data).length === 0) return null;
         return data;
@@ -112,6 +114,39 @@ export function DashboardPage() {
       cancelled = true;
     };
   }, [auth, navigate, loadPosts, loadProfile]);
+
+  useEffect(() => {
+    if (!auth || selectedId === null) {
+      setLive(false);
+      return;
+    }
+
+    setLive(false);
+    const unsubscribe = subscribe<PostRow>(
+      POST_DETAIL_SELECTION,
+      { entity: "post", entityId: String(selectedId) },
+      (data) => {
+        if (!data || typeof data !== "object" || Array.isArray(data)) return;
+        if (Object.keys(data).length === 0) return;
+        setSelectedPost(data);
+        setLive(true);
+        setPosts((prev) =>
+          prev.map((post) =>
+            post.id === selectedId
+              ? {
+                  ...post,
+                  title: data.title ?? post.title,
+                  status: data.status ?? post.status,
+                  comments: data.comments ?? post.comments,
+                }
+              : post,
+          ),
+        );
+      },
+    );
+
+    return unsubscribe;
+  }, [auth, selectedId, subscribe]);
 
   async function withFlash(action: () => Promise<void>, success: string) {
     setFlash(undefined);
@@ -197,6 +232,7 @@ export function DashboardPage() {
             role={auth.role}
             post={selectedPost}
             editing={editing}
+            live={live}
             onCancelEdit={() => setEditing(false)}
             onUpdate={async (data) => {
               if (selectedId === null) return;

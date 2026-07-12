@@ -164,9 +164,15 @@ importers:
       '@meshql/integrity':
         specifier: workspace:*
         version: link:../../packages/integrity
+      '@meshql/pubsub':
+        specifier: workspace:*
+        version: link:../../packages/pubsub
       '@meshql/sqlite':
         specifier: workspace:*
         version: link:../../packages/sqlite
+      '@meshql/sse':
+        specifier: workspace:*
+        version: link:../../packages/sse
       '@meshql/upload':
         specifier: workspace:*
         version: link:../../packages/upload
@@ -277,6 +283,31 @@ importers:
         specifier: ^3.0.0
         version: 3.2.6(@types/node@22.15.3)(jiti@2.7.0)(tsx@4.22.4)
 
+  packages/codemods:
+    dependencies:
+      '@meshql/core':
+        specifier: workspace:*
+        version: link:../core
+      graphql:
+        specifier: ^16.11.0
+        version: 16.14.2
+    devDependencies:
+      '@meshql/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.6(@types/node@22.15.3)(jiti@2.7.0)(tsx@4.22.4)
+
   packages/core:
     devDependencies:
       '@meshql/typescript-config':
@@ -310,6 +341,31 @@ importers:
       drizzle-orm:
         specifier: ^0.44.7
         version: 0.44.7(@prisma/client@6.19.3(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.20.0)(kysely@0.29.2)(pg@8.21.0)(prisma@6.19.3(typescript@5.9.2))
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.6(@types/node@22.15.3)(jiti@2.7.0)(tsx@4.22.4)
+
+  packages/gateway:
+    dependencies:
+      '@meshql/client':
+        specifier: workspace:*
+        version: link:../client
+      '@meshql/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@meshql/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)
@@ -582,6 +638,12 @@ importers:
       express:
         specifier: ^5.1.0
         version: 5.2.1
+      fastify:
+        specifier: ^5.3.3
+        version: 5.8.5
+      hono:
+        specifier: ^4.7.10
+        version: 4.12.25
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)
@@ -2291,6 +2353,10 @@ packages:
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+
+  graphql@16.14.2:
+    resolution: {integrity: sha512-Chq1s4CY7jmh8gO2qvLIJyfCDIN+EHLFW/9iShnp1z8FjBQMoodWP1kDC36VAMXXIvAjj4ARa7ntfAV2BrjsbA==}
+    engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
 
   has-symbols@1.1.0:
     resolution: {integrity: sha512-1cDNdwJ2Jaohmb3sg4OmKaMBwuC48sYni5HUw2DvsC8LjGTLK9h+eb1X6RyuOHe4hT0ULCW68iomhjUoKUqlPQ==}
@@ -4838,6 +4904,8 @@ snapshots:
   gopd@1.2.0: {}
 
   graceful-fs@4.2.11: {}
+
+  graphql@16.14.2: {}
 
   has-symbols@1.1.0: {}
 
