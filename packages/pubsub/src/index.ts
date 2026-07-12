@@ -13,3 +13,5 @@ export {
   entityRecordChannel,
   parseMeshChannel,
 } from "./channels.js";
+
+export { notifyEntityUpdate } from "./notify.js";
