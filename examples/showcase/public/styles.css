@@ -68,6 +68,11 @@ header.app h1 span {
   font-family: var(--mono);
 }
 
+.badge.live {
+  background: #dcfce7;
+  color: #166534;
+}
+
 .grid {
   display: grid;
   grid-template-columns: 320px 1fr;

@@ -20,6 +20,8 @@ const NPM_NAME_BY_DIR = {
   "persisted-queries": "meshql-persisted-queries",
   pubsub: "meshql-pubsub",
   sse: "meshql-sse",
+  codemods: "meshql-codemods",
+  gateway: "meshql-gateway",
 };
 
 const DIR_BY_SCOPE = Object.fromEntries(
@@ -42,6 +44,8 @@ const PUBLISH_ORDER = [
   "persisted-queries",
   "pubsub",
   "sse",
+  "codemods",
+  "gateway",
 ];
 
 /** Longest paths first so @meshql/core/builtins is rewritten before @meshql/core. */
@@ -62,6 +66,8 @@ const IMPORT_REWRITES = [
   ["@meshql/persisted-queries", "meshql-persisted-queries"],
   ["@meshql/pubsub", "meshql-pubsub"],
   ["@meshql/sse", "meshql-sse"],
+  ["@meshql/codemods", "meshql-codemods"],
+  ["@meshql/gateway", "meshql-gateway"],
 ];
 
 function rewriteDistImports(packageDir) {
