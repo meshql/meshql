@@ -17,7 +17,7 @@
     "@meshql/postgres": "workspace:*",
     "@meshql/upload": "workspace:*",
     "express": "^5.1.0",
-    "pg": "^8.16.0"
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@meshql/typescript-config": "workspace:*",
