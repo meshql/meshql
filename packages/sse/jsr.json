@@ -2,6 +2,9 @@
   "name": "@meshql/sse",
   "version": "0.2.0",
   "license": "MIT",
+  "imports": {
+    "express": "npm:express@^5"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./express": "./src/adapters/express.ts"

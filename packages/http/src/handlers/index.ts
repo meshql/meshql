@@ -15,7 +15,7 @@ export function handleGet(
   mesh: MeshInstance,
   req: HttpRequest,
   context: HttpHandlerContext = {},
-) {
+): Promise<Record<string, unknown> | Record<string, unknown>[]> {
   const entity = req.params.entity;
   const entityId = req.params.id;
   const { raw, format, transport } = decodeQuery(req, context);
@@ -34,7 +34,10 @@ export function handleGet(
   });
 }
 
-export async function handlePost(mesh: MeshInstance, req: HttpRequest) {
+export async function handlePost(
+  mesh: MeshInstance,
+  req: HttpRequest,
+): Promise<Record<string, unknown> | Record<string, unknown>[]> {
   const body = req.body as { query?: string; format?: "json" | "ql" } | undefined;
   const query = body?.query;
 
@@ -57,7 +60,7 @@ export function handlePut(
   mesh: MeshInstance,
   req: HttpRequest,
   context: HttpHandlerContext = {},
-) {
+): Promise<Record<string, unknown> | Record<string, unknown>[]> {
   const entity = req.params.entity;
   const entityId = req.params.id;
   const { raw, format, transport } = decodeQuery(req, context);
