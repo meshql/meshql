@@ -49,11 +49,20 @@ if (manifest.peerDependencies) {
       continue;
     }
     if (!manifest.dependencies[dep]) {
-      // Deno/JSR rejects open ranges like ">=0.30.0" in npm: specifiers.
-      const npmRange = specifier.replace(/^>=/, "^");
+      // Deno/JSR rejects open ranges like ">=0.30.0" and compound ranges like "^4 || ^5".
+      const npmRange = toNpmJsrRange(specifier);
       manifest.dependencies[dep] = `npm:${dep}@${npmRange}`;
     }
   }
+}
+
+function toNpmJsrRange(specifier) {
+  const trimmed = specifier.trim();
+  if (trimmed.includes("||")) {
+    const alternatives = trimmed.split("||").map((part) => part.trim());
+    return alternatives.at(-1).replace(/^>=/, "^");
+  }
+  return trimmed.replace(/^>=/, "^");
 }
 
 delete manifest.devDependencies;
