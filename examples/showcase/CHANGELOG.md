@@ -1,5 +1,12 @@
 # showcase
 
+## 0.5.7
+
+### Patch Changes
+
+- Updated dependencies [6e9201f]
+  - @meshql/sse@0.2.1
+
 ## 0.5.6
 
 ### Patch Changes
