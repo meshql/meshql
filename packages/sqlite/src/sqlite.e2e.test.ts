@@ -319,5 +319,36 @@ describeIfSqlite("buildSelectSql round-trips against node:sqlite", () => {
       expect(page2.items).toHaveLength(1);
       expect(page2.items[0]!.id).toBeGreaterThan(page1.items[0]!.id);
     });
+
+    it("returns $aggregate aliases alongside $groupBy keys", async () => {
+      const db = seed();
+      const mesh = createMesh(schema);
+      mesh.resolve("user", async (plan) => {
+        const { sql, params } = buildSelectSql(plan, schema);
+        expect(sql).toContain("COUNT(*) AS \"total\"");
+        expect(sql).toContain("GROUP BY users.name");
+        expect(sql).toContain("ORDER BY users.name ASC");
+        return db.prepare(sql).all(...(params as SqliteParam[]));
+      });
+
+      const result = (await mesh.execute(
+        JSON.stringify({
+          user: {
+            $select: { name: true },
+            $groupBy: ["name"],
+            $aggregate: { total: { fn: "count", field: "*" } },
+          },
+        }),
+        { format: "json" },
+      )) as CollectionResult<{ name: string; total: number }>;
+
+      expect(result.items).toEqual([
+        { name: "Ada", total: 1 },
+        { name: "Grace", total: 1 },
+      ]);
+      expect(result.pageInfo.hasNextPage).toBe(false);
+      expect(result.pageInfo.startCursor).toBeTruthy();
+      expect(result.pageInfo.endCursor).toBeTruthy();
+    });
   });
 });
