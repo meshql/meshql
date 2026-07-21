@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_PAT }}
@@ -51,7 +51,7 @@ jobs:
       publish_matrix: ${{ steps.tags.outputs.publish_matrix }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_PAT }}
@@ -84,7 +84,7 @@ jobs:
       # `gh workflow run` needs a git repo to resolve the remote; without
       # checkout it fails with "fatal: not a git repository".
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Dispatch publish workflow
         env:
