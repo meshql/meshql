@@ -15,9 +15,8 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 const schema: MeshSchema = {
   entities: {
-    user: { type: {} as User, fields: ["id", "name"], table: "users" },
+    user: { fields: ["id", "name"], table: "users" },
     token: {
-      type: {} as Token,
       fields: ["accessToken"],
       table: "tokens",
       columns: { accessToken: "access_token" },

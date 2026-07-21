@@ -10,9 +10,8 @@ import { kyselyResolver } from "./index.js";
 
 const schema: MeshSchema = {
   entities: {
-    user: { type: {}, fields: ["id", "name"], table: "users" },
+    user: { fields: ["id", "name"], table: "users" },
     token: {
-      type: {},
       fields: ["accessToken"],
       table: "tokens",
       columns: { accessToken: "access_token" },

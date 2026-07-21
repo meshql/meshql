@@ -7,7 +7,7 @@ import { InMemoryQueryStore } from "./store.js";
 describe("createPersistedQueriesHandler", () => {
   const schema = {
     entities: {
-      user: { type: {}, fields: ["id", "name"], table: "users" },
+      user: { fields: ["id", "name"], table: "users" },
     },
     joins: {},
   };
@@ -39,7 +39,9 @@ describe("createPersistedQueriesHandler", () => {
     });
 
     expect(queryResponse.status).toBe(200);
-    expect(queryResponse.body).toEqual([{ id: 1, name: "Ada" }]);
+    expect((queryResponse.body as { items: unknown[] }).items).toEqual([
+      { id: 1, name: "Ada" },
+    ]);
   });
 
   it("supports signed persisted query headers", async () => {
@@ -64,6 +66,8 @@ describe("createPersistedQueriesHandler", () => {
     });
 
     expect(queryResponse.status).toBe(200);
-    expect(queryResponse.body).toEqual([{ id: 1 }]);
+    expect((queryResponse.body as { items: unknown[] }).items).toEqual([
+      { id: 1 },
+    ]);
   });
 });

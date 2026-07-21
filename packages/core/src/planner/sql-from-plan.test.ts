@@ -13,10 +13,9 @@ import {
 
 const blogSchema: MeshSchema = {
   entities: {
-    post: { type: {}, fields: ["id", "title"], table: "posts" },
-    comment: { type: {}, fields: ["id", "body"], table: "comments" },
+    post: { fields: ["id", "title"], table: "posts" },
+    comment: { fields: ["id", "body"], table: "comments" },
     user: {
-      type: {},
       fields: ["id", "name"],
       table: "users",
       columns: { name: "display_name" },

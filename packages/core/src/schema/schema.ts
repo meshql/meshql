@@ -1,12 +1,35 @@
+import type { QueryContext } from "../resolver/context.js";
+
 /** MeshQL schema describing entities and join relationships. */
 export interface MeshSchema {
   entities: Record<string, EntityConfig>;
   joins: Record<string, JoinConfig>;
 }
 
+/**
+ * Virtual field computed at runtime from other fields.
+ *
+ * Computed names are queryable automatically — they do **not** need to be
+ * listed in {@link EntityConfig.fields} (those stay physical/SQL columns).
+ */
+export interface ComputedFieldDef {
+  /**
+   * Dependency field paths relative to this entity.
+   * Same-entity: `"firstName"`. Cross-entity: `"customer.firstName"`.
+   */
+  from: string[];
+  /**
+   * Produce the virtual value. Keys in `deps` match {@link from} entries
+   * exactly (e.g. `deps.firstName`, `deps["customer.firstName"]`).
+   */
+  compute: (deps: Record<string, unknown>) => unknown;
+  /** Optional runtime type hint for playground / docs introspection. */
+  type?: "string" | "number" | "boolean";
+}
+
 /** Configuration for a single entity exposed by MeshQL. */
 export interface EntityConfig {
-  type: unknown;
+  /** Physical / resolver-backed field names (not computed). */
   fields: string[];
   /**
    * Name of the field that uniquely identifies a row of this entity.
@@ -16,6 +39,11 @@ export interface EntityConfig {
   idField?: string;
   table?: string;
   columns?: Record<string, string>;
+  /**
+   * Virtual fields computed after the resolver runs. Keys are queryable
+   * field names; values declare deps + `compute`.
+   */
+  computed?: Record<string, ComputedFieldDef>;
 }
 
 /** Join definition between a root entity and a nested relation. */
@@ -37,6 +65,24 @@ export function entityTable(entity: string, config?: EntityConfig): string {
 /** Resolve the identifying field for an entity. Defaults to `"id"`. */
 export function entityIdField(config?: EntityConfig): string {
   return config?.idField ?? "id";
+}
+
+/** Queryable field names: physical fields ∪ computed keys. */
+export function entityQueryableFields(config?: EntityConfig): string[] {
+  if (!config) return [];
+  const names = [...config.fields];
+  if (config.computed) {
+    names.push(...Object.keys(config.computed));
+  }
+  return names;
+}
+
+/** True when `field` is a computed field on the entity. */
+export function isComputedField(
+  config: EntityConfig | undefined,
+  field: string,
+): boolean {
+  return Boolean(config?.computed?.[field]);
 }
 
 /**
@@ -69,3 +115,5 @@ export function resolveEntityKey(name: string, schema: MeshSchema): string | und
 
   return undefined;
 }
+
+export type { QueryContext };

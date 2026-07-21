@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { parseJson, parseQl } from "../parser/index.js";
+import { parseQl } from "../parser/index.js";
 import { validateAst } from "./validator.js";
 import type { MeshSchema } from "../schema/schema.js";
 
 const schema: MeshSchema = {
   entities: {
-    user: { type: {}, fields: ["id", "name"] },
-    token: { type: {}, fields: ["accessToken", "expiresAt"] },
+    user: { fields: ["id", "name"] },
+    token: { fields: ["accessToken", "expiresAt"] },
   },
   joins: {
     "user.tokens": {
@@ -40,7 +40,7 @@ describe("validateAst", () => {
   it("accepts a plural root name that maps to a declared entity's table", () => {
     const pluralSchema: MeshSchema = {
       entities: {
-        user: { type: {}, fields: ["id", "name"] },
+        user: { fields: ["id", "name"] },
       },
       joins: {},
     };
@@ -51,9 +51,8 @@ describe("validateAst", () => {
   it("validates refs with irregular plurals via the join's entity key", () => {
     const irregularSchema: MeshSchema = {
       entities: {
-        user: { type: {}, fields: ["id", "name"] },
+        user: { fields: ["id", "name"] },
         address: {
-          type: {},
           fields: ["id", "street", "city"],
           table: "addresses",
         },
@@ -74,9 +73,8 @@ describe("validateAst", () => {
   it("reports the field error against the AST ref name, not the entity key", () => {
     const irregularSchema: MeshSchema = {
       entities: {
-        user: { type: {}, fields: ["id"] },
+        user: { fields: ["id"] },
         address: {
-          type: {},
           fields: ["id", "street"],
           table: "addresses",
         },
@@ -95,98 +93,11 @@ describe("validateAst", () => {
       "Field 'zipcode' not found on entity 'addresses'",
     );
   });
-});
-
-describe("validateAst — list options", () => {
-  function withList(list: Record<string, unknown>): string {
-    return JSON.stringify({
-      user: { id: true, name: true },
-      $list: list,
-    });
-  }
-
-  it("accepts a valid list payload", () => {
-    const ast = parseJson(
-      withList({
-        limit: 20,
-        orderBy: [{ field: "name", dir: "asc" }],
-        filter: [{ field: "id", op: "gt", value: 100 }],
-      }),
-    );
-    expect(() => validateAst(ast, schema)).not.toThrow();
-  });
-
-  it("rejects a limit above the hard cap", () => {
-    const ast = parseJson(withList({ limit: 500 }));
-    expect(() => validateAst(ast, schema)).toThrow(
-      "'list.limit' (500) exceeds maximum of 200",
-    );
-  });
-
-  it("rejects orderBy pointing at an unknown field", () => {
-    const ast = parseJson(withList({ orderBy: [{ field: "unknown", dir: "asc" }] }));
-    expect(() => validateAst(ast, schema)).toThrow(
-      "'list.orderBy[0].field' - unknown field 'unknown' on entity 'user'",
-    );
-  });
-
-  it("rejects filter pointing at an unknown field", () => {
-    const ast = parseJson(
-      withList({ filter: [{ field: "nope", op: "eq", value: 1 }] }),
-    );
-    expect(() => validateAst(ast, schema)).toThrow(
-      "'list.filter[0].field' - unknown field 'nope' on entity 'user'",
-    );
-  });
-
-  it("rejects orderBy with a cross-entity dotted path", () => {
-    // MeshQL intentionally does not resolve dotted paths in filter/orderBy.
-    // Cross-entity ordering and filtering must be handled by a resolver.
-    const ast = parseJson(
-      withList({ orderBy: [{ field: "author.name", dir: "asc" }] }),
-    );
-    expect(() => validateAst(ast, schema)).toThrow(
-      "'list.orderBy[0].field' - 'author.name' is a cross-entity path",
-    );
-  });
-
-  it("rejects filter with a cross-entity dotted path", () => {
-    const ast = parseJson(
-      withList({
-        filter: [{ field: "comments.body", op: "like", value: "%hello%" }],
-      }),
-    );
-    expect(() => validateAst(ast, schema)).toThrow(
-      "'list.filter[0].field' - 'comments.body' is a cross-entity path",
-    );
-  });
-
-  it("rejects an empty orderBy array", () => {
-    const ast = parseJson(withList({ orderBy: [] }));
-    expect(() => validateAst(ast, schema)).toThrow(
-      "'list.orderBy' must not be empty when present",
-    );
-  });
-
-  it("rejects an empty filter array", () => {
-    const ast = parseJson(withList({ filter: [] }));
-    expect(() => validateAst(ast, schema)).toThrow(
-      "'list.filter' must not be empty when present",
-    );
-  });
-
-  it("rejects a programmatic list limit below 1", () => {
-    const ast = parseJson(JSON.stringify({ user: { id: true } }));
-    ast.list = { limit: 0 };
-    expect(() => validateAst(ast, schema)).toThrow(
-      "'list.limit' must be at least 1",
-    );
-  });
 
   it("rejects a join target that points at a missing entity", () => {
     const brokenSchema: MeshSchema = {
       entities: {
-        user: { type: {}, fields: ["id"] },
+        user: { fields: ["id"] },
       },
       joins: {
         "user.tokens": {

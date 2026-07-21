@@ -101,7 +101,6 @@ export function convertGraphqlSdl(sdl: string): GraphqlSdlResult {
     }
 
     entities[key] = {
-      type: {},
       fields: scalarFields,
       table: `${key}s`,
     };

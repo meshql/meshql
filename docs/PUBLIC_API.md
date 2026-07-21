@@ -13,6 +13,7 @@ Packages and entrypoints intended as semver-stable **before v1.0 freeze**. Inter
 | `@meshql/sse` | `.`, `./express`, `./fastify`, `./hono` | SSE handler + adapters |
 | `@meshql/codemods` | `.` | SDL migration API + CLI bin |
 | `@meshql/gateway` | `.` | `createGateway` V1 |
+| `@meshql/docs` | `.`, `./express` | Interactive playground middleware |
 | `@meshql/integrity` | `.`, `./express` | Token lifecycle + router |
 | `@meshql/access` | `.` | Access plugins |
 | `@meshql/access-cache` | `.` | Permission cache |

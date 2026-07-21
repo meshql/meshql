@@ -10,13 +10,10 @@ etc.). Application developers should start with the [Guide](https://docs.meshql.
 
 ## Status
 
-| Spec | Wire | Status |
-|------|------|--------|
-| Protocol version `1` | `X-Mesh-Version: 1` | **Draft → Stable candidate** (matches `@meshql/*` 0.7.x) |
-
-When a MUST requirement here diverges from the TypeScript reference, either
-fix the reference or bump the protocol version. Prefer fixtures over prose
-when resolving ambiguity.
+The documents describe the single query protocol shipped by the pre-release
+`@meshql/*` packages. Clients do not select or negotiate a protocol version.
+When prose and the TypeScript reference diverge, fix both in the same change;
+prefer fixtures when resolving ambiguity.
 
 ## Documents
 
@@ -24,10 +21,10 @@ when resolving ambiguity.
 |-----|----------|
 | [00 — Overview](./00-overview.md) | Goals, non-goals, compliance levels |
 | [01 — HTTP wire](./01-http-wire.md) | Routes, headers, errors |
-| [02 — Query format](./02-query-format.md) | JSON selection + QL |
+| [02 — Query format](./02-query-format.md) | JSON reads and selection-only QL |
 | [03 — JoinPlan](./03-join-plan.md) | Execution plan shape |
 | [04 — Shaper](./04-shaper.md) | Flat rows → nested JSON |
-| [05 — List options](./05-list-options.md) | `$list`, cursors, filters |
+| [05 — Read controls](./05-read-controls.md) | Filters, sorting, keyset pages, aggregates |
 | [06 — Integrity](./06-integrity.md) | Optional signing profile |
 | [07 — Uploads](./07-uploads.md) | Optional multipart profile |
 | [Conformance](./conformance.md) | Must-pass cases |
@@ -42,5 +39,5 @@ when resolving ambiguity.
 ## Change process
 
 1. Propose changes in a PR with fixture updates when possible.
-2. Mark breaking wire changes by incrementing `X-Mesh-Version`.
+2. Mark breaking wire changes in the changelog while MeshQL is pre-release.
 3. Sync to the docs site via `docs` package `npm run sync`.

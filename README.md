@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/meshql-logo.png" alt="MeshQL logo" width="80" />
+  <img src="./assets/meshql-logo-mark.svg" alt="MeshQL logo" width="80" />
 </p>
 
 <h1 align="center">MeshQL</h1>
@@ -166,9 +166,8 @@ import express from "express";
 
 const schema: MeshSchema = {
   entities: {
-    user: { type: {}, fields: ["id", "name"], table: "users" },
+    user: { fields: ["id", "name"], table: "users" },
     token: {
-      type: {},
       fields: ["accessToken"],
       table: "tokens",
       columns: { accessToken: "access_token" },
@@ -227,22 +226,21 @@ const user = await client.query(
 console.log(user);
 ```
 
-### List queries and catch-all resolvers
+### Collection queries and catch-all resolvers
 
-**List reads** — pass `list` to the client (serialized as `$list` in the signed
-header payload):
+**Collection reads** — pass controls to the client; they are serialized into
+the signed query payload:
 
 ```typescript
 const users = await client.query(
   { user: { id: true, name: true } },
   {
-    list: {
-      limit: 10,
-      orderBy: [{ field: "name", dir: "asc" }],
-      filter: [{ field: "role", op: "eq", value: "admin" }],
-    },
+    page: { first: 10 },
+    orderBy: [{ field: "name", direction: "asc" }],
+    where: { field: "role", op: "eq", value: "admin" },
   },
 );
+console.log(users.items, users.pageInfo);
 ```
 
 **Catch-all resolver** — one handler for every entity (the pattern ORM adapters use):
@@ -415,7 +413,7 @@ examples/           runnable demos (express-sqlite, express-postgres, express-pr
 
 | Package | Tests | Coverage highlights |
 |---------|------:|---------------------|
-| `@meshql/core` | 158 | Parser (QL + JSON `$list`), join planner, response shaper, spec [conformance fixtures](./specs/fixtures/) |
+| `@meshql/core` | 158 | JSON/QL parser, join planner, response shaper, spec [conformance fixtures](./specs/fixtures/) |
 | `@meshql/postgres` | 19 | `buildSelectSql`, nested joins, cursor keyset |
 | `@meshql/sqlite` | 31 | Same SQL builder contract as Postgres |
 | Other packages | 52+ | HTTP transport, ORM adapters, integrity, access, persisted-queries, … |

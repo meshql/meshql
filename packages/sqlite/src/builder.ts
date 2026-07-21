@@ -4,6 +4,7 @@ import type {
   ListOptions,
   MeshSchema,
   OrderBy,
+  SortExpr,
 } from "@meshql/core";
 import {
   DEFAULT_LIST_LIMIT,
@@ -12,6 +13,7 @@ import {
   entityTable,
   joinsInDependencyOrder,
   physicalTableForJoin,
+  renderReadWhereSql,
   resolvePlanField,
   rewriteJoinOn,
   rowAliasForPlanField,
@@ -150,9 +152,79 @@ function renderOrderBy(
     .join(", ");
 }
 
-function effectiveLimit(list: ListOptions | undefined): number {
-  const requested = list?.limit ?? DEFAULT_LIST_LIMIT;
-  return Math.min(requested, MAX_LIST_LIMIT);
+function renderReadOrderBy(
+  orderBy: SortExpr[],
+  rootTable: string,
+  rootEntityKey: string,
+  schema: MeshSchema,
+): string {
+  return orderBy
+    .filter((entry): entry is Extract<SortExpr, { field: string }> => "field" in entry)
+    .map((entry) => {
+      const column = sqlColumn(rootEntityKey, entry.field, schema);
+      const dir = entry.direction === "desc" ? "DESC" : "ASC";
+      return `${rootTable}.${column} ${dir}`;
+    })
+    .join(", ");
+}
+
+function effectiveLimit(list: ListOptions | undefined, plan: JoinPlan): number {
+  const requested =
+    plan.read?.page?.first ?? list?.limit ?? DEFAULT_LIST_LIMIT;
+  const capped = Math.min(requested, MAX_LIST_LIMIT);
+  return plan.read?.page ? capped + 1 : capped;
+}
+
+export function buildAggregateSql(
+  plan: JoinPlan,
+  schema: MeshSchema,
+  options: SqlBuilderOptions = {},
+): SqlQuery {
+  const read = plan.read;
+  if (!read?.groupBy?.length || !read.aggregates) {
+    throw new Error("Aggregate query requires groupBy and aggregates");
+  }
+  const rootConfig = schema.entities[plan.rootEntity];
+  if (!rootConfig) throw new Error(`Unknown root entity '${plan.rootEntity}'`);
+  const rootTable = entityTable(plan.rootEntity, rootConfig);
+  const params: unknown[] = [];
+  const selectParts = read.groupBy.map((field) => {
+    const column = sqlColumn(plan.rootEntity, field, schema);
+    return `${rootTable}.${column} AS "${field}"`;
+  });
+  for (const [alias, spec] of Object.entries(read.aggregates)) {
+    const fn = spec.fn.toUpperCase();
+    const field = spec.field ?? "*";
+    const distinct = spec.distinct ? "DISTINCT " : "";
+    const expr =
+      field === "*"
+        ? `${fn}(*)`
+        : `${fn}(${distinct}${rootTable}.${sqlColumn(plan.rootEntity, field, schema)})`;
+    selectParts.push(`${expr} AS "${alias}"`);
+  }
+  let sql = `SELECT ${selectParts.join(", ")} FROM ${rootTable}`;
+  const whereClauses = renderReadWhereSql(
+    read,
+    rootTable,
+    plan.rootEntity,
+    schema,
+    params,
+    "sqlite",
+  );
+  if (whereClauses.length > 0) {
+    sql += ` WHERE ${whereClauses.join(" AND ")}`;
+  }
+  sql += ` GROUP BY ${read.groupBy
+    .map((field) => `${rootTable}.${sqlColumn(plan.rootEntity, field, schema)}`)
+    .join(", ")}`;
+  if (read.orderBy.length > 0) {
+    sql += ` ORDER BY ${renderReadOrderBy(read.orderBy, rootTable, plan.rootEntity, schema)}`;
+  }
+  if (read.page && plan.context.entityId === undefined) {
+    params.push(effectiveLimit(plan.list, plan));
+    sql += ` LIMIT ?`;
+  }
+  return { sql, params };
 }
 
 /**
@@ -174,6 +246,9 @@ export function buildSelectSql(
   schema: MeshSchema,
   options: SqlBuilderOptions = {},
 ): SqlQuery {
+  if (plan.read?.mode === "aggregate") {
+    return buildAggregateSql(plan, schema, options);
+  }
   const rootConfig = schema.entities[plan.rootEntity];
   if (!rootConfig) {
     throw new Error(`Unknown root entity '${plan.rootEntity}'`);
@@ -217,8 +292,19 @@ export function buildSelectSql(
   if (plan.context.entityId !== undefined) {
     params.push(plan.context.entityId);
     whereClauses.push(`${rootTable}.${idColumn} = ?`);
-  } else if (plan.list) {
-    if (plan.list.filter) {
+  } else if (plan.list || plan.read?.page) {
+    if (plan.read?.where || plan.read?.page?.after) {
+      whereClauses.push(
+        ...renderReadWhereSql(
+          plan.read,
+          rootTable,
+          plan.rootEntity,
+          schema,
+          params,
+          "sqlite",
+        ),
+      );
+    } else if (plan.list?.filter) {
       for (const filter of plan.list.filter) {
         whereClauses.push(
           renderFilter(filter, rootTable, plan.rootEntity, schema, params),
@@ -226,7 +312,7 @@ export function buildSelectSql(
       }
     }
 
-    if (plan.list.cursor) {
+    if (!plan.read?.page?.after && plan.list?.cursor) {
       const cursor = decodeCursor(plan.list.cursor);
       params.push(cursor.id);
       whereClauses.push(`${rootTable}.${idColumn} > ?`);
@@ -237,14 +323,18 @@ export function buildSelectSql(
     sql += ` WHERE ${whereClauses.join(" AND ")}`;
   }
 
-  if (plan.list?.orderBy && plan.list.orderBy.length > 0) {
-    sql += ` ORDER BY ${renderOrderBy(plan.list.orderBy, rootTable, plan.rootEntity, schema)}`;
-  } else if (plan.list && plan.context.entityId === undefined) {
-    sql += ` ORDER BY ${rootTable}.${idColumn} ASC`;
+  if (plan.context.entityId === undefined) {
+    if (plan.read?.orderBy && plan.read.orderBy.length > 0) {
+      sql += ` ORDER BY ${renderReadOrderBy(plan.read.orderBy, rootTable, plan.rootEntity, schema)}`;
+    } else if (plan.list?.orderBy && plan.list.orderBy.length > 0) {
+      sql += ` ORDER BY ${renderOrderBy(plan.list.orderBy, rootTable, plan.rootEntity, schema)}`;
+    } else if (plan.list || plan.read?.page) {
+      sql += ` ORDER BY ${rootTable}.${idColumn} ASC`;
+    }
   }
 
-  if (plan.list && plan.context.entityId === undefined) {
-    const limit = effectiveLimit(plan.list);
+  if ((plan.list || plan.read?.page) && plan.context.entityId === undefined) {
+    const limit = effectiveLimit(plan.list, plan);
     params.push(limit);
     sql += ` LIMIT ?`;
   }

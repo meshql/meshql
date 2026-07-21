@@ -71,7 +71,7 @@ describe("issueToken", () => {
 describe("withIntegrity", () => {
   it("verifies signed requests", async () => {
     const mesh = createMesh({
-      entities: { user: { type: {}, fields: ["id"] } },
+      entities: { user: { fields: ["id"] } },
       joins: {},
     });
 
@@ -99,6 +99,7 @@ describe("withIntegrity", () => {
 
     const result = await mesh.execute('{"user":{"id":true}}', {
       format: "json",
+      list: false,
       transport: { queryHeader, signature, token },
       context: { requestId: "1", method: "GET" },
     });

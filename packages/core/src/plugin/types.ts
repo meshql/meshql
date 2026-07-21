@@ -16,6 +16,8 @@ export interface PluginContext {
   queryContext: QueryContext;
   transport?: ExecuteTransport;
   ast?: import("../parser/ast.js").AST;
+  /** Final join plan after `onPlan` hooks (set before resolver execution). */
+  plan?: JoinPlan;
   startTime: number;
 }
 

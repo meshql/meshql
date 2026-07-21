@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import type { CollectionResult } from "@meshql/core";
 import { useMesh } from "./MeshContext.js";
 import { PostDetail } from "./PostDetail.js";
 import { PostsList } from "./PostsList.js";
@@ -33,7 +34,7 @@ export function DashboardPage() {
   const [live, setLive] = useState(false);
 
   const loadPosts = useCallback(async () => {
-    const data = await query<PostRow[]>(
+    const data = await query<CollectionResult<PostRow>>(
       {
         post: {
           id: true,
@@ -43,9 +44,12 @@ export function DashboardPage() {
           comments: { id: true, body: true },
         },
       },
-      { list: { limit: 50, orderBy: [{ field: "createdAt", dir: "desc" }] } },
+      {
+        page: { first: 50 },
+        orderBy: [{ field: "createdAt", direction: "desc" }],
+      },
     );
-    return Array.isArray(data) ? data : [];
+    return data.items ?? [];
   }, [query]);
 
   const loadPost = useCallback(

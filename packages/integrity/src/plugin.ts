@@ -46,7 +46,13 @@ export function createIntegrityPlugin(config: IntegrityConfig): MeshPlugin {
 
     onRequest(raw, ctx) {
       const transport = ctx.transport;
-      if (!transport?.queryHeader) {
+      // No transport = in-process execute (docs playground, server-side calls).
+      // HTTP integrity adapters always attach transport for wire verification.
+      if (!transport) {
+        return raw;
+      }
+
+      if (!transport.queryHeader) {
         throw new IntegrityError("Missing X-Mesh-Query header for verification");
       }
 

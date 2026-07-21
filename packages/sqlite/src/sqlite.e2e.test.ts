@@ -14,14 +14,11 @@
  */
 import { describe, expect, it } from "vitest";
 import {
-  buildJoinPlan,
   createMesh,
-  createQueryContext,
-  parseJson,
-  type JoinPlan,
+  type CollectionResult,
   type MeshSchema,
 } from "@meshql/core";
-import { buildSelectSql, decodeCursor, encodeCursor } from "./builder.js";
+import { buildSelectSql } from "./builder.js";
 
 let DatabaseSync: typeof import("node:sqlite").DatabaseSync | undefined;
 try {
@@ -42,9 +39,8 @@ type SqliteParam = null | number | bigint | string | Uint8Array;
 
 const schema: MeshSchema = {
   entities: {
-    user: { type: {}, fields: ["id", "name"], table: "users" },
+    user: { fields: ["id", "name"], table: "users" },
     token: {
-      type: {},
       fields: ["accessToken", "expiresAt"],
       table: "tokens",
       columns: {
@@ -53,7 +49,6 @@ const schema: MeshSchema = {
       },
     },
     note: {
-      type: {},
       fields: ["body"],
       table: "notes",
     },
@@ -191,9 +186,9 @@ describeIfSqlite("buildSelectSql round-trips against node:sqlite", () => {
   it("round-trips three-level nesting (post → comments → author)", async () => {
     const blogSchema: MeshSchema = {
       entities: {
-        post: { type: {}, fields: ["id", "title"], table: "posts" },
-        comment: { type: {}, fields: ["id", "body"], table: "comments" },
-        user: { type: {}, fields: ["id", "name"], table: "users" },
+        post: { fields: ["id", "title"], table: "posts" },
+        comment: { fields: ["id", "body"], table: "comments" },
+        user: { fields: ["id", "name"], table: "users" },
       },
       joins: {
         "post.comments": {
@@ -253,108 +248,76 @@ describeIfSqlite("buildSelectSql round-trips against node:sqlite", () => {
     });
   });
 
-  describe("list options against node:sqlite", () => {
+  describe("collection reads against node:sqlite", () => {
     type Db = InstanceType<NonNullable<typeof DatabaseSync>>;
+    type UserRow = { id: number; name: string };
 
-    function runListPlan(
+    async function runList(
       db: Db,
-      list: Record<string, unknown>,
-    ): { rows: Record<string, unknown>[]; plan: JoinPlan } {
-      const ast = parseJson(
-        JSON.stringify({
-          user: { id: true, name: true },
-          $list: list,
-        }),
-      );
-      const plan = buildJoinPlan(
-        ast,
-        schema,
-        createQueryContext({ requestId: "list", method: "GET" }),
-        { list: ast.list },
-      );
-      const { sql, params } = buildSelectSql(plan, schema);
-      const rows = db.prepare(sql).all(...(params as SqliteParam[])) as Record<
-        string,
-        unknown
-      >[];
-      return { rows, plan };
-    }
-
-    it("respects LIMIT and default id ORDER BY", () => {
-      const db = seed();
-      const { rows } = runListPlan(db, { limit: 1 });
-      expect(rows).toHaveLength(1);
-      expect(rows[0]).toMatchObject({ user_id: 1, user_name: "Ada" });
-    });
-
-    it("applies filter (eq) via parameterised WHERE", () => {
-      const db = seed();
-      const { rows } = runListPlan(db, {
-        filter: [{ field: "name", op: "eq", value: "Grace" }],
-      });
-      expect(rows).toHaveLength(1);
-      expect(rows[0]).toMatchObject({ user_id: 2, user_name: "Grace" });
-    });
-
-    it("applies filter (in) with expanded ? placeholders", () => {
-      const db = seed();
-      const { rows } = runListPlan(db, {
-        filter: [{ field: "name", op: "in", value: ["Ada", "Grace"] }],
-      });
-      expect(rows).toHaveLength(2);
-      expect(rows.map((r) => r.user_name).sort()).toEqual(["Ada", "Grace"]);
-    });
-
-    it("applies filter (ilike) case-insensitively via SQLite LIKE", () => {
-      const db = seed();
-      const { rows } = runListPlan(db, {
-        filter: [{ field: "name", op: "ilike", value: "a%" }],
-      });
-      expect(rows).toHaveLength(1);
-      expect(rows[0]!.user_name).toBe("Ada");
-    });
-
-    it("respects multi-key ORDER BY with mixed directions", () => {
-      const db = seed();
-      const { rows } = runListPlan(db, {
-        orderBy: [{ field: "name", dir: "desc" }],
-      });
-      expect(rows.map((r) => r.user_name)).toEqual(["Grace", "Ada"]);
-    });
-
-    it("paginates via cursor keyset (WHERE id > ?)", () => {
-      const db = seed();
-      const page1 = runListPlan(db, { limit: 1 });
-      expect(page1.rows).toHaveLength(1);
-      const lastId = page1.rows[0]!.user_id as number;
-      const cursor = encodeCursor({ id: lastId });
-
-      const page2 = runListPlan(db, { limit: 1, cursor });
-      expect(page2.rows).toHaveLength(1);
-      expect(page2.rows[0]!.user_id).toBeGreaterThan(lastId);
-
-      expect(decodeCursor(cursor)).toEqual({ id: lastId });
-    });
-
-    it("end-to-end via mesh.execute with $list on the wire", async () => {
-      const db = seed();
+      controls: Record<string, unknown>,
+    ): Promise<CollectionResult<UserRow>> {
       const mesh = createMesh(schema);
       mesh.resolve("user", async (plan) => {
         const { sql, params } = buildSelectSql(plan, schema);
         return db.prepare(sql).all(...(params as SqliteParam[]));
       });
-
-      const response = (await mesh.execute(
-        JSON.stringify({
-          user: { id: true, name: true },
-          $list: {
-            filter: [{ field: "name", op: "ilike", value: "g%" }],
-          },
-        }),
+      return (await mesh.execute(
+        JSON.stringify({ user: { id: true, name: true, ...controls } }),
         { format: "json" },
-      )) as Array<{ id: number; name: string }>;
+      )) as CollectionResult<UserRow>;
+    }
 
-      expect(response).toEqual([{ id: 2, name: "Grace" }]);
+    it("respects page size and default id ORDER BY, reporting hasNextPage", async () => {
+      const db = seed();
+      const result = await runList(db, { $page: { first: 1 } });
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toMatchObject({ id: 1, name: "Ada" });
+      expect(result.pageInfo.hasNextPage).toBe(true);
+    });
+
+    it("applies a $where eq filter via a parameterised clause", async () => {
+      const db = seed();
+      const result = await runList(db, {
+        $where: { field: "name", op: "eq", value: "Grace" },
+      });
+      expect(result.items).toEqual([{ id: 2, name: "Grace" }]);
+    });
+
+    it("applies an `in` filter with expanded placeholders", async () => {
+      const db = seed();
+      const result = await runList(db, {
+        $where: { field: "name", op: "in", value: ["Ada", "Grace"] },
+      });
+      expect(result.items.map((r) => r.name).sort()).toEqual(["Ada", "Grace"]);
+    });
+
+    it("applies `ilike` case-insensitively via SQLite LIKE", async () => {
+      const db = seed();
+      const result = await runList(db, {
+        $where: { field: "name", op: "ilike", value: "a%" },
+      });
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]!.name).toBe("Ada");
+    });
+
+    it("respects ORDER BY with an explicit direction", async () => {
+      const db = seed();
+      const result = await runList(db, {
+        $orderBy: [{ field: "name", direction: "desc" }],
+      });
+      expect(result.items.map((r) => r.name)).toEqual(["Grace", "Ada"]);
+    });
+
+    it("paginates via a scoped keyset cursor", async () => {
+      const db = seed();
+      const page1 = await runList(db, { $page: { first: 1 } });
+      expect(page1.items).toHaveLength(1);
+      const after = page1.pageInfo.endCursor!;
+      expect(after).toBeTruthy();
+
+      const page2 = await runList(db, { $page: { first: 1, after } });
+      expect(page2.items).toHaveLength(1);
+      expect(page2.items[0]!.id).toBeGreaterThan(page1.items[0]!.id);
     });
   });
 });

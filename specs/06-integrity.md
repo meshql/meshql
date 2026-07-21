@@ -1,6 +1,6 @@
 # 06 — Integrity profile (optional)
 
-**Status:** Draft (protocol v1)  
+**Status:** Draft  
 **Applies to:** Compliance Level 3+
 
 Integrity ensures the query payload cannot be tampered with independently of
