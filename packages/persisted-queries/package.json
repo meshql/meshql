@@ -1,6 +1,6 @@
 {
   "name": "@meshql/persisted-queries",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "MeshQL persisted query registry and X-Mesh-Query-Id transport",
   "license": "MIT",
   "type": "module",

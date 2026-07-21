@@ -1,6 +1,6 @@
 {
   "name": "@meshql/drizzle",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "MeshQL Drizzle adapter — catch-all resolver with relational query API",
   "license": "MIT",
   "type": "module",
