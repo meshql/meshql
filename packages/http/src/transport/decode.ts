@@ -147,6 +147,18 @@ export function encodePersistedQuery(
   };
 }
 
+/** Encode a persisted query ID into transport headers. */
+export function encodePersistedQuery(
+  queryId: string,
+  format: QueryFormat = "json",
+): Record<string, string> {
+  return {
+    "X-Mesh-Query-Id": queryId,
+    "X-Mesh-Format": format,
+    "X-Mesh-Version": "1",
+  };
+}
+
 /** Options for signing encoded query headers. */
 export interface SignQueryOptions {
   secret?: string;
