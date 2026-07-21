@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.9
+
+### Patch Changes
+
+- Updated dependencies [d90a8df]
+- Updated dependencies [d90a8df]
+  - @meshql/core@0.9.0
+
 ## 0.2.8
 
 ### Patch Changes
