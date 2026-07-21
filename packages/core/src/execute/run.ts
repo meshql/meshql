@@ -24,7 +24,7 @@ import type { PluginRunner } from "../plugin/runner.js";
 import type { MeshConfig } from "../schema/schema.js";
 import { createQueryContext } from "../resolver/context.js";
 import type { ResolverRegistry } from "../resolver/registry.js";
-import { shape, shapeMany } from "../shaper/shaper.js";
+import { shape, shapeAggregateRows, shapeMany } from "../shaper/shaper.js";
 import {
   summarizeJoinPlan,
   type JoinPlanSummary,
@@ -93,6 +93,9 @@ async function shapeResponse(
       plan,
       schema,
     );
+  } else if (plan.read?.mode === "aggregate") {
+    const rows = Array.isArray(raw) ? raw : [raw as Record<string, unknown>];
+    shaped = shapeAggregateRows(rows, plan.read);
   } else {
     const rows = Array.isArray(raw) ? raw : [raw as Record<string, unknown>];
     injectComputedIntoFlatRows(rows, plan, schema);

@@ -1,5 +1,6 @@
 import type { ASTNode } from "../parser/ast.js";
 import { joinPathAlias, type ResolvedJoin } from "../planner/join-plan.js";
+import type { NormalizedReadNode } from "../query/types.js";
 
 const ROW_KEY_SEPARATORS = ["_", "."];
 
@@ -241,6 +242,44 @@ function shapeRecord(
   }
 
   return result;
+}
+
+/**
+ * Project grouped aggregate rows into response objects.
+ *
+ * Aggregate SQL already returns one flat row per group (`groupBy` keys +
+ * named aggregate aliases). The normal record shaper only projects `$select`
+ * fields and would drop aliases like `total`.
+ */
+export function shapeAggregateRows(
+  rows: Record<string, unknown>[],
+  read: NormalizedReadNode,
+): Record<string, unknown>[] {
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  const add = (key: string) => {
+    if (seen.has(key)) return;
+    seen.add(key);
+    keys.push(key);
+  };
+  for (const field of read.groupBy ?? []) add(field);
+  for (const alias of Object.keys(read.aggregates ?? {})) add(alias);
+  for (const field of read.fields) add(field);
+
+  return rows.map((row) => {
+    const out: Record<string, unknown> = {};
+    for (const key of keys) {
+      if (key in row) {
+        out[key] = row[key];
+        continue;
+      }
+      const prefixed = `${read.name}_${key}`;
+      if (prefixed in row) {
+        out[key] = row[prefixed];
+      }
+    }
+    return out;
+  });
 }
 
 /** Shape flat SQL rows into nested JSON for a single root record. */

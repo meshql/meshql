@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseQl } from "../parser/index.js";
-import { shape, shapeMany } from "./shaper.js";
+import { shape, shapeAggregateRows, shapeMany } from "./shaper.js";
 import type { ResolvedJoin } from "../planner/join-plan.js";
 
 function tokensJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin {
@@ -571,5 +571,29 @@ describe("shaper \u2014 regression pins for O(N\u00b2) rewrite", () => {
       id: 2,
       name: "Bob",
     });
+  });
+
+  it("keeps aggregate aliases that are absent from $select", () => {
+    const rows = shapeAggregateRows(
+      [
+        { name: "Ada", total: 1 },
+        { name: "Grace", total: 2 },
+      ],
+      {
+        name: "user",
+        entityKey: "user",
+        path: "",
+        fields: ["name"],
+        refs: [],
+        orderBy: [{ field: "name", direction: "asc", nulls: "last" }],
+        mode: "aggregate",
+        groupBy: ["name"],
+        aggregates: { total: { fn: "count", field: "*" } },
+      },
+    );
+    expect(rows).toEqual([
+      { name: "Ada", total: 1 },
+      { name: "Grace", total: 2 },
+    ]);
   });
 });

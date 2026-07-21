@@ -227,6 +227,30 @@ describe("buildSelectSql (SQLite) — collection reads", () => {
     expect(sql).toContain("ORDER BY users.id ASC");
   });
 
+  it("builds GROUP BY + aggregate SELECT and orders by group keys", () => {
+    const { ast, read } = normalizeReadTree(
+      {
+        name: "user",
+        select: { name: true },
+        groupBy: ["name"],
+        aggregates: { total: { fn: "count", field: "*" } },
+      },
+      schema,
+    );
+    expect(read.mode).toBe("aggregate");
+    const plan = buildJoinPlan(
+      ast,
+      schema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+      { read },
+    );
+    const { sql, params } = buildSelectSql(plan, schema);
+    expect(sql).toBe(
+      'SELECT users.name AS "name", COUNT(*) AS "total" FROM users GROUP BY users.name ORDER BY users.name ASC LIMIT ?',
+    );
+    expect(params).toEqual([51]);
+  });
+
   it("appends LIMIT with the requested page size plus a sentinel row", () => {
     const plan = listPlan({ page: { first: 20 } });
     const { sql, params } = buildSelectSql(plan, schema);

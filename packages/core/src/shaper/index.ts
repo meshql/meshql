@@ -1,1 +1,1 @@
-export { shape, shapeMany } from "./shaper.js";
+export { shape, shapeAggregateRows, shapeMany } from "./shaper.js";

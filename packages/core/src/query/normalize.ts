@@ -99,6 +99,21 @@ function appendIdTiebreaker(
   return [...orderBy, { field: idField, direction: "asc", nulls: "last" }];
 }
 
+/** Stable ORDER BY for grouped queries — group keys, not the row id. */
+function appendGroupByTiebreaker(
+  orderBy: SortExpr[],
+  groupBy: string[],
+): SortExpr[] {
+  const result = [...orderBy];
+  for (const field of groupBy) {
+    if (result.some((entry) => "field" in entry && entry.field === field)) {
+      continue;
+    }
+    result.push({ field, direction: "asc", nulls: "last" });
+  }
+  return result;
+}
+
 function wireToAstNode(wire: ReadNodeWire): ASTNode {
   const node: ASTNode = { name: wire.name, fields: [], refs: [] };
   for (const [key, value] of Object.entries(wire.select)) {
@@ -154,8 +169,6 @@ export function normalizeReadTree(
 
   validateWhere(wire.where, entityKey, schema);
 
-  const orderBy = appendIdTiebreaker(wire.orderBy ?? [], entityKey, schema);
-
   if (wire.groupBy && wire.groupBy.length > MAX_GROUP_KEYS) {
     throw new ValidationError(`groupBy exceeds maximum of ${MAX_GROUP_KEYS}`);
   }
@@ -167,6 +180,11 @@ export function normalizeReadTree(
     wire.groupBy?.length || wire.aggregates
       ? "aggregate"
       : "record";
+
+  const orderBy =
+    mode === "aggregate"
+      ? appendGroupByTiebreaker(wire.orderBy ?? [], wire.groupBy ?? [])
+      : appendIdTiebreaker(wire.orderBy ?? [], entityKey, schema);
 
   const pageFirst = wire.page?.first ?? DEFAULT_PAGE_FIRST;
   if (pageFirst > MAX_PAGE_FIRST) {
