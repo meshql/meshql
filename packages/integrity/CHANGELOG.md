@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.7
+
+### Patch Changes
+
+- 9687686: Ship `@meshql/docs` interactive playground (schema introspection, execute proxy, SQL trace) and core `executeDetailed` / plan + SQL trace hooks for 0.10.0.
+- Updated dependencies [9687686]
+- Updated dependencies [9687686]
+- Updated dependencies [9687686]
+- Updated dependencies [9687686]
+  - @meshql/core@0.8.0
+  - @meshql/http@0.7.0
+
 ## 0.5.6
 
 ### Patch Changes

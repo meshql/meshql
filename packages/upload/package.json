@@ -1,6 +1,6 @@
 {
   "name": "@meshql/upload",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "MeshQL file upload extension",
   "license": "MIT",
   "type": "module",

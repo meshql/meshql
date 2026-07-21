@@ -1,9 +1,10 @@
-# @meshql/prisma
+# @meshql/docs
 
-## 0.7.2
+## 0.2.0
 
-### Patch Changes
+### Minor Changes
 
+- 9687686: Ship `@meshql/docs` interactive playground (schema introspection, execute proxy, SQL trace) and core `executeDetailed` / plan + SQL trace hooks for 0.10.0.
 - 9687686: Replace legacy `$list` collection queries with JSON read controls as the single query protocol.
 
   **Breaking changes (0.x minor):**
@@ -19,47 +20,15 @@
   - Update response handling from flat arrays / v1 envelopes to `data.items` + `data.pageInfo`.
   - See `specs/05-read-controls.md` for the active protocol contract.
 
-- 9687686: Remove the dead `EntityConfig.type` placeholder from schemas before the 1.0 API freeze.
+### Patch Changes
 
-  Schema definitions, generated schema output, and examples no longer include `type: {}` or `type: {} as T`; delete those placeholders when upgrading. This is a source-level cleanup only and does not add runtime value coercion.
+- 9687686: Add schema-native computed fields in `@meshql/core`.
+
+  Declare virtual fields with `EntityConfig.computed` (`from` + `compute`). The planner expands physical deps (including cross-entity joins), excludes computed names from SQL, and the execute path applies values on flat and preshaped results. Access denials strip computed fields and only their unrequested deps. Docs introspection lists computed keys with `kind: "computed"`.
 
 - Updated dependencies [9687686]
 - Updated dependencies [9687686]
 - Updated dependencies [9687686]
 - Updated dependencies [9687686]
   - @meshql/core@0.8.0
-
-## 0.7.1
-
-### Patch Changes
-
-- Updated dependencies
-  - @meshql/core@0.7.1
-
-## 0.7.0
-
-### Minor Changes
-
-- v0.7.0: schema inference from ORMs — `extendSchema` in core, `schemaFromPrisma` / `schemaFromPrismaSource`, and `schemaFromDrizzle`. Express-prisma demo now infers its MeshSchema from `schema.prisma`.
-
-### Patch Changes
-
-- Updated dependencies
-  - @meshql/core@0.7.0
-
-## 0.6.0
-
-### Minor Changes
-
-- v0.6.0: ORM adapters (Prisma, Drizzle, Kysely) and core support for preshaped resolvers, ORM plan-relation helpers, and cursor exports. Includes `examples/express-prisma` and ORM documentation.
-
-### Patch Changes
-
-- Updated dependencies
-  - @meshql/core@0.6.0
-
-## 0.6.0
-
-### Minor Changes
-
-- Initial release: `prismaResolver`, `withPrisma`, and Prisma `select` / `where` / list arg builders from JoinPlan.
+  - @meshql/http@0.7.0

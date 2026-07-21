@@ -1,6 +1,6 @@
 {
   "name": "@meshql/sse",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Field-aware MeshQL subscriptions over Server-Sent Events",
   "license": "MIT",
   "type": "module",
