@@ -85,7 +85,10 @@ describe("drizzleResolver", () => {
 
     const result = await mesh.execute(
       "{ post { id comments { body author { name } } } }",
-      { context: { requestId: "1", method: "GET", entityId: "1" } },
+      {
+        format: "ql",
+        context: { requestId: "1", method: "GET", entityId: "1" },
+      },
     );
 
     expect(findFirst).toHaveBeenCalledOnce();

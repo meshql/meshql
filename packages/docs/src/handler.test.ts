@@ -37,7 +37,9 @@ describe("createDocsHandler", () => {
       method: "POST",
       path: "/docs/execute",
       body: {
-        query: JSON.stringify({ user: { id: true, name: true } }),
+        query: JSON.stringify({
+          user: { $select: { id: true, name: true } },
+        }),
         format: "json",
       },
     });

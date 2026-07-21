@@ -8,6 +8,12 @@
 > Historical milestone sections retain the API names that shipped at the time.
 > `$list` and version negotiation were superseded before the current release;
 > see `specs/05-read-controls.md` for the active query contract.
+>
+> **Active client/wire contract:** every JSON read node uses `$select`;
+> controls (`$where`, `$orderBy`, `$page`, …) live on that same node.
+> `client.query(query, { entityId? })` accepts that object directly — there is
+> no separate selection map or controls options bag. See
+> `docs/src/content/docs/reference/query-controls.md`.
 
 ---
 
@@ -61,7 +67,8 @@ repositioning), then the chosen execution order is:
 | L | Language-agnostic **protocol specs** + conformance fixtures (`specs/`, docs.meshql.dev/specs) | ✅ |
 | M | **FAQ** on docs site + list `$list` field validation (no cross-entity filter/orderBy) | ✅ (0.7.1) |
 | N | **`@meshql/docs`** — interactive playground + schema introspection middleware | ✅ ready (0.10.0) |
-| O | **Computed fields in `@meshql/core`** — virtual / computed fields | 📋 next (0.11.0) |
+| O | **Canonical JSON query** — `$select` required; client emits the wire shape; no shorthand / separate controls bag | ✅ |
+| P | **Computed fields in `@meshql/core`** — virtual fields, dependency expansion, access integration, guide + spec | ✅ implemented |
 
 Phases 3 → 5 follow the original order. The headline plan below describes
 the *intended* phase progression; the Status table is the source of truth for
@@ -162,9 +169,9 @@ POST /docs/execute      → run query (delegates to mesh.execute)
 > real fields. Client asks for `{ user { fullName } }`; planner fetches
 > `firstName` + `lastName`; core applies `compute` before shaping.
 
-**Build after docs.** Playground shows computed fields with tooltips and SQL
-dep expansion once both land. Implemented schema-natively in core — no
-separate `@meshql/computed` package.
+**Implemented schema-natively in core** — no separate `@meshql/computed`
+package. Playground introspection identifies computed fields and exposes their
+optional runtime type hint; dependency tooltips remain future polish.
 
 | Priority | Item | Notes | Effort |
 |---|---|---|---|
@@ -175,8 +182,8 @@ separate `@meshql/computed` package.
 | **P0** | **Access integration** | Denied computed field stripped at planner; unrequested source deps never fetched | ✅ done |
 | **P1** | **Cross-entity computed** | `from: ["customer.firstName"]` auto-adds customer join | ✅ done |
 | **P1** | **ORM preshaped path** | Prisma/Drizzle nested results — compute after resolver, before response | ✅ done (preshaped) |
-| **P1** | **Spec `04-computed-fields.md`** | Conformance fixtures | 2 days |
-| **P2** | **Docs integration** | Playground shows `kind: "computed"`, tooltip with `from` deps, SQL panel shows underlying columns | in progress (`kind: "computed"`) |
+| **P1** | **Spec `08-computed-fields.md`** | Portable computed-field behavior contract | ✅ done |
+| **P2** | **Docs integration** | Guide + spec + `kind: "computed"` introspection; dependency tooltip remains | ✅ core docs done |
 
 **Public API:**
 
@@ -202,7 +209,7 @@ Access control stays in `@meshql/access` (`"user.fullName": …`).
 
 **v1 limitations (document explicitly):**
 
-- Computed fields not available in `$list` `filter` / `orderBy`
+- Computed fields not available in `$where` / `$orderBy`
 - Computed depending on computed → registration error
 - Sync `compute` only; async deferred to v1.x
 - Gateway / cross-service computed deferred
@@ -272,7 +279,7 @@ gantt
 | 5 | `schemaFromPrisma` / `schemaFromDrizzle` / `extendSchema` | `0.7.0` | 1 week | ✅ done |
 | 5b | Shaper perf: O(N) `shapeRefMany`, cached field readers | `0.7.1` | 2 evenings | ✅ done |
 | 6 | `@meshql/docs` — interactive playground + SQL trace | `0.10.0` | ~4 weeks | ✅ ready to release |
-| 7 | Computed fields in `@meshql/core` + planner deps | `0.11.0` | ~3.5 weeks | 📋 planned |
+| 7 | Computed fields in `@meshql/core` + planner deps | `0.11.0` | ~3.5 weeks | ✅ implemented |
 | _post_ | API audit, benchmarks, auth adapters, v1.0 cut | `0.9 → 1.0` | 8–12 weeks | 🔄 in progress |
 
 Use Changesets (already configured) for every phase. Bump majors freely until 1.0.
@@ -497,7 +504,7 @@ default; SQL builder move is breaking. Document both in the changeset.)
 > Make list endpoints real. Plumb pagination, filtering, ordering down to the
 > resolver. Add the catch-all resolver pattern that ORM adapters will rely on.
 >
-> **What landed in 0.4.0**:
+> **What landed in 0.4.0** (historical API names):
 >
 > - `JoinPlan.list` with `ListOptions` (limit, cursor, orderBy, filter).
 > - List metadata travels in the signed JSON wire payload as `$list` — not URL
@@ -508,6 +515,11 @@ default; SQL builder move is breaking. Document both in the changeset.)
 >   `decodeCursor` helpers exported from both adapters.
 > - `@meshql/client` accepts a `list` option that serializes `$list` into the
 >   signed `X-Mesh-Query` header automatically.
+>
+> **Superseded:** `$list` and `client.query(selection, { list })` were replaced
+> by per-node `$select` / `$where` / `$orderBy` / `$page` (and related controls).
+> Active contract: `specs/05-read-controls.md` and
+> `client.query({ user: { $select: …, $page: … } }, { entityId? })`.
 
 ### 2.1 Extend `JoinPlan` with `list`
 
@@ -549,28 +561,29 @@ export interface Filter {
 `listOptions` to `mesh.execute()`, or when the HTTP route is a list read (no
 `:id` segment) and list metadata is present in the signed query.
 
+*(Historical `JoinPlan.list` / `$list` surface — current plans carry normalized
+controls on `plan.read` instead.)*
+
 ### 2.2 List metadata in the signed wire payload ✅
 
 MeshQL carries queries in `X-Mesh-Query` (base64 JSON), not URL query strings.
-List options are a `$list` sibling key in that JSON so they are covered by
-request signing:
+In 0.4.0, list options were a `$list` sibling key so they stayed under request
+signing. **Current wire shape** (post–read-controls rewrite):
 
 ```json
 {
-  "user": { "id": true, "name": true },
-  "$list": {
-    "limit": 20,
-    "cursor": "eyJpZCI6MTAwfQ",
-    "orderBy": [{ "field": "createdAt", "dir": "desc" }],
-    "filter": [{ "field": "role", "op": "in", "value": ["admin", "owner"] }]
+  "user": {
+    "$select": { "id": true, "name": true },
+    "$page": { "first": 20, "after": "opaque-cursor" },
+    "$orderBy": [{ "field": "createdAt", "direction": "desc" }],
+    "$where": { "field": "role", "op": "in", "value": ["admin", "owner"] }
   }
 }
 ```
 
-Parsing lives in `packages/core/src/parser/index.ts` (`parseListOptions`);
-validation in `packages/core/src/planner/validator.ts` (unknown fields,
-invalid operators, `limit` capped at 200). `@meshql/client` exposes this as
-`client.query(selection, { list: { ... } })`.
+`$select` is required on every read node; fields outside `$select` are rejected.
+`@meshql/client` accepts that object as `client.query(query, { entityId? })` —
+no separate selection / controls arguments.
 
 ### 2.3 Catch-all resolver
 
@@ -632,7 +645,7 @@ the cursor.
 
 ### Acceptance ✅
 
-- List reads with `$list` in the signed wire payload work end-to-end against
+- Collection reads with signed JSON read controls work end-to-end against
   the express-postgres example and the SQLite integration suite.
 - Catch-all resolver pattern shown in README.
 
@@ -1118,7 +1131,7 @@ Not part of the MeshQL query language — explicit HTTP route only.
 
 **Left panel:** entity browser → click entity → fields + joins → click fields
 to build query → generated query shown in real time (reuse `@meshql/client`
-`selectionToJson` / `selectionToQl`).
+`queryToJson` / `queryToQl`).
 
 **Right panel:** run query → real response → duration → join plan visualization
 → SQL panel (dev mode).
@@ -1188,12 +1201,13 @@ For each requested field in `entity.computed`:
 3. Do **not** add computed name to SQL fields
 4. Cross-entity `from: ["customer.firstName"]` → ensure customer join in plan
 
-`validateAst`: computed fields pass like normal scalars (listed in `fields`).
+`validateAst`: computed fields pass like normal scalars through the entity's
+`computed` map; they are not listed among physical `fields`.
 `stripFieldsFromPlan`: deny computed field → strip deps too.
 
 ### 7.3 Compute execution
 
-`@meshql/computed` registers an `onResult` plugin:
+Core applies requested computed fields after resolver execution:
 
 ```
 resolver → onResult (inject computed into flat rows) → shaper → onResponse
@@ -1210,20 +1224,20 @@ asked for `fullName`.
 - [ ] Remove `EntityConfig.type` from `@meshql/core` and `extendSchema`
 - [ ] Remove `type: {}` / `type: {} as T` from generated schemas, tests, examples, and docs
 - [ ] Add migration note: delete the placeholder; TypeScript types do not coerce DB values at runtime
-- [ ] `ComputedFieldDef` type in `@meshql/core` schema
-- [ ] `JoinPlan.computedFields` + planner dep expansion
-- [ ] `validateAst` allows computed field names
-- [ ] `stripFieldsFromPlan` handles computed + deps
-- [ ] `@meshql/computed` package + `withComputed` / `mesh.computed()`
-- [ ] `onResult` plugin: flat-row compute + source stripping
-- [ ] Access: denied computed → planner strip (deps never fetched)
-- [ ] Cross-entity computed with implicit join
-- [ ] Prisma/Drizzle preshaped path
-- [ ] Reject computed→computed at registration
-- [ ] Reject computed in `$list` filter/orderBy with clear error
-- [ ] Conformance fixtures in `specs/04-computed-fields.md`
-- [ ] `@meshql/docs` integration: `kind: "computed"` in SchemaDoc + tooltips
-- [ ] `docs/PUBLIC_API.md` entry for `@meshql/computed`
+- [x] `ComputedFieldDef` type in `@meshql/core` schema
+- [x] `JoinPlan.computedFields` + planner dep expansion
+- [x] `validateAst` allows computed field names
+- [x] `stripFieldsFromPlan` handles computed + deps
+- [x] Keep computed fields schema-native (no separate package)
+- [x] Flat-row compute + source stripping in core execution
+- [x] Access: denied computed → planner strip (deps never fetched)
+- [x] Cross-entity computed with implicit join
+- [x] Prisma/Drizzle preshaped path
+- [x] Reject computed→computed at registration
+- [x] Reject computed in `$where`; document other controls as physical-only
+- [x] Computed field behavior documented in `specs/08-computed-fields.md`
+- [x] `@meshql/docs` integration: `kind: "computed"` + runtime type hint
+- [ ] Playground tooltip for `from` dependencies
 
 ### 7.5 Acceptance
 
@@ -1252,7 +1266,7 @@ track above is now the source of truth. Summary of what remains:
 | Access cache + core test coverage | ✅ done | 0.8.0 |
 | Real-time (SSE + pubsub) + gateway + codemods | ✅ done | 0.9.0 |
 | Interactive playground (`@meshql/docs`) | ✅ ready to release | 0.10.0 |
-| Computed fields (in `@meshql/core`) | 📋 in progress | 0.11.0 |
+| Computed fields (in `@meshql/core`) | ✅ implemented + documented | 0.11.0 |
 | Benchmarks, auth adapters, npm org, Go port, integrity audit | 📋 | 1.0.0 |
 | API audit + security pass | 📋 | 0.9.0 (prep) / 1.0.0 (freeze) |
 | Schema naming polish + stale README fixes | ✅ | this week |
@@ -1301,7 +1315,7 @@ Pin Node to 22 LTS; add 24 to the matrix in Phase 6.
 | `docs/comparison.md` | post-Phase 5 | vs PostgREST, Hasura, hand-rolled |
 | `docs/playground.md` | Phase 6 | `@meshql/docs` setup + security |
 | `docs/computed-fields.md` | Phase 7 | virtual fields + access patterns |
-| `specs/04-computed-fields.md` | Phase 7 | conformance fixtures |
+| `specs/08-computed-fields.md` | Phase 7 | optional behavior contract |
 | `ROADMAP.md` | this doc | maintained as phases close |
 
 ### Release process

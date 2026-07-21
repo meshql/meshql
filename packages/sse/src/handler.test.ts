@@ -35,7 +35,9 @@ describe("handleMeshSse", () => {
       params: { entity: "post", id: "1" },
       headers: {
         "x-mesh-query": Buffer.from(
-          JSON.stringify({ post: { id: true, title: true } }),
+          JSON.stringify({
+            post: { $select: { id: true, title: true } },
+          }),
         ).toString("base64"),
         "x-mesh-format": "json",
       },

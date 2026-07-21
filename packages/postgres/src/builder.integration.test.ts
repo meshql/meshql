@@ -122,7 +122,10 @@ describeIfDb("buildSelectSql against real Postgres", () => {
 
     const response = await mesh.execute(
       "{ user { id name tokens { accessToken expiresAt } } }",
-      { context: { requestId: "1", method: "GET", entityId: "1" } },
+      {
+        format: "ql",
+        context: { requestId: "1", method: "GET", entityId: "1" },
+      },
     );
 
     expect(response).toEqual({
@@ -147,7 +150,10 @@ describeIfDb("buildSelectSql against real Postgres", () => {
 
     const response = (await mesh.execute(
       "{ user { id name tokens { accessToken } notes { body } } }",
-      { context: { requestId: "1", method: "GET", entityId: "1" } },
+      {
+        format: "ql",
+        context: { requestId: "1", method: "GET", entityId: "1" },
+      },
     )) as {
       id: number;
       name: string;
@@ -182,7 +188,10 @@ describeIfDb("buildSelectSql against real Postgres", () => {
 
     const response = await mesh.execute(
       "{ user { id name tokens { accessToken } notes { body } } }",
-      { context: { requestId: "2", method: "GET", entityId: "2" } },
+      {
+        format: "ql",
+        context: { requestId: "2", method: "GET", entityId: "2" },
+      },
     );
 
     expect(response).toEqual({
@@ -209,7 +218,9 @@ describeIfDb("buildSelectSql against real Postgres", () => {
         return result.rows;
       });
       return mesh.execute(
-        JSON.stringify({ user: { id: true, name: true, ...controls } }),
+        JSON.stringify({
+          user: { $select: { id: true, name: true }, ...controls },
+        }),
         { format: "json" },
       ) as Promise<CollectionResult<UserRow>>;
     }

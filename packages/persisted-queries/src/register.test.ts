@@ -5,7 +5,7 @@ import { InMemoryQueryStore } from "./store.js";
 describe("registerQuery", () => {
   it("returns a stable content-addressed ID", () => {
     const store = new InMemoryQueryStore();
-    const raw = '{"user":{"id":true}}';
+    const raw = '{"user":{"$select":{"id":true}}}';
 
     const first = registerQuery(store, raw, "json");
     const second = registerQuery(store, raw, "json");
@@ -17,7 +17,7 @@ describe("registerQuery", () => {
 
   it("extends the ID when a hash collision occurs", () => {
     const store = new InMemoryQueryStore();
-    const raw = '{"user":{"id":true}}';
+    const raw = '{"user":{"$select":{"id":true}}}';
     const collidingId = createQueryId(raw, "json");
 
     store.save(collidingId, {

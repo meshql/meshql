@@ -1,13 +1,19 @@
 {
   "post": {
-    "id": true,
-    "title": true,
-    "comments": {
+    "$select": {
       "id": true,
-      "body": true,
-      "author": {
-        "id": true,
-        "name": true
+      "title": true,
+      "comments": {
+        "$select": {
+          "id": true,
+          "body": true,
+          "author": {
+            "$select": {
+              "id": true,
+              "name": true
+            }
+          }
+        }
       }
     }
   }

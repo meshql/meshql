@@ -54,7 +54,7 @@ describe("showcase /docs e2e", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         query: JSON.stringify({
-          user: { id: true, name: true },
+          user: { $select: { id: true, name: true } },
         }),
         format: "json",
         context: { entityId: "1" },
@@ -83,11 +83,15 @@ describe("showcase /docs e2e", () => {
       body: JSON.stringify({
         query: JSON.stringify({
           user: {
-            id: true,
-            posts: {
+            $select: {
               id: true,
-              title: true,
-              author: { id: true, name: true },
+              posts: {
+                $select: {
+                  id: true,
+                  title: true,
+                  author: { $select: { id: true, name: true } },
+                },
+              },
             },
           },
         }),

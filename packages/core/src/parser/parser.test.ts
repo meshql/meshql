@@ -15,6 +15,18 @@ describe("tokenizer", () => {
       { type: "EOF", value: "" },
     ]);
   });
+
+  it("rejects unsupported punctuation", () => {
+    expect(() => tokenize("{ user { id, name } }")).toThrow(
+      "Unexpected character ','",
+    );
+  });
+
+  it("rejects @ and other symbols", () => {
+    expect(() => tokenize("{ user { id@name } }")).toThrow(
+      "Unexpected character '@'",
+    );
+  });
 });
 
 describe("parseQl", () => {
@@ -33,6 +45,17 @@ describe("parseQl", () => {
     });
   });
 
+  it("parses deep nesting", () => {
+    const ast = parseQl(
+      "{ post { id title comments { id body author { id name } } } }",
+    );
+    expect(ast.root.refs[0]?.refs[0]).toEqual({
+      name: "author",
+      fields: ["id", "name"],
+      refs: [],
+    });
+  });
+
   it("rejects queries that do not start with '{'", () => {
     expect(() => parseQl("user { id }")).toThrow("Query must start with '{'");
   });
@@ -41,23 +64,47 @@ describe("parseQl", () => {
     expect(() => parseQl("{ user id }")).toThrow("Expected '{' after entity 'user'");
   });
 
-  it("rejects unclosed braces", () => {
+  it("rejects unclosed entity braces", () => {
     expect(() => parseQl("{ user { id ")).toThrow("Expected '}' closing entity 'user'");
   });
 
-  it("rejects an empty root selection", () => {
+  it("rejects a missing outer closing brace", () => {
+    expect(() => parseQl("{ user { id }")).toThrow("Expected '}' closing query");
+  });
+
+  it("rejects trailing content", () => {
+    expect(() => parseQl("{ user { id } } trailing")).toThrow(
+      "Unexpected trailing content in QL query",
+    );
+  });
+
+  it("rejects an empty root entity", () => {
     expect(() => parseQl("{ }")).toThrow("Expected root entity name");
+  });
+
+  it("rejects an empty root selection body", () => {
+    expect(() => parseQl("{ user { } }")).toThrow(
+      "Entity 'user' must select at least one field",
+    );
+  });
+
+  it("rejects an empty nested selection body", () => {
+    expect(() => parseQl("{ user { id tokens { } } }")).toThrow(
+      "Entity 'tokens' must select at least one field",
+    );
   });
 });
 
 describe("parseJsonQuery — JSON selection", () => {
-  it("builds a nested selection from an implicit select map", () => {
+  it("builds a nested selection from canonical $select nodes", () => {
     const doc = parseJsonQuery(
       JSON.stringify({
         user: {
-          id: true,
-          name: true,
-          tokens: { accessToken: true },
+          $select: {
+            id: true,
+            name: true,
+            tokens: { $select: { accessToken: true } },
+          },
         },
       }),
     );
@@ -81,7 +128,7 @@ describe("parseJsonQuery — JSON selection", () => {
     const doc = parseJsonQuery(
       JSON.stringify({
         user: {
-          id: true,
+          $select: { id: true },
           $where: { field: "role", op: "in", value: ["admin", "owner"] },
           $orderBy: [{ field: "createdAt", direction: "desc" }],
           $page: { first: 20 },
@@ -95,7 +142,9 @@ describe("parseJsonQuery — JSON selection", () => {
   });
 
   it("rejects unknown $-prefixed control keys", () => {
-    const raw = JSON.stringify({ user: { id: true, $filters: {} } });
+    const raw = JSON.stringify({
+      user: { $select: { id: true }, $filters: {} },
+    });
     expect(() => parseJsonQuery(raw)).toThrow("Unknown control '$filters' on 'user'");
   });
 
@@ -106,7 +155,10 @@ describe("parseJsonQuery — JSON selection", () => {
   });
 
   it("rejects a payload with two root entities", () => {
-    const raw = JSON.stringify({ user: { id: true }, post: { id: true } });
+    const raw = JSON.stringify({
+      user: { $select: { id: true } },
+      post: { $select: { id: true } },
+    });
     expect(() => parseJsonQuery(raw)).toThrow("Query must have exactly one root entity");
   });
 
@@ -125,15 +177,23 @@ describe("parseJsonQuery — JSON selection", () => {
   });
 
   it("rejects empty selections", () => {
-    expect(() => parseJsonQuery(JSON.stringify({ user: {} }))).toThrow(
+    expect(() =>
+      parseJsonQuery(JSON.stringify({ user: { $select: {} } })),
+    ).toThrow(
       "Entity 'user' must select at least one field",
     );
   });
 
   it("rejects invalid scalar selections", () => {
-    expect(() => parseJsonQuery(JSON.stringify({ user: { id: false } }))).toThrow(
-      "Invalid selection for 'user.id'",
-    );
+    expect(() =>
+      parseJsonQuery(JSON.stringify({ user: { $select: { id: false } } })),
+    ).toThrow("Invalid selection for 'user.id'");
+  });
+
+  it("rejects fields outside $select", () => {
+    expect(() =>
+      parseJsonQuery(JSON.stringify({ user: { id: true } })),
+    ).toThrow("fields belong inside '$select'");
   });
 });
 
