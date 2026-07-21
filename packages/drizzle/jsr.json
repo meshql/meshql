@@ -1,6 +1,6 @@
 {
   "name": "@meshql/drizzle",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "license": "MIT",
   "exports": "./src/index.ts",
   "publish": {
