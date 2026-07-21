@@ -1,5 +1,18 @@
 # @meshql/kysely
 
+## 0.6.3
+
+### Patch Changes
+
+- 9687686: Ship `@meshql/docs` interactive playground (schema introspection, execute proxy, SQL trace) and core `executeDetailed` / plan + SQL trace hooks for 0.10.0.
+- Updated dependencies [9687686]
+- Updated dependencies [9687686]
+- Updated dependencies [9687686]
+- Updated dependencies [9687686]
+  - @meshql/core@0.8.0
+  - @meshql/postgres@0.6.0
+  - @meshql/sqlite@0.6.0
+
 ## 0.6.2
 
 ### Patch Changes
