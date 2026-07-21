@@ -1,6 +1,6 @@
 {
   "name": "@meshql/gateway",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Static multi-service MeshQL gateway — parallel fetch and stitch (V1)",
   "license": "MIT",
   "type": "module",

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.0
+
+### Minor Changes
+
+- d90a8df: Use one canonical JSON query shape across the client, wire protocol, and docs.
+  Every read node now requires `$select`; shorthand fields outside `$select` are
+  rejected. `client.query()` accepts that canonical query object directly, with
+  read controls on the node and only transport metadata such as `entityId` in
+  the second argument.
+- d90a8df: Make JSON the default query format everywhere and harden selection-only QL.
+  `mesh.execute()` and `POST /mesh` now default to `json` (matching GET headers
+  and `@meshql/client`). Pass `{ format: "ql" }` or `"format": "ql"` explicitly
+  for brace syntax. The QL parser now rejects unsupported characters, trailing
+  content, missing outer braces, and empty selections.
+
 ## 0.8.1
 
 ### Patch Changes
