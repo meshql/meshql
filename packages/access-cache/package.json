@@ -1,6 +1,6 @@
 {
   "name": "@meshql/access-cache",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MeshQL access permission result cache (memory, Upstash, Redis-compatible)",
   "license": "MIT",
   "type": "module",

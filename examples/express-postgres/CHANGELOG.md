@@ -1,5 +1,20 @@
 # express-postgres
 
+## 0.1.11
+
+### Patch Changes
+
+- Updated dependencies [9687686]
+- Updated dependencies [9687686]
+- Updated dependencies [9687686]
+- Updated dependencies [9687686]
+  - @meshql/core@0.8.0
+  - @meshql/integrity@0.5.7
+  - @meshql/client@0.7.0
+  - @meshql/http@0.7.0
+  - @meshql/postgres@0.6.0
+  - @meshql/upload@0.5.5
+
 ## 0.1.10
 
 ### Patch Changes
