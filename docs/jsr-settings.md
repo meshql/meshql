@@ -25,7 +25,7 @@ For each publishable package, open **Settings** on the package page and set:
 | `@meshql/sse` | done | done |
 | `@meshql/codemods` | done | done |
 | `@meshql/gateway` | done | done |
-| `@meshql/docs` | todo | todo |
+| `@meshql/docs` | done | done |
 
 Steps for each new package:
 

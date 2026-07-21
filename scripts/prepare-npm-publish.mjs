@@ -22,6 +22,7 @@ const NPM_NAME_BY_DIR = {
   sse: "meshql-sse",
   codemods: "meshql-codemods",
   gateway: "meshql-gateway",
+  docs: "meshql-docs",
 };
 
 const DIR_BY_SCOPE = Object.fromEntries(
@@ -46,6 +47,7 @@ const PUBLISH_ORDER = [
   "sse",
   "codemods",
   "gateway",
+  "docs",
 ];
 
 /** Longest paths first so @meshql/core/builtins is rewritten before @meshql/core. */
@@ -68,6 +70,7 @@ const IMPORT_REWRITES = [
   ["@meshql/sse", "meshql-sse"],
   ["@meshql/codemods", "meshql-codemods"],
   ["@meshql/gateway", "meshql-gateway"],
+  ["@meshql/docs", "meshql-docs"],
 ];
 
 function rewriteDistImports(packageDir) {
