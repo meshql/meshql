@@ -329,7 +329,7 @@ export {
   extendSchema,
   type MeshSchemaOverride,
 } from "./schema/extend-schema.js";
-export { shape, shapeMany } from "./shaper/shaper.js";
+export { shape, shapeAggregateRows, shapeMany } from "./shaper/shaper.js";
 export {
   CATCH_ALL,
   createQueryContext,
