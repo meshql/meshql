@@ -20,8 +20,7 @@ describe("createMesh — collection reads", () => {
 
     const wire = JSON.stringify({
       user: {
-        id: true,
-        name: true,
+        $select: { id: true, name: true },
         $where: { field: "id", op: "gt", value: 100 },
         $orderBy: [{ field: "name", direction: "asc" }],
         $page: { first: 10 },
@@ -45,7 +44,9 @@ describe("createMesh — collection reads", () => {
     const resolver = fakeResolver([{ user_id: 1, user_name: "Ada" }]);
     const mesh = createMesh(schema).resolve("user", resolver);
 
-    const wire = JSON.stringify({ user: { id: true, name: true } });
+    const wire = JSON.stringify({
+      user: { $select: { id: true, name: true } },
+    });
     const result = await mesh.execute(wire, { format: "json", list: false });
 
     expect(Array.isArray(result)).toBe(false);
@@ -56,7 +57,7 @@ describe("createMesh — collection reads", () => {
     const mesh = createMesh(schema).resolve("user", fakeResolver([]));
 
     const wire = JSON.stringify({
-      user: { id: true, $page: { first: 9999 } },
+      user: { $select: { id: true }, $page: { first: 9999 } },
     });
 
     await expect(mesh.execute(wire, { format: "json" })).rejects.toThrow(
@@ -83,10 +84,16 @@ describe("createMesh — catch-all resolver", () => {
 
     const mesh = createMesh(multiEntitySchema).resolve("*", catchAll);
 
-    const user = await mesh.execute("{ user { id name } }", { list: false });
+    const user = await mesh.execute("{ user { id name } }", {
+      format: "ql",
+      list: false,
+    });
     expect(user).toEqual({ id: 1, name: "Ada" });
 
-    const post = await mesh.execute("{ post { id title } }", { list: false });
+    const post = await mesh.execute("{ post { id title } }", {
+      format: "ql",
+      list: false,
+    });
     expect(post).toEqual({ id: 1, title: "Hi" });
 
     expect(catchAll).toHaveBeenCalledTimes(2);
@@ -100,7 +107,10 @@ describe("createMesh — catch-all resolver", () => {
       .resolve("user", specific)
       .resolve("*", catchAll);
 
-    const result = await mesh.execute("{ user { id name } }", { list: false });
+    const result = await mesh.execute("{ user { id name } }", {
+      format: "ql",
+      list: false,
+    });
 
     expect(result).toEqual({ id: 42, name: "Specific" });
     expect(specific).toHaveBeenCalledOnce();
@@ -109,9 +119,9 @@ describe("createMesh — catch-all resolver", () => {
 
   it("still throws ResolverError when no resolver (specific or catch-all) matches", async () => {
     const mesh = createMesh(multiEntitySchema);
-    await expect(mesh.execute("{ user { id } }", { list: false })).rejects.toThrow(
-      "No resolver registered for entity 'user'",
-    );
+    await expect(
+      mesh.execute("{ user { id } }", { format: "ql", list: false }),
+    ).rejects.toThrow("No resolver registered for entity 'user'");
   });
 });
 
@@ -127,7 +137,10 @@ describe("createMesh — preshaped resolvers", () => {
       { preshaped: true },
     );
 
-    const result = await mesh.execute("{ user { id name } }", { list: false });
+    const result = await mesh.execute("{ user { id name } }", {
+      format: "ql",
+      list: false,
+    });
     expect(result).toEqual({
       id: 1,
       name: "Ada",

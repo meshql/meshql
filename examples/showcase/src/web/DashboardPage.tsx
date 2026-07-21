@@ -10,12 +10,20 @@ import type { PostRow, UserRow } from "./types.js";
 
 const POST_DETAIL_SELECTION = {
   post: {
-    id: true,
-    title: true,
-    body: true,
-    status: true,
-    author: { name: true },
-    comments: { id: true, body: true, author: { name: true } },
+    $select: {
+      id: true,
+      title: true,
+      body: true,
+      status: true,
+      author: { $select: { name: true } },
+      comments: {
+        $select: {
+          id: true,
+          body: true,
+          author: { $select: { name: true } },
+        },
+      },
+    },
   },
 } as const;
 
@@ -37,16 +45,16 @@ export function DashboardPage() {
     const data = await query<CollectionResult<PostRow>>(
       {
         post: {
-          id: true,
-          title: true,
-          status: true,
-          author: { name: true },
-          comments: { id: true, body: true },
+          $select: {
+            id: true,
+            title: true,
+            status: true,
+            author: { $select: { name: true } },
+            comments: { $select: { id: true, body: true } },
+          },
+          $page: { first: 50 },
+          $orderBy: [{ field: "createdAt", direction: "desc" }],
         },
-      },
-      {
-        page: { first: 50 },
-        orderBy: [{ field: "createdAt", direction: "desc" }],
       },
     );
     return data.items ?? [];
@@ -72,7 +80,17 @@ export function DashboardPage() {
     if (!auth?.userId) return null;
     try {
       return await query<UserRow>(
-        { user: { id: true, name: true, email: true, role: true, avatar: true } },
+        {
+          user: {
+            $select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              avatar: true,
+            },
+          },
+        },
         { entityId: auth.userId },
       );
     } catch {

@@ -289,6 +289,7 @@ export {
 } from "./query/index.js";
 export type {
   WhereExpr,
+  HavingExpr,
   SortExpr,
   PageInput,
   AggregateSpec,

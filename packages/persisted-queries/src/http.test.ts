@@ -19,7 +19,7 @@ describe("createPersistedQueriesHandler", () => {
     ]);
     const handler = createPersistedQueriesHandler(mesh, { store });
 
-    const raw = '{"user":{"id":true,"name":true}}';
+    const raw = '{"user":{"$select":{"id":true,"name":true}}}';
     const registerResponse = await handler({
       method: "POST",
       path: "/mesh/queries",
@@ -51,7 +51,7 @@ describe("createPersistedQueriesHandler", () => {
     ]);
     const handler = createPersistedQueriesHandler(mesh, { store });
 
-    const raw = '{"user":{"id":true}}';
+    const raw = '{"user":{"$select":{"id":true}}}';
     const id = registerQuery(store, raw, "json");
     const headers = signPersistedQuery(id, {
       format: "json",

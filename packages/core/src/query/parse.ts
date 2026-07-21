@@ -71,16 +71,17 @@ function parseReadNode(name: string, value: unknown): ReadNodeWire {
     if (key.startsWith("$") && !RESERVED_KEYS.has(key)) {
       throw new ParseError(`Unknown control '${key}' on '${name}'`);
     }
+    if (!key.startsWith("$")) {
+      throw new ParseError(
+        `Unknown key '${key}' on '${name}'; fields belong inside '$select'`,
+      );
+    }
   }
 
-  // `$select` is optional: when present it is the canonical selection map;
-  // otherwise the node's own non-`$` keys form the selection.
-  const selectRaw =
-    "$select" in obj
-      ? obj.$select
-      : Object.fromEntries(
-          Object.entries(obj).filter(([key]) => !key.startsWith("$")),
-        );
+  if (!("$select" in obj)) {
+    throw new ParseError(`Entity '${name}' must include '$select'`);
+  }
+  const selectRaw = obj.$select;
 
   if (!selectRaw || typeof selectRaw !== "object" || Array.isArray(selectRaw)) {
     throw new ParseError(`Entity '${name}' '$select' must be an object`);
