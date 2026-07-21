@@ -1,5 +1,19 @@
 # @meshql/gateway
 
+## 0.2.3
+
+### Patch Changes
+
+- d90a8df: Make JSON the default query format everywhere and harden selection-only QL.
+  `mesh.execute()` and `POST /mesh` now default to `json` (matching GET headers
+  and `@meshql/client`). Pass `{ format: "ql" }` or `"format": "ql"` explicitly
+  for brace syntax. The QL parser now rejects unsupported characters, trailing
+  content, missing outer braces, and empty selections.
+- Updated dependencies [d90a8df]
+- Updated dependencies [d90a8df]
+  - @meshql/client@0.8.0
+  - @meshql/core@0.9.0
+
 ## 0.2.2
 
 ### Patch Changes
