@@ -1,23 +1,42 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  buildCursorFromRow,
   buildJoinPlan,
   createQueryContext,
-  parseJson,
+  normalizeReadTree,
+  parseJsonQuery,
   parseQl,
   type MeshSchema,
+  type ReadNodeWire,
 } from "@meshql/core";
 import { buildSelectSql, decodeCursor, encodeCursor } from "./builder.js";
+
+function conformancePlan() {
+  const raw = readFileSync(
+    new URL(
+      "../../../specs/fixtures/queries/collection-controls.json",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const { ast, read } = normalizeReadTree(parseJsonQuery(raw).root, schema);
+  return buildJoinPlan(
+    ast,
+    schema,
+    createQueryContext({ requestId: "conformance", method: "GET" }),
+    { read },
+  );
+}
 
 const schema: MeshSchema = {
   entities: {
     user: {
-      type: {},
       fields: ["id", "name", "createdAt", "role"],
       table: "users",
       columns: { createdAt: "created_at" },
     },
     token: {
-      type: {},
       fields: ["accessToken", "expiresAt"],
       table: "tokens",
       columns: {
@@ -45,19 +64,28 @@ function pointReadPlan(entityId: string) {
   );
 }
 
-function listPlan(list: Record<string, unknown>) {
-  const ast = parseJson(
-    JSON.stringify({
-      user: { id: true, name: true },
-      $list: list,
-    }),
+function listPlan(node: Partial<Omit<ReadNodeWire, "name" | "select">>) {
+  const { ast, read } = normalizeReadTree(
+    { name: "user", select: { id: true, name: true }, ...node },
+    schema,
   );
   return buildJoinPlan(
     ast,
     schema,
     createQueryContext({ requestId: "1", method: "GET" }),
-    { list: ast.list },
+    { read },
   );
+}
+
+function cursorForRow(
+  node: Partial<Omit<ReadNodeWire, "name" | "select">>,
+  row: Record<string, unknown>,
+): string {
+  const { read } = normalizeReadTree(
+    { name: "user", select: { id: true, name: true }, ...node },
+    schema,
+  );
+  return buildCursorFromRow(read, row)!;
 }
 
 describe("buildSelectSql — point read", () => {
@@ -69,7 +97,7 @@ describe("buildSelectSql — point read", () => {
     // the shaper. `tokens.id` is auto-added by the planner so the shaper can
     // dedupe Cartesian-product rows.
     expect(sql).toBe(
-      'SELECT users.id AS "user_id", users.name AS "user_name", tokens.access_token AS "tokens_accessToken", tokens.id AS "tokens_id" FROM users LEFT JOIN tokens AS tokens ON tokens.user_id = users.id WHERE users.id = $1',
+      'SELECT users.id AS "user_id", users.name AS "user_name", tokens.id AS "tokens_id", tokens.access_token AS "tokens_accessToken" FROM users LEFT JOIN tokens AS tokens ON tokens.user_id = users.id WHERE users.id = $1',
     );
     expect(params).toEqual(["123"]);
   });
@@ -82,136 +110,165 @@ describe("buildSelectSql — point read", () => {
   });
 });
 
-describe("buildSelectSql — list options", () => {
-  it("renders filters as parameterised AND clauses", () => {
+describe("buildSelectSql — collection reads", () => {
+  it("passes the shared collection-control conformance fixture", () => {
+    const { sql, params } = buildSelectSql(conformancePlan(), schema);
+    expect(sql).toContain(
+      "WHERE (users.role = ANY($1) AND users.name IS NOT NULL)",
+    );
+    expect(sql).toContain(
+      "ORDER BY users.created_at DESC NULLS LAST, users.id ASC",
+    );
+    expect(sql).toContain("LIMIT $2");
+    expect(params).toEqual([["admin", "owner"], 3]);
+  });
+
+  it("renders a $where filter as a parameterised clause", () => {
     const plan = listPlan({
-      filter: [
-        { field: "role", op: "eq", value: "admin" },
-        { field: "id", op: "gt", value: 100 },
-      ],
+      where: { field: "role", op: "eq", value: "admin" },
     });
 
     const { sql, params } = buildSelectSql(plan, schema);
-    expect(sql).toContain("WHERE users.role = $1 AND users.id > $2");
-    expect(params).toEqual(["admin", 100, 50]); // limit=50 default appended last
+    expect(sql).toContain("WHERE users.role = $1");
+    // where value + sentinel limit (default 50 + 1)
+    expect(params).toEqual(["admin", 51]);
+  });
+
+  it("renders boolean AND with parentheses", () => {
+    const plan = listPlan({
+      where: {
+        and: [
+          { field: "role", op: "eq", value: "admin" },
+          { field: "id", op: "gt", value: 100 },
+        ],
+      },
+    });
+
+    const { sql } = buildSelectSql(plan, schema);
+    expect(sql).toContain("WHERE (users.role = $1 AND users.id > $2)");
   });
 
   it("uses Postgres ANY/ALL for in/nin filters", () => {
     const plan = listPlan({
-      filter: [
-        { field: "role", op: "in", value: ["admin", "owner"] },
-        { field: "role", op: "nin", value: ["banned"] },
-      ],
+      where: {
+        and: [
+          { field: "role", op: "in", value: ["admin", "owner"] },
+          { field: "role", op: "nin", value: ["banned"] },
+        ],
+      },
     });
 
     const { sql, params } = buildSelectSql(plan, schema);
-    expect(sql).toContain("WHERE users.role = ANY($1) AND users.role <> ALL($2)");
+    expect(sql).toContain("(users.role = ANY($1) AND users.role <> ALL($2))");
     expect(params[0]).toEqual(["admin", "owner"]);
     expect(params[1]).toEqual(["banned"]);
   });
 
   it("respects config.columns for filter field mapping", () => {
     const plan = listPlan({
-      filter: [{ field: "createdAt", op: "gte", value: "2026-01-01" }],
+      where: { field: "createdAt", op: "gte", value: "2026-01-01" },
     });
 
     const { sql } = buildSelectSql(plan, schema);
-    // 'createdAt' remaps to 'created_at'.
     expect(sql).toContain("WHERE users.created_at >= $1");
   });
 
-  it("renders ORDER BY with multiple keys and mixed directions", () => {
+  it("renders ORDER BY with multiple keys, directions, NULLS, and an id tiebreaker", () => {
     const plan = listPlan({
       orderBy: [
-        { field: "createdAt", dir: "desc" },
-        { field: "name", dir: "asc" },
+        { field: "createdAt", direction: "desc" },
+        { field: "name", direction: "asc" },
       ],
     });
 
     const { sql } = buildSelectSql(plan, schema);
-    expect(sql).toContain("ORDER BY users.created_at DESC, users.name ASC");
+    expect(sql).toContain(
+      "ORDER BY users.created_at DESC NULLS LAST, users.name ASC NULLS LAST, users.id ASC NULLS LAST",
+    );
   });
 
-  it("defaults ORDER BY to id ASC for list reads without an explicit ORDER BY", () => {
-    const plan = listPlan({ limit: 20 });
+  it("defaults ORDER BY to id ASC for collection reads without an explicit ORDER BY", () => {
+    const plan = listPlan({ page: { first: 20 } });
     const { sql } = buildSelectSql(plan, schema);
-    expect(sql).toContain("ORDER BY users.id ASC");
+    expect(sql).toContain("ORDER BY users.id ASC NULLS LAST");
   });
 
-  it("appends LIMIT with the requested value", () => {
-    const plan = listPlan({ limit: 20 });
+  it("appends LIMIT with the requested page size plus a sentinel row", () => {
+    const plan = listPlan({ page: { first: 20 } });
     const { sql, params } = buildSelectSql(plan, schema);
     expect(sql).toContain(`LIMIT $${params.length}`);
-    expect(params[params.length - 1]).toBe(20);
+    expect(params[params.length - 1]).toBe(21);
   });
 
-  it("caps LIMIT at MAX_LIST_LIMIT (200) even if plan.list.limit is higher", () => {
-    // Bypass validator by constructing the plan manually so the builder's
-    // defensive cap is what we're testing.
-    const ast = parseQl("{ user { id name } }");
+  it("caps the page size at MAX_PAGE_FIRST (200) before the sentinel", () => {
+    const { ast, read } = normalizeReadTree(
+      { name: "user", select: { id: true, name: true }, page: { first: 200 } },
+      schema,
+    );
     const plan = buildJoinPlan(
       ast,
       schema,
       createQueryContext({ requestId: "1", method: "GET" }),
-      { list: { limit: 999 } },
+      { read },
     );
     const { params } = buildSelectSql(plan, schema);
-    expect(params[params.length - 1]).toBe(200);
+    expect(params[params.length - 1]).toBe(201);
   });
 
-  it("defaults LIMIT to DEFAULT_LIST_LIMIT (50) when plan.list is set with no limit", () => {
-    const plan = listPlan({ orderBy: [{ field: "id", dir: "asc" }] });
+  it("defaults the page size to DEFAULT_PAGE_FIRST (50) plus the sentinel", () => {
+    const plan = listPlan({ orderBy: [{ field: "id", direction: "asc" }] });
     const { params } = buildSelectSql(plan, schema);
-    expect(params[params.length - 1]).toBe(50);
+    expect(params[params.length - 1]).toBe(51);
   });
 
-  it("decodes cursor into a WHERE id > $n keyset predicate", () => {
-    const cursor = encodeCursor({ id: 100 });
-    const plan = listPlan({ cursor });
+  it("decodes a read cursor into a keyset predicate", () => {
+    const after = cursorForRow({}, { id: 100 });
+    const plan = listPlan({ page: { first: 10, after } });
 
     const { sql, params } = buildSelectSql(plan, schema);
-    expect(sql).toMatch(/WHERE users\.id > \$1/);
+    expect(sql).toContain("(users.id) > ($1)");
     expect(params[0]).toBe(100);
   });
 
   it("combines filter, cursor, orderBy, and limit in the right shape", () => {
-    const cursor = encodeCursor({ id: 42 });
-    const plan = listPlan({
-      filter: [{ field: "role", op: "eq", value: "admin" }],
-      orderBy: [{ field: "createdAt", dir: "desc" }],
-      cursor,
-      limit: 25,
-    });
+    const node = {
+      where: { field: "role", op: "eq" as const, value: "admin" },
+      orderBy: [{ field: "createdAt", direction: "desc" as const }],
+    };
+    const after = cursorForRow(node, { createdAt: "2026-01-01", id: 42 });
+    const plan = listPlan({ ...node, page: { first: 25, after } });
 
     const { sql, params } = buildSelectSql(plan, schema);
+    expect(sql).toContain("WHERE users.role = $1");
+    expect(sql).toContain("(users.created_at, users.id) < ($2, $3)");
     expect(sql).toContain(
-      "WHERE users.role = $1 AND users.id > $2 ORDER BY users.created_at DESC LIMIT $3",
+      "ORDER BY users.created_at DESC NULLS LAST, users.id ASC NULLS LAST LIMIT $4",
     );
-    expect(params).toEqual(["admin", 42, 25]);
+    expect(params[0]).toBe("admin");
+    expect(params[params.length - 1]).toBe(26);
   });
 
-  it("ignores list filters when a point-read entityId is present", () => {
-    const ast = parseJson(
-      JSON.stringify({
-        user: { id: true },
-        $list: { filter: [{ field: "role", op: "eq", value: "admin" }] },
-      }),
+  it("ignores read controls when a point-read entityId is present", () => {
+    const { ast, read } = normalizeReadTree(
+      {
+        name: "user",
+        select: { id: true },
+        where: { field: "role", op: "eq", value: "admin" },
+      },
+      schema,
     );
     const plan = buildJoinPlan(
       ast,
       schema,
-      createQueryContext({
-        requestId: "1",
-        method: "GET",
-        entityId: "5",
-      }),
-      { list: ast.list },
+      createQueryContext({ requestId: "1", method: "GET", entityId: "5" }),
+      { read },
     );
 
     const { sql, params } = buildSelectSql(plan, schema);
     expect(sql).toContain("WHERE users.id = $1");
     expect(sql).not.toContain("role = ");
     expect(sql).not.toContain("LIMIT");
+    expect(sql).not.toMatch(/ORDER BY/);
     expect(params).toEqual(["5"]);
   });
 });
@@ -219,9 +276,9 @@ describe("buildSelectSql — list options", () => {
 describe("buildSelectSql — nested joins", () => {
   const blogSchema: MeshSchema = {
     entities: {
-      post: { type: {}, fields: ["id", "title"], table: "posts" },
-      comment: { type: {}, fields: ["id", "body"], table: "comments" },
-      user: { type: {}, fields: ["id", "name"], table: "users" },
+      post: { fields: ["id", "title"], table: "posts" },
+      comment: { fields: ["id", "body"], table: "comments" },
+      user: { fields: ["id", "name"], table: "users" },
     },
     joins: {
       "post.author": {

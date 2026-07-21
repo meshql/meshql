@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { buildJoinPlan } from "./join-plan.js";
 import { parseQl } from "../parser/index.js";
+import { normalizeReadTree } from "../query/index.js";
 import { createQueryContext } from "../resolver/context.js";
 import type { MeshSchema } from "../schema/schema.js";
 
 const schema: MeshSchema = {
   entities: {
-    user: { type: {}, fields: ["id", "name"] },
-    token: { type: {}, fields: ["accessToken"] },
+    user: { fields: ["id", "name"] },
+    token: { fields: ["accessToken"] },
   },
   joins: {
     "user.tokens": {
@@ -30,13 +31,13 @@ describe("buildJoinPlan", () => {
     expect(plan.rootEntity).toBe("user");
     expect(plan.idField).toBe("id");
     // Root id was requested; tokens.id is auto-added so the shaper can dedupe.
-    expect(plan.fields).toEqual(["users.id", "tokens.accessToken", "tokens.id"]);
+    expect(plan.fields).toEqual(["users.id", "tokens.id", "tokens.accessToken"]);
     expect(plan.joins).toHaveLength(1);
     expect(plan.joins[0]?.path).toBe("tokens");
     expect(plan.joins[0]?.joinKey).toBe("user.tokens");
     expect(plan.joins[0]?.on).toBe("tokens.user_id = users.id");
     expect(plan.joins[0]?.idField).toBe("id");
-    expect(plan.joins[0]?.fields).toEqual(["tokens.accessToken", "tokens.id"]);
+    expect(plan.joins[0]?.fields).toEqual(["tokens.id", "tokens.accessToken"]);
   });
 
   it("does not duplicate the id when already requested", () => {
@@ -64,9 +65,8 @@ describe("buildJoinPlan", () => {
   it("respects a custom idField on entities", () => {
     const customSchema: MeshSchema = {
       entities: {
-        user: { type: {}, fields: ["uuid", "name"], idField: "uuid" },
+        user: { fields: ["uuid", "name"], idField: "uuid" },
         token: {
-          type: {},
           fields: ["sid", "accessToken"],
           idField: "sid",
         },
@@ -92,8 +92,8 @@ describe("buildJoinPlan", () => {
     expect(plan.fields).toEqual([
       "users.name",
       "users.uuid",
-      "tokens.accessToken",
       "tokens.sid",
+      "tokens.accessToken",
     ]);
   });
 
@@ -101,7 +101,6 @@ describe("buildJoinPlan", () => {
     const irregularSchema: MeshSchema = {
       entities: {
         address: {
-          type: {},
           fields: ["id", "street"],
           table: "addresses",
         },
@@ -132,34 +131,35 @@ describe("buildJoinPlan", () => {
     expect(plan.fields).toEqual(["users.id", "users.name"]);
   });
 
-  it("attaches list options to the plan when provided", () => {
-    const ast = parseQl("{ user { id name } }");
+  it("derives list metadata from the normalized read tree", () => {
+    const { ast, read } = normalizeReadTree(
+      {
+        name: "user",
+        select: { id: true, name: true },
+        where: { field: "id", op: "gt", value: 100 },
+        orderBy: [{ field: "name", direction: "asc" }],
+        page: { first: 20 },
+      },
+      schema,
+    );
     const plan = buildJoinPlan(
       ast,
       schema,
       createQueryContext({ requestId: "1", method: "GET" }),
-      {
-        list: {
-          limit: 20,
-          orderBy: [{ field: "name", dir: "asc" }],
-          filter: [{ field: "id", op: "gt", value: 100 }],
-        },
-      },
+      { read },
     );
 
-    expect(plan.list).toEqual({
-      limit: 20,
-      orderBy: [{ field: "name", dir: "asc" }],
-      filter: [{ field: "id", op: "gt", value: 100 }],
-    });
+    expect(plan.read?.page?.first).toBe(20);
+    expect(plan.list?.limit).toBe(20);
+    expect(plan.list?.filter).toEqual([{ field: "id", op: "gt", value: 100 }]);
   });
 
-  it("leaves plan.list undefined for point reads", () => {
+  it("leaves plan.list undefined for point reads (by id)", () => {
     const ast = parseQl("{ user { id name } }");
     const plan = buildJoinPlan(
       ast,
       schema,
-      createQueryContext({ requestId: "1", method: "GET" }),
+      createQueryContext({ requestId: "1", method: "GET", entityId: "1" }),
     );
 
     expect(plan.list).toBeUndefined();
@@ -168,9 +168,9 @@ describe("buildJoinPlan", () => {
   it("plans nested joins (post → comments → author)", () => {
     const blogSchema: MeshSchema = {
       entities: {
-        post: { type: {}, fields: ["id", "title"], table: "posts" },
-        comment: { type: {}, fields: ["id", "body"], table: "comments" },
-        user: { type: {}, fields: ["id", "name"], table: "users" },
+        post: { fields: ["id", "title"], table: "posts" },
+        comment: { fields: ["id", "body"], table: "comments" },
+        user: { fields: ["id", "name"], table: "users" },
       },
       joins: {
         "post.comments": {
@@ -208,10 +208,10 @@ describe("buildJoinPlan", () => {
     });
     expect(plan.fields).toEqual([
       "posts.id",
-      "comments.body",
       "comments.id",
-      "comments.author.name",
+      "comments.body",
       "comments.author.id",
+      "comments.author.name",
     ]);
   });
 
@@ -219,8 +219,8 @@ describe("buildJoinPlan", () => {
     const ast = parseQl("{ user { id tokens { accessToken } } }");
     const schemaWithoutJoin: MeshSchema = {
       entities: {
-        user: { type: {}, fields: ["id", "name"] },
-        token: { type: {}, fields: ["accessToken"] },
+        user: { fields: ["id", "name"] },
+        token: { fields: ["accessToken"] },
       },
       joins: {},
     };

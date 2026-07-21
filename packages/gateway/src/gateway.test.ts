@@ -12,7 +12,7 @@ describe("createGateway", () => {
     const config: GatewayConfig = {
       schema: {
         entities: {
-          user: { type: {}, fields: ["id", "name"] },
+          user: { fields: ["id", "name"] },
         },
         joins: {},
       },

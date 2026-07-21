@@ -4,8 +4,8 @@ import { withAccess } from "./index.js";
 
 const schema = {
   entities: {
-    user: { type: {}, fields: ["id", "email"], table: "users" },
-    admin: { type: {}, fields: ["id"], table: "admins" },
+    user: { fields: ["id", "email"], table: "users" },
+    admin: { fields: ["id"], table: "admins" },
   },
   joins: {},
 };
@@ -28,7 +28,10 @@ describe("withAccess", () => {
       context: { requestId: "1", method: "GET", role: "user" },
     });
 
-    expect(result).toEqual([]);
+    expect(result).toEqual({
+      items: [],
+      pageInfo: { hasNextPage: false, startCursor: null, endCursor: null },
+    });
     expect(resolver).not.toHaveBeenCalled();
   });
 

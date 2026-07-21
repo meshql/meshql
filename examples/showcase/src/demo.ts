@@ -8,7 +8,7 @@
  *   pnpm --filter showcase demo
  */
 import { createAuthClient, createClient } from "@meshql/client";
-import { encodeCursor } from "@meshql/sqlite";
+import type { CollectionResult } from "@meshql/core";
 
 const BASE = process.env.SHOWCASE_URL ?? "http://localhost:3010/mesh";
 
@@ -55,15 +55,13 @@ async function main() {
   );
   ok("post with author + comments", post);
 
-  // ── 3. List + filter + orderBy ───────────────────────────
-  section("3. List queries ($list in signed payload)");
+  // ── 3. Collection reads: where + orderBy ─────────────────
+  section("3. Collection reads (v2 controls in signed payload)");
   const published = await guest.query(
     { post: { id: true, title: true, status: true } },
     {
-      list: {
-        limit: 10,
-        orderBy: [{ field: "createdAt", dir: "desc" }],
-      },
+      page: { first: 10 },
+      orderBy: [{ field: "createdAt", direction: "desc" }],
     },
   );
   ok("guest list (published only)", published);
@@ -71,37 +69,30 @@ async function main() {
   const drafts = await author.query(
     { post: { id: true, title: true, status: true } },
     {
-      list: {
-        filter: [{ field: "status", op: "eq", value: "draft" }],
-      },
+      where: { field: "status", op: "eq", value: "draft" },
     },
   );
   ok("author can list drafts", drafts);
 
-  // ── 4. Cursor pagination ─────────────────────────────────
-  section("4. Cursor pagination");
+  // ── 4. Keyset pagination ─────────────────────────────────
+  section("4. Keyset pagination");
   const page1 = (await author.query(
     { post: { id: true, title: true } },
     {
-      list: {
-        limit: 1,
-        orderBy: [{ field: "id", dir: "asc" }],
-      },
+      page: { first: 1 },
+      orderBy: [{ field: "id", direction: "asc" }],
     },
-  )) as Array<{ id: number; title: string }>;
-  const cursor = encodeCursor({ id: page1[0]!.id });
-  const page2 = await author.query(
+  )) as CollectionResult<{ id: number; title: string }>;
+  const after = page1.pageInfo.endCursor;
+  const page2 = (await author.query(
     { post: { id: true, title: true } },
     {
-      list: {
-        limit: 1,
-        cursor,
-        orderBy: [{ field: "id", dir: "asc" }],
-      },
+      page: { first: 1, after },
+      orderBy: [{ field: "id", direction: "asc" }],
     },
-  );
-  ok("page 1", page1);
-  ok("page 2 (after cursor)", page2);
+  )) as CollectionResult<{ id: number; title: string }>;
+  ok("page 1", page1.items);
+  ok("page 2 (after cursor)", page2.items);
 
   // ── 5. Access control ────────────────────────────────────
   section("5. Field access (user.email)");

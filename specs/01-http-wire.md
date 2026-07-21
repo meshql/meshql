@@ -1,6 +1,6 @@
 # 01 — HTTP wire protocol
 
-**Status:** Draft (protocol v1)  
+**Status:** Draft  
 **Applies to:** Compliance Level 1+
 
 ## Base path
@@ -21,7 +21,7 @@ use `/mesh`. Implementations MUST support remapping the base path.
 primary key as a path segment (string; implementations MAY coerce numerics
 when talking to storage).
 
-Core write mutations (create/update/delete) are **not** part of protocol v1.
+Core write mutations (create/update/delete) are not part of the read protocol.
 `DELETE` SHOULD return **405** until a mutation profile is specified.
 
 ## Routes (persisted queries — optional)
@@ -59,7 +59,6 @@ See [07 — Uploads](./07-uploads.md).
 | `X-Mesh-Query` | One of `X-Mesh-Query` / `X-Mesh-Query-Id` | Base64-encoded query payload (UTF-8). Padding MAY be present. |
 | `X-Mesh-Query-Id` | One of `X-Mesh-Query` / `X-Mesh-Query-Id` | Persisted query ID from `POST /{base}/queries` (e.g. `q_a3f1b2c8`) |
 | `X-Mesh-Format` | No | `json` (default) or `ql` |
-| `X-Mesh-Version` | No | Protocol version; default `1` |
 | `X-Mesh-Signature` | L3 | `sha256=` + hex HMAC over the **exact** `X-Mesh-Query` or `X-Mesh-Query-Id` header value |
 | `X-Mesh-Token` | L3 | Opaque wire token from auth |
 
@@ -91,8 +90,9 @@ Content-Type: `application/json`.
 ## Successful response
 
 - Status **200**
-- Body: JSON object or array shaped per the selection (see [04 — Shaper](./04-shaper.md))
-- Point reads typically return a single object (or empty object / 404 — implementation MAY choose; the TypeScript reference returns `{}` for missing Prisma rows). Document behavior.
+- Point read body: selected object or `null`
+- Collection body: `{ "items": [...], "pageInfo": { "hasNextPage", "startCursor", "endCursor" } }`
+- POST and docs proxies MAY wrap either result as `{ "data": ..., "meta": ... }`
 
 ## Error response
 

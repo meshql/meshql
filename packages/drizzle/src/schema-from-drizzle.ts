@@ -93,7 +93,6 @@ export function schemaFromDrizzle(
     }
 
     entities[entity] = {
-      type: {},
       fields,
       ...(idField && idField !== "id" ? { idField } : {}),
       table: tableKey,

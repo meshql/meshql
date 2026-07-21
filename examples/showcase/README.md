@@ -6,7 +6,7 @@ traffic goes to **`/mesh/*`** — login, reads, writes, and uploads.
 | Network call | Purpose |
 |--------------|---------|
 | `POST /mesh/auth` | Login via `createAuthClient().login()` |
-| `GET /mesh/post` | List posts (signed query + `$list`) |
+| `GET /mesh/post` | Collection read with signed `$where` / `$orderBy` / `$page` controls |
 | `GET /mesh/post/:id` | Post detail |
 | `GET /mesh/user/:id` | Profile (field access demo) |
 | `POST /mesh/write` | CRUD writes (preview until core mutations) |

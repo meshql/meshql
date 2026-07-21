@@ -6,7 +6,7 @@ import { issueToken, withIntegrity } from "./plugin.js";
 
 const schema = {
   entities: {
-    user: { type: {}, fields: ["id", "avatar"] },
+    user: { fields: ["id", "avatar"] },
   },
   joins: {},
 };

@@ -1,6 +1,6 @@
 # 03 — JoinPlan
 
-**Status:** Draft (protocol v1)  
+**Status:** Draft  
 **Applies to:** Compliance Level 1+
 
 After parsing and validating a query, an implementation MUST produce a
@@ -15,7 +15,7 @@ consume this plan to fetch only requested data.
 | `fields` | string[] | Qualified scalar selections for the root (and possibly joins, depending on implementation). The TS planner uses table-prefixed paths such as `users.id`. |
 | `idField` | string | Identifying field on the root entity (default `id`) |
 | `joins` | `ResolvedJoin[]` | Nested relations requested by the client |
-| `list` | object? | Present only for list reads (L2) — see [05](./05-list-options.md) |
+| `read` | object? | Normalized selection and collection controls — see [05](./05-read-controls.md) |
 | `context` | object | At least: request correlation, HTTP method, optional `entityId` for point reads |
 
 ## ResolvedJoin

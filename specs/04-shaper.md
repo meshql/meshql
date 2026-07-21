@@ -1,6 +1,6 @@
 # 04 — Response shaper
 
-**Status:** Draft (protocol v1)  
+**Status:** Draft  
 **Applies to:** Compliance Level 1+
 
 The shaper converts **flat relational rows** into the nested JSON selection

@@ -1,7 +1,14 @@
-import { createMesh, type JoinPlan, type MeshPlugin } from "@meshql/core";
-import { depthLimit } from "@meshql/core/builtins";
+import {
+  createMesh,
+  type JoinPlan,
+  type MeshPlugin,
+  type WhereExpr,
+  recordPlanSql,
+} from "@meshql/core";
 import { withAccess } from "@meshql/access";
+import { withDocs, type DocsConfig } from "@meshql/docs";
 import { withIntegrity } from "@meshql/integrity";
+import { depthLimit } from "@meshql/core/builtins";
 import { buildSelectSql } from "@meshql/sqlite";
 import { withUpload } from "@meshql/upload";
 import { db, ensureSchema, seed, type SqliteParam } from "./db.js";
@@ -17,7 +24,7 @@ const base = withUpload(createMesh(schema), {
   localDirectory: "./uploads",
 });
 
-export const mesh = withIntegrity(base, {
+const integrityMesh = withIntegrity(base, {
   secret: SECRET,
   tokenTTL: "1h",
   authenticate: async (credentials) => {
@@ -40,7 +47,7 @@ export const mesh = withIntegrity(base, {
   },
 });
 
-withAccess(mesh, {
+withAccess(integrityMesh, {
   rules: {
     "user.email": (ctx) => ctx.role === "admin",
   },
@@ -63,25 +70,37 @@ const guestPostFilter: MeshPlugin = {
       return plan;
     }
     if (plan.context.entityId !== undefined) return plan;
+    if (!plan.read) return plan;
+
+    const published: WhereExpr = {
+      field: "status",
+      op: "eq",
+      value: "published",
+    };
+    const where: WhereExpr = plan.read.where
+      ? { and: [plan.read.where, published] }
+      : published;
 
     return {
       ...plan,
-      list: {
-        ...plan.list,
-        filter: [
-          ...(plan.list?.filter ?? []),
-          { field: "status", op: "eq", value: "published" },
-        ],
-      },
+      read: { ...plan.read, where },
     };
   },
 };
 
-mesh.use(guestPostFilter);
-mesh.use(depthLimit({ max: 5 }));
+integrityMesh.use(guestPostFilter);
+integrityMesh.use(depthLimit({ max: 5 }));
+
+export const mesh = withDocs(integrityMesh, {
+  path: "/docs",
+  title: "MeshQL Showcase",
+  sql: "dev",
+  auth: false,
+}) as typeof integrityMesh & { docs: DocsConfig };
 
 mesh.resolve("*", async (plan: JoinPlan) => {
   const { sql, params } = buildSelectSql(plan, schema);
+  recordPlanSql(plan, { sql, params });
   return db.prepare(sql).all(...(params as SqliteParam[]));
 });
 

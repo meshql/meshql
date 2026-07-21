@@ -1,6 +1,6 @@
 import type { OrderBy } from "../planner/list-options.js";
 import { DEFAULT_LIST_LIMIT } from "../planner/list-options.js";
-import { decodeCursor } from "../planner/cursor.js";
+import { decodeReadCursor } from "../query/read-cursor.js";
 import {
   parseQualifiedPlanField,
   type JoinPlan,
@@ -158,11 +158,18 @@ export function buildOrmListQuery(plan: JoinPlan): OrmListQuery | undefined {
     };
   });
 
+  let cursorId: unknown;
+  if (plan.list.cursor) {
+    const cursor = decodeReadCursor(plan.list.cursor);
+    // Keyset cursors always carry the id tiebreaker as the final value.
+    cursorId = cursor.values[cursor.values.length - 1];
+  }
+
   return {
     limit: plan.list.limit ?? DEFAULT_LIST_LIMIT,
     filters,
     orderBy: plan.list.orderBy ?? [],
-    cursorId: plan.list.cursor ? decodeCursor(plan.list.cursor).id : undefined,
+    cursorId,
   };
 }
 

@@ -90,7 +90,7 @@ import express from "express";
 
 const schema: MeshSchema = {
   entities: {
-    user: { type: {}, fields: ["id", "name", "email"], table: "users" },
+    user: { fields: ["id", "name", "email"], table: "users" },
   },
   joins: {},
 };
@@ -153,12 +153,15 @@ const user = await client.query(
 );
 console.log("user:", user);
 
-// List read ($list in signed payload)
+// Collection read
 const users = await client.query(
   { user: { id: true, name: true } },
-  { list: { limit: 10, orderBy: [{ field: "id", dir: "asc" }] } },
+  {
+    page: { first: 10 },
+    orderBy: [{ field: "id", direction: "asc" }],
+  },
 );
-console.log("list:", users);
+console.log("list:", users.items, users.pageInfo);
 ```
 
 ```bash
@@ -202,10 +205,10 @@ curl -s "http://localhost:3001/mesh/user/1" \
 
 Prefer `@meshql/client` — it handles encoding and signing automatically.
 
-### List with `$list`
+### Collection with read controls
 
 ```bash
-Q=$(mesh_query '{"user":{"id":true,"name":true},"$list":{"limit":10}}')
+Q=$(mesh_query '{"user":{"$select":{"id":true,"name":true},"$page":{"first":10}}}')
 
 curl -s "http://localhost:3001/mesh/user" \
   -H "X-Mesh-Query: $Q" \
@@ -214,7 +217,7 @@ curl -s "http://localhost:3001/mesh/user" \
   -H "X-Mesh-Signature: sha256=..."
 ```
 
-List options live in the signed payload, not URL query strings.
+Read controls live in the signed payload, not URL query strings.
 
 ### Missing header (expected error)
 

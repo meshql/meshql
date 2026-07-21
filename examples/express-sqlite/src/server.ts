@@ -7,12 +7,10 @@ import { db, ensureSchema, seed, type SqliteParam } from "./db.js";
 const schema: MeshSchema = {
   entities: {
     user: {
-      type: {} as { id: number; name: string },
       fields: ["id", "name"],
       table: "users",
     },
     token: {
-      type: {} as { accessToken: string; expiresAt: string },
       fields: ["accessToken", "expiresAt"],
       table: "tokens",
       columns: {

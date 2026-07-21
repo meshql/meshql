@@ -99,11 +99,6 @@ export function decodeQuery(
   const { queryHeader, queryId } = readQueryTransport(req);
   const transport = readTransportHeaders(req);
   const format = (getHeader(req.headers, "x-mesh-format") ?? "json") as QueryFormat;
-  const version = getHeader(req.headers, "x-mesh-version");
-
-  if (version && version !== "1") {
-    throw new TransportError(`Unsupported X-Mesh-Version '${version}'`);
-  }
 
   if (format !== "json" && format !== "ql") {
     throw new TransportError(`Unknown X-Mesh-Format '${format}' - use json or ql`);
@@ -138,7 +133,6 @@ export function encodeQuery(
   return {
     "X-Mesh-Query": Buffer.from(query, "utf8").toString("base64"),
     "X-Mesh-Format": format,
-    "X-Mesh-Version": "1",
   };
 }
 
@@ -150,7 +144,6 @@ export function encodePersistedQuery(
   return {
     "X-Mesh-Query-Id": queryId,
     "X-Mesh-Format": format,
-    "X-Mesh-Version": "1",
   };
 }
 

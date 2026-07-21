@@ -16,10 +16,10 @@ describe("entityTable", () => {
   });
 
   it("respects config.table override for irregular plurals", () => {
-    expect(entityTable("address", { type: {}, fields: [], table: "addresses" })).toBe(
+    expect(entityTable("address", { fields: [], table: "addresses" })).toBe(
       "addresses",
     );
-    expect(entityTable("story", { type: {}, fields: [], table: "stories" })).toBe(
+    expect(entityTable("story", { fields: [], table: "stories" })).toBe(
       "stories",
     );
   });
@@ -28,20 +28,20 @@ describe("entityTable", () => {
 describe("entityIdField", () => {
   it("defaults to 'id'", () => {
     expect(entityIdField()).toBe("id");
-    expect(entityIdField({ type: {}, fields: [] })).toBe("id");
+    expect(entityIdField({ fields: [] })).toBe("id");
   });
 
   it("respects a config override", () => {
-    expect(entityIdField({ type: {}, fields: [], idField: "uuid" })).toBe("uuid");
+    expect(entityIdField({ fields: [], idField: "uuid" })).toBe("uuid");
   });
 });
 
 describe("resolveEntityKey", () => {
   const schema: MeshSchema = {
     entities: {
-      user: { type: {}, fields: ["id"] },
-      address: { type: {}, fields: ["id"], table: "addresses" },
-      category: { type: {}, fields: ["id"], table: "categories" },
+      user: { fields: ["id"] },
+      address: { fields: ["id"], table: "addresses" },
+      category: { fields: ["id"], table: "categories" },
     },
     joins: {},
   };
@@ -69,7 +69,7 @@ describe("resolveEntityKey", () => {
 
   it("falls back to naive singularization for legacy regular plurals", () => {
     const legacy: MeshSchema = {
-      entities: { post: { type: {}, fields: ["id"] } },
+      entities: { post: { fields: ["id"] } },
       joins: {},
     };
     expect(resolveEntityKey("posts", legacy)).toBe("post");
