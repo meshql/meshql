@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.7
+
+### Patch Changes
+
+- Updated dependencies [9687686]
+- Updated dependencies [9687686]
+- Updated dependencies [9687686]
+- Updated dependencies [9687686]
+  - @meshql/core@0.8.0
+
 ## 0.2.6
 
 ### Patch Changes
