@@ -112,6 +112,7 @@ describeIfSqlite("buildSelectSql round-trips against node:sqlite", () => {
 
     return mesh
       .execute("{ user { id name tokens { accessToken expiresAt } } }", {
+        format: "ql",
         context: { requestId: "1", method: "GET", entityId: "1" },
       })
       .then((response) => {
@@ -138,7 +139,10 @@ describeIfSqlite("buildSelectSql round-trips against node:sqlite", () => {
 
     const response = (await mesh.execute(
       "{ user { id name tokens { accessToken } notes { body } } }",
-      { context: { requestId: "1", method: "GET", entityId: "1" } },
+      {
+        format: "ql",
+        context: { requestId: "1", method: "GET", entityId: "1" },
+      },
     )) as {
       id: number;
       name: string;
@@ -172,7 +176,10 @@ describeIfSqlite("buildSelectSql round-trips against node:sqlite", () => {
 
     const response = await mesh.execute(
       "{ user { id name tokens { accessToken } notes { body } } }",
-      { context: { requestId: "2", method: "GET", entityId: "2" } },
+      {
+        format: "ql",
+        context: { requestId: "2", method: "GET", entityId: "2" },
+      },
     );
 
     expect(response).toEqual({
@@ -231,7 +238,10 @@ describeIfSqlite("buildSelectSql round-trips against node:sqlite", () => {
 
     const response = (await mesh.execute(
       "{ post { id title comments { body author { name } } } }",
-      { context: { requestId: "1", method: "GET", entityId: "1" } },
+      {
+        format: "ql",
+        context: { requestId: "1", method: "GET", entityId: "1" },
+      },
     )) as {
       id: number;
       title: string;
@@ -262,7 +272,9 @@ describeIfSqlite("buildSelectSql round-trips against node:sqlite", () => {
         return db.prepare(sql).all(...(params as SqliteParam[]));
       });
       return (await mesh.execute(
-        JSON.stringify({ user: { id: true, name: true, ...controls } }),
+        JSON.stringify({
+          user: { $select: { id: true, name: true }, ...controls },
+        }),
         { format: "json" },
       )) as CollectionResult<UserRow>;
     }

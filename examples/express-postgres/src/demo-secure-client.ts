@@ -21,7 +21,7 @@ async function main() {
 
   console.log("Querying users...");
   const users = await client.query({
-    user: { id: true, name: true },
+    user: { $select: { id: true, name: true } },
   });
   console.log("Users:", users);
 }

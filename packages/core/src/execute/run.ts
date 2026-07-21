@@ -149,7 +149,7 @@ export async function runMeshExecute(
   query: string,
   options: ExecuteOptions = {},
 ): Promise<ExecuteDetailedResult> {
-  const format = options.format ?? "ql";
+  const format = options.format ?? "json";
   const startTime = Date.now();
   const context = createQueryContext(
     options.context ?? {

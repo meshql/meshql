@@ -7,10 +7,12 @@ console.log("time start", new Date().toISOString());
 const data = await client.query(
   {
     user: {
-      id: true,
-      name: true,
-      tokens: {
-        accessToken: true,
+      $select: {
+        id: true,
+        name: true,
+        tokens: {
+          $select: { accessToken: true },
+        },
       },
     },
   },

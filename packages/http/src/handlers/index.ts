@@ -52,7 +52,7 @@ export async function handlePost(
   }
 
   return mesh.execute(query, {
-    format: body.format ?? "ql",
+    format: body.format ?? "json",
     list: true,
     context: {
       requestId: crypto.randomUUID(),

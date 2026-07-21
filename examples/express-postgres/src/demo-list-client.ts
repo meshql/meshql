@@ -7,16 +7,16 @@ const client = createClient({
 const users = await client.query(
   {
     user: {
-      id: true,
-      name: true,
-      tokens: {
-        accessToken: true,
+      $select: {
+        id: true,
+        name: true,
+        tokens: {
+          $select: { accessToken: true },
+        },
       },
+      $page: { first: 10 },
+      $orderBy: [{ field: "name", direction: "asc" }],
     },
-  },
-  {
-    page: { first: 10 },
-    orderBy: [{ field: "name", direction: "asc" }],
   },
 );
 

@@ -4,11 +4,11 @@ Packages and entrypoints intended as semver-stable **before v1.0 freeze**. Inter
 
 | Package | Public exports | Notes |
 |---------|----------------|-------|
-| `@meshql/core` | `.`, `./builtins` | Parser, planner, shaper, plugins |
+| `@meshql/core` | `.`, `./builtins` | Parser, planner, shaper, plugins, `ComputedFieldDef` |
 | `@meshql/postgres` | `.` | `buildSelectSql` |
 | `@meshql/sqlite` | `.` | `buildSelectSql` |
 | `@meshql/http` | `.`, `./express`, `./fastify`, `./hono` | Handlers + adapters |
-| `@meshql/client` | `.` | `createClient`, `createAuthClient`, signing |
+| `@meshql/client` | `.` | `createClient`, `createAuthClient`, canonical `MeshQuery`, signing |
 | `@meshql/pubsub` | `.`, `./redis`, `./postgres` | Stores + notify helpers |
 | `@meshql/sse` | `.`, `./express`, `./fastify`, `./hono` | SSE handler + adapters |
 | `@meshql/codemods` | `.` | SDL migration API + CLI bin |

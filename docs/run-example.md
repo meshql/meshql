@@ -148,17 +148,19 @@ await client.login({ email: "ada@example.com" });
 
 // Point read
 const user = await client.query(
-  { user: { id: true, name: true, email: true } },
+  { user: { $select: { id: true, name: true, email: true } } },
   { entityId: "1" },
 );
 console.log("user:", user);
 
 // Collection read
 const users = await client.query(
-  { user: { id: true, name: true } },
   {
-    page: { first: 10 },
-    orderBy: [{ field: "id", direction: "asc" }],
+    user: {
+      $select: { id: true, name: true },
+      $page: { first: 10 },
+      $orderBy: [{ field: "id", direction: "asc" }],
+    },
   },
 );
 console.log("list:", users.items, users.pageInfo);
@@ -193,7 +195,7 @@ mesh_query() {
   echo -n "$1" | base64 | tr -d '\n'
 }
 
-Q=$(mesh_query '{"user":{"id":true,"name":true}}')
+Q=$(mesh_query '{"user":{"$select":{"id":true,"name":true}}}')
 
 # Sign with your signingToken (see @meshql/http signQuery or use the client)
 curl -s "http://localhost:3001/mesh/user/1" \

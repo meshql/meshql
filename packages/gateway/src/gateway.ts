@@ -1,4 +1,8 @@
-import type { MeshSchema } from "@meshql/core";
+import {
+  parseJsonQuery,
+  parseQl,
+  type MeshSchema,
+} from "@meshql/core";
 import { encodeQuery } from "@meshql/client";
 
 /** One downstream MeshQL service in a static gateway config. */
@@ -35,19 +39,9 @@ function serviceForEntity(
 
 function rootEntityFromQuery(query: string, format: "json" | "ql"): string {
   if (format === "json") {
-    const parsed = JSON.parse(query) as Record<string, unknown>;
-    const root = Object.keys(parsed).find((key) => !key.startsWith("$"));
-    if (!root) {
-      throw new Error("Query JSON must include a root entity");
-    }
-    return root;
+    return parseJsonQuery(query).root.name;
   }
-
-  const match = query.match(/\{\s*([A-Za-z_]\w*)/);
-  if (!match?.[1]) {
-    throw new Error("Could not parse root entity from QL query");
-  }
-  return match[1];
+  return parseQl(query).root.name;
 }
 
 async function fetchService(
@@ -127,7 +121,7 @@ export function createGateway(config: GatewayConfig): GatewayInstance {
 
         const nestedQuery =
           format === "json"
-            ? JSON.stringify({ [join.entity]: { id: true } })
+            ? JSON.stringify({ [join.entity]: { $select: { id: true } } })
             : `{ ${join.entity} { id } }`;
 
         const nested = await fetchService(

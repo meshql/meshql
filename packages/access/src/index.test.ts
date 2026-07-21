@@ -22,7 +22,7 @@ describe("withAccess", () => {
     const resolver = vi.fn(async () => ({ id: "1" }));
     mesh.resolve("admin", resolver);
 
-    const result = await mesh.execute('{"admin":{"id":true}}', {
+    const result = await mesh.execute('{"admin":{"$select":{"id":true}}}', {
       format: "json",
       list: true,
       context: { requestId: "1", method: "GET", role: "user" },
@@ -46,7 +46,7 @@ describe("withAccess", () => {
     const resolver = vi.fn(async () => ({ id: "1", email: "a@b.c" }));
     mesh.resolve("user", resolver);
 
-    const result = await mesh.execute('{"user":{"id":true,"email":true}}', {
+    const result = await mesh.execute('{"user":{"$select":{"id":true,"email":true}}}', {
       format: "json",
       context: {
         requestId: "1",
@@ -73,7 +73,7 @@ describe("withAccess", () => {
       return { id: "1" };
     });
 
-    await mesh.execute('{"user":{"id":true,"email":true}}', {
+    await mesh.execute('{"user":{"$select":{"id":true,"email":true}}}', {
       format: "json",
       context: { requestId: "1", method: "GET", role: "guest" },
     });

@@ -1,43 +1,6 @@
-import type {
-  AggregateSpec,
-  PageInput,
-  SortExpr,
-  WhereExpr,
-} from "@meshql/core";
-import {
-  selectionToJson,
-  selectionToQl,
-  type QuerySelection,
-} from "./query-builder.js";
-import {
-  buildReadNode,
-  readNodeToJson,
-  type ReadSelection,
-} from "./read-query.js";
+import { queryToQl } from "./query-builder.js";
+import { queryToJson, type MeshQuery } from "./read-query.js";
 import { signPersistedQuery, signQuery } from "./sign.js";
-
-/** Read controls attachable to a collection query. */
-export interface QueryControls {
-  where?: WhereExpr;
-  orderBy?: SortExpr[];
-  page?: PageInput;
-  groupBy?: string[];
-  aggregate?: Record<string, AggregateSpec>;
-  having?: WhereExpr;
-  distinct?: string[];
-}
-
-function hasControls(controls: QueryControls): boolean {
-  return (
-    controls.where !== undefined ||
-    controls.orderBy !== undefined ||
-    controls.page !== undefined ||
-    controls.groupBy !== undefined ||
-    controls.aggregate !== undefined ||
-    controls.having !== undefined ||
-    controls.distinct !== undefined
-  );
-}
 
 /** Auth credentials returned from login. */
 export interface AuthTokens {
@@ -114,20 +77,10 @@ export interface UploadOptions {
 
 /** Typed MeshQL HTTP client. */
 export interface MeshClient {
-  /**
-   * Execute a field selection query against the MeshQL server.
-   *
-   * Pass `entityId` for point reads (`GET /:entity/:id`). Pass read
-   * controls (`where`, `orderBy`, `page`, `groupBy`, `aggregate`, `having`,
-   * `distinct`) for collection reads (`GET /:entity`); they are serialized
-   * into the signed body alongside the selection.
-   *
-   * Controls require `format: 'json'` on the client (the QL brace format
-   * has no control syntax). Passing both `entityId` and controls throws.
-   */
+  /** Execute a canonical MeshQL query; options contain transport metadata only. */
   query<T = Record<string, unknown>>(
-    selection: QuerySelection,
-    options?: { entityId?: string } & QueryControls,
+    query: MeshQuery,
+    options?: { entityId?: string },
   ): Promise<T>;
   /**
    * Upload a file to an entity field.
@@ -220,48 +173,26 @@ export function createClient(options: MeshClientOptions): MeshClient {
   }
 
   async function executeQuery<T>(
-    selection: QuerySelection,
-    requestOptions: { entityId?: string } & QueryControls = {},
+    query: MeshQuery,
+    requestOptions: { entityId?: string } = {},
   ): Promise<T> {
-    const rootEntity = Object.keys(selection)[0];
-    if (!rootEntity) {
-      throw new Error("Query selection must include a root entity");
+    const roots = Object.keys(query);
+    if (roots.length !== 1) {
+      throw new Error("MeshQL query must have exactly one root entity");
     }
+    const rootEntity = roots[0]!;
+    const rootNode = query[rootEntity]!;
 
-    const controlsPresent = hasControls(requestOptions);
-
-    if (controlsPresent && requestOptions.entityId) {
+    if (
+      requestOptions.entityId &&
+      Object.keys(rootNode).some((key) => key !== "$select")
+    ) {
       throw new Error(
-        "Cannot combine read controls with `entityId` — use one or the other",
+        "Cannot combine root read controls with `entityId`",
       );
     }
 
-    if (controlsPresent && format !== "json") {
-      throw new Error(
-        "Read controls require format: 'json' on the client (the QL brace format has no control syntax)",
-      );
-    }
-
-    let raw: string;
-    if (format === "json") {
-      if (controlsPresent) {
-        const innerSelection = selection[rootEntity] as ReadSelection;
-        const node = buildReadNode(innerSelection, {
-          ...(requestOptions.where ? { $where: requestOptions.where } : {}),
-          ...(requestOptions.orderBy ? { $orderBy: requestOptions.orderBy } : {}),
-          ...(requestOptions.page ? { $page: requestOptions.page } : {}),
-          ...(requestOptions.groupBy ? { $groupBy: requestOptions.groupBy } : {}),
-          ...(requestOptions.aggregate ? { $aggregate: requestOptions.aggregate } : {}),
-          ...(requestOptions.having ? { $having: requestOptions.having } : {}),
-          ...(requestOptions.distinct ? { $distinct: requestOptions.distinct } : {}),
-        });
-        raw = readNodeToJson(rootEntity, node);
-      } else {
-        raw = selectionToJson(selection);
-      }
-    } else {
-      raw = selectionToQl(selection);
-    }
+    const raw = format === "json" ? queryToJson(query) : queryToQl(query);
 
     const path = requestOptions.entityId
       ? `${options.url}/${rootEntity}/${requestOptions.entityId}`
@@ -281,7 +212,7 @@ export function createClient(options: MeshClientOptions): MeshClient {
       const refreshed = await auth.onTokenExpired();
       auth.signingToken = refreshed.signingToken;
       auth.token = refreshed.token;
-      return executeQuery(selection, requestOptions);
+      return executeQuery(query, requestOptions);
     }
 
     if (!response.ok) {
@@ -511,5 +442,6 @@ export function createAuthClient(options: AuthClientOptions): AuthMeshClient {
   return Object.assign(client, { login });
 }
 
-export { selectionToJson, selectionToQl } from "./query-builder.js";
-export type { QuerySelection } from "./query-builder.js";
+export { queryToQl } from "./query-builder.js";
+export { queryToJson } from "./read-query.js";
+export type { MeshQuery, ReadNode, ReadSelection } from "./read-query.js";

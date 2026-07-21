@@ -11,7 +11,7 @@ Reference implementation: [github.com/meshql/meshql](https://github.com/meshql/m
 - [ ] Unknown field returns 400 `ValidationError`
 - [ ] Nested relation selection returns nested JSON (shaper or equivalent)
 - [ ] Multi-level nesting (`a.b.c`) returns correct nesting (not flattened away)
-- [ ] QL format accepted when `X-Mesh-Format: ql`
+- [ ] QL format accepted when `X-Mesh-Format: ql` (selection-only; explicit format required)
 - [ ] `POST /` accepts `{ "query", "format" }` body
 
 Pass fixtures: [fixtures/queries](./fixtures/queries/), [fixtures/responses](./fixtures/responses/).
@@ -37,6 +37,15 @@ Pass fixtures: [fixtures/queries](./fixtures/queries/), [fixtures/responses](./f
 
 - [ ] Multipart upload routes accept `file` part
 - [ ] `contentHash` mismatch rejected when signing enabled
+
+## Optional profile — Computed fields
+
+- [ ] Computed names are selectable under `$select`
+- [ ] Physical dependencies are fetched but omitted unless selected
+- [ ] Cross-entity `join.field` dependencies add the required join
+- [ ] Computed-to-computed and unknown dependencies are rejected
+- [ ] Computed fields denied by access rules do not expose their dependencies
+- [ ] Computed fields in `$where` are rejected
 
 ## Reporting
 

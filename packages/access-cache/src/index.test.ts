@@ -33,11 +33,11 @@ describe("withAccessCache", () => {
 
     const context = { requestId: "1", method: "GET" as const, role: "guest" };
 
-    await mesh.execute('{"user":{"id":true,"email":true}}', {
+    await mesh.execute('{"user":{"$select":{"id":true,"email":true}}}', {
       format: "json",
       context,
     });
-    await mesh.execute('{"user":{"id":true,"email":true}}', {
+    await mesh.execute('{"user":{"$select":{"id":true,"email":true}}}', {
       format: "json",
       context,
     });
@@ -69,11 +69,11 @@ describe("withAccessCache", () => {
       userId: "7",
     };
 
-    await mesh.execute('{"post":{"id":true,"title":true}}', {
+    await mesh.execute('{"post":{"$select":{"id":true,"title":true}}}', {
       format: "json",
       context,
     });
-    await mesh.execute('{"post":{"id":true,"title":true}}', {
+    await mesh.execute('{"post":{"$select":{"id":true,"title":true}}}', {
       format: "json",
       context,
     });
@@ -105,12 +105,12 @@ describe("withAccessCache", () => {
       userId: "7",
     };
 
-    await mesh.execute('{"post":{"id":true,"title":true}}', {
+    await mesh.execute('{"post":{"$select":{"id":true,"title":true}}}', {
       format: "json",
       context,
     });
     await invalidate.invalidateUser("7");
-    await mesh.execute('{"post":{"id":true,"title":true}}', {
+    await mesh.execute('{"post":{"$select":{"id":true,"title":true}}}', {
       format: "json",
       context,
     });

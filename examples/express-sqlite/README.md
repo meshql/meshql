@@ -36,7 +36,7 @@ You should see:
 MeshQL puts the query in an `X-Mesh-Query` header (base64 of the JSON form):
 
 ```bash
-Q=$(printf '%s' '{"user":{"id":true,"name":true,"tokens":{"accessToken":true,"expiresAt":true}}}' | base64)
+Q=$(printf '%s' '{"user":{"$select":{"id":true,"name":true,"tokens":{"$select":{"accessToken":true,"expiresAt":true}}}}}' | base64)
 curl -H "X-Mesh-Query: $Q" -H "X-Mesh-Format: json" http://localhost:3002/mesh/user/1
 ```
 

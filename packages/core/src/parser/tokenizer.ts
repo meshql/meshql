@@ -1,3 +1,5 @@
+import { ParseError } from "../errors/index.js";
+
 /** Token kinds produced by the MeshQL query lexer. */
 export type TokenType = "LBRACE" | "RBRACE" | "IDENT" | "EOF";
 
@@ -30,15 +32,18 @@ export function tokenize(input: string): Token[] {
       continue;
     }
 
-    let ident = "";
-    while (i < input.length && /[a-zA-Z0-9_]/.test(input[i]!)) {
-      ident += input[i++]!;
-    }
-    if (ident) {
+    if (/[a-zA-Z_]/.test(char)) {
+      let ident = "";
+      while (i < input.length && /[a-zA-Z0-9_]/.test(input[i]!)) {
+        ident += input[i++]!;
+      }
       tokens.push({ type: "IDENT", value: ident });
-    } else {
-      i++;
+      continue;
     }
+
+    throw new ParseError(
+      `Unexpected character '${char}' in QL query at position ${i}`,
+    );
   }
 
   tokens.push({ type: "EOF", value: "" });

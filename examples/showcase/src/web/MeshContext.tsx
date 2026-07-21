@@ -1,8 +1,7 @@
 import {
   createAuthClient,
   type AuthMeshClient,
-  type QueryControls,
-  type QuerySelection,
+  type MeshQuery,
 } from "@meshql/client";
 import {
   createContext,
@@ -28,8 +27,8 @@ type MeshContextValue = {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   query: <T>(
-    selection: QuerySelection,
-    options?: { entityId?: string } & QueryControls,
+    query: MeshQuery,
+    options?: { entityId?: string },
   ) => Promise<T>;
   write: (
     op: "create" | "update" | "delete",
@@ -38,7 +37,7 @@ type MeshContextValue = {
   ) => Promise<unknown>;
   uploadAvatar: (file: File) => Promise<void>;
   subscribe: <T>(
-    selection: QuerySelection,
+    query: MeshQuery,
     options: { entity: string; entityId: string },
     onUpdate: (data: T) => void,
   ) => () => void;
@@ -81,7 +80,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
     let name = email;
     try {
       const profile = await authClient.query<UserRow>(
-        { user: { id: true, name: true, role: true } },
+        { user: { $select: { id: true, name: true, role: true } } },
         { entityId: payload.userId },
       );
       if (profile?.name) name = profile.name;
@@ -128,22 +127,22 @@ export function MeshProvider({ children }: { children: ReactNode }) {
 
   const query = useCallback(
     async <T,>(
-      selection: QuerySelection,
-      options: { entityId?: string } & QueryControls = {},
+      queryDocument: MeshQuery,
+      options: { entityId?: string } = {},
     ): Promise<T> => {
       const c = getClient();
-      const root = Object.keys(selection)[0] ?? "unknown";
+      const root = Object.keys(queryDocument)[0] ?? "unknown";
       const path = options.entityId
         ? `${MESH_URL}/${root}/${options.entityId}`
         : `${MESH_URL}/${root}`;
 
       try {
-        const data = await c.query<T>(selection, options);
-        logWire({ method: "GET", url: path, payload: { selection, options }, response: data });
+        const data = await c.query<T>(queryDocument, options);
+        logWire({ method: "GET", url: path, payload: queryDocument, response: data });
         return data;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        logWire({ method: "GET", url: path, payload: { selection, options }, error: message });
+        logWire({ method: "GET", url: path, payload: queryDocument, error: message });
         throw error;
       }
     },
@@ -201,7 +200,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
 
   const subscribe = useCallback(
     <T,>(
-      selection: QuerySelection,
+      queryDocument: MeshQuery,
       options: { entity: string; entityId: string },
       onUpdate: (data: T) => void,
     ) => {
@@ -214,20 +213,20 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       logWire({
         method: "SSE",
         url: path,
-        payload: selection,
+        payload: queryDocument,
         response: { subscribed: true },
       });
 
-      return subscribeMeshEvents(selection, {
+      return subscribeMeshEvents(queryDocument, {
         entity: options.entity,
         entityId: options.entityId,
         auth: stored,
         onUpdate: (data) => {
-          logWire({ method: "SSE", url: path, payload: selection, response: data });
+          logWire({ method: "SSE", url: path, payload: queryDocument, response: data });
           onUpdate(data as T);
         },
         onError: (message) => {
-          logWire({ method: "SSE", url: path, payload: selection, error: message });
+          logWire({ method: "SSE", url: path, payload: queryDocument, error: message });
         },
       });
     },

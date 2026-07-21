@@ -90,7 +90,7 @@ Change the base path with the second argument / `options.basePath`.
 **JSON format** - object selection:
 
 ```json
-{ "user": { "id": true, "name": true } }
+{ "user": { "$select": { "id": true, "name": true } } }
 ```
 
 **Collection reads** — add controls to the entity read node. They are covered
@@ -111,11 +111,15 @@ Read controls are **not** passed as URL query strings — they live in the signe
 `X-Mesh-Query` body so filters and page size cannot be tampered with separately
 from the field selection.
 
-**QL format** - brace syntax:
+**QL format** - selection-only brace syntax. Use JSON whenever you need
+`$where`, `$orderBy`, `$page`, or aggregates:
 
 ```
 { user { id name } }
 ```
+
+Set `X-Mesh-Format: ql` (or `format: "ql"` on POST / `createClient`) explicitly.
+JSON is the default on every public surface.
 
 Use `@meshql/client` to encode headers automatically, or `@meshql/http`'s `encodeQuery()`:
 
@@ -123,7 +127,7 @@ Use `@meshql/client` to encode headers automatically, or `@meshql/http`'s `encod
 import { encodeQuery } from "@meshql/http";
 
 const headers = encodeQuery(
-  JSON.stringify({ user: { id: true, name: true } }),
+  JSON.stringify({ user: { $select: { id: true, name: true } } }),
   "json",
 );
 // { "X-Mesh-Query": "...", "X-Mesh-Format": "json" }
@@ -131,7 +135,16 @@ const headers = encodeQuery(
 
 ### POST body
 
-`POST /mesh` expects a JSON body:
+`POST /mesh` expects a JSON body. `format` defaults to `json`:
+
+```json
+{
+  "query": "{\"user\":{\"$select\":{\"id\":true,\"name\":true}}}",
+  "format": "json"
+}
+```
+
+For selection-only QL, pass the brace string and set `"format": "ql"`:
 
 ```json
 {
@@ -139,8 +152,6 @@ const headers = encodeQuery(
   "format": "ql"
 }
 ```
-
-`format` is optional (defaults to `ql`).
 
 ---
 
@@ -196,7 +207,7 @@ mesh_query() {
   echo -n "$1" | base64 | tr -d '\n'
 }
 
-Q=$(mesh_query '{"user":{"id":true,"name":true}}')
+Q=$(mesh_query '{"user":{"$select":{"id":true,"name":true}}}')
 
 # Single resource
 curl -s "http://localhost:3001/mesh/user/1" \
@@ -392,9 +403,11 @@ await client.login({ email: "ada@example.com", password: "demo" });
 const user = await client.query(
   {
     user: {
-      id: true,
-      name: true,
-      tokens: { accessToken: true },
+      $select: {
+        id: true,
+        name: true,
+        tokens: { $select: { accessToken: true } },
+      },
     },
   },
   { entityId: "123" },
@@ -402,11 +415,13 @@ const user = await client.query(
 
 // Collection read with pagination, filters, and ordering
 const admins = await client.query(
-  { user: { id: true, name: true } },
   {
-    page: { first: 10 },
-    orderBy: [{ field: "name", direction: "asc" }],
-    where: { field: "role", op: "in", value: ["admin", "owner"] },
+    user: {
+      $select: { id: true, name: true },
+      $page: { first: 10 },
+      $orderBy: [{ field: "name", direction: "asc" }],
+      $where: { field: "role", op: "in", value: ["admin", "owner"] },
+    },
   },
 );
 ```
