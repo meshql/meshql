@@ -1,4 +1,5 @@
 import type { JoinPlan, MeshSchema, Resolver } from "@meshql/core";
+import { recordPlanSql } from "@meshql/core";
 import { buildSelectSql as buildPostgresSql } from "@meshql/postgres";
 import { buildSelectSql as buildSqliteSql } from "@meshql/sqlite";
 
@@ -36,6 +37,7 @@ export function kyselyResolver(
 
   return async (plan) => {
     const query = buildSql(plan, schema, dialect);
+    recordPlanSql(plan, { sql: query.sql, params: query.params });
     const result = await db.executeQuery({
       sql: query.sql,
       parameters: query.params,

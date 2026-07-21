@@ -16,12 +16,15 @@ Reference implementation: [github.com/meshql/meshql](https://github.com/meshql/m
 
 Pass fixtures: [fixtures/queries](./fixtures/queries/), [fixtures/responses](./fixtures/responses/).
 
-## Level 2 — Lists
+## Level 2 — Collections
 
-- [ ] `GET /:entity` with `$list.limit` respects clamp (≤ 200)
-- [ ] `$list.filter` with `eq` / `in` applied or cleanly rejected if unsupported
-- [ ] `$list.orderBy` applied or cleanly rejected
-- [ ] List metadata is **not** required via URL querystring
+- [ ] `GET /:entity` returns `{ items, pageInfo }`
+- [ ] `$page.first` respects the maximum (≤ 200)
+- [ ] `$where` boolean trees and supported operators are applied or cleanly rejected
+- [ ] `$orderBy` appends a deterministic id tiebreaker
+- [ ] `$page.after` performs scoped keyset pagination
+- [ ] `$groupBy`, `$aggregate`, `$having`, and `$distinct` are applied or cleanly rejected
+- [ ] Read controls live in the signed query payload, not the URL querystring
 
 ## Level 3 — Integrity
 
@@ -37,5 +40,5 @@ Pass fixtures: [fixtures/queries](./fixtures/queries/), [fixtures/responses](./f
 
 ## Reporting
 
-Publish which level you claim and the MeshQL protocol version tested
-(`X-Mesh-Version: 1`). Linking fixture diffs in your CI is encouraged.
+Publish which level you claim and the tested `@meshql/*` release. Linking
+fixture diffs in CI is encouraged.

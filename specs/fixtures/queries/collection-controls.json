@@ -1,0 +1,20 @@
+{
+  "user": {
+    "$select": {
+      "id": true,
+      "name": true,
+      "createdAt": true,
+      "role": true
+    },
+    "$where": {
+      "and": [
+        { "field": "role", "op": "in", "value": ["admin", "owner"] },
+        { "field": "name", "op": "isNotNull" }
+      ]
+    },
+    "$orderBy": [
+      { "field": "createdAt", "direction": "desc", "nulls": "last" }
+    ],
+    "$page": { "first": 2 }
+  }
+}

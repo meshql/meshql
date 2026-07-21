@@ -1,11 +1,11 @@
 {
   "user": {
-    "id": true,
-    "name": true
-  },
-  "$list": {
-    "limit": 10,
-    "orderBy": [{ "field": "name", "dir": "asc" }],
-    "filter": [{ "field": "role", "op": "eq", "value": "admin" }]
+    "$select": {
+      "id": true,
+      "name": true
+    },
+    "$page": { "first": 10 },
+    "$orderBy": [{ "field": "name", "direction": "asc" }],
+    "$where": { "field": "role", "op": "eq", "value": "admin" }
   }
 }

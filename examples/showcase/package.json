@@ -10,12 +10,14 @@
     "prestart": "pnpm run build:web",
     "start": "tsx src/server.ts",
     "demo": "tsx src/demo.ts",
+    "test": "vitest run",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@meshql/access": "workspace:*",
     "@meshql/client": "workspace:*",
     "@meshql/core": "workspace:*",
+    "@meshql/docs": "workspace:*",
     "@meshql/http": "workspace:*",
     "@meshql/integrity": "workspace:*",
     "@meshql/sqlite": "workspace:*",
@@ -36,7 +38,8 @@
     "@vitejs/plugin-react": "^4.4.1",
     "tsx": "^4.19.4",
     "typescript": "5.9.2",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^3.0.0"
   },
   "engines": {
     "node": ">=22.5"

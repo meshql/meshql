@@ -47,6 +47,45 @@ function fieldMatchesDenied(field: string, denied: string): boolean {
   return field === denied;
 }
 
+function isAccessPathDenied(
+  entity: string,
+  field: string,
+  deniedNormalized: string[],
+  schema: MeshSchema,
+): boolean {
+  const accessPath = `${entity}.${field}`;
+  const normalized = normalizeFieldPath(accessPath, schema);
+  return deniedNormalized.some(
+    (d) =>
+      fieldMatchesDenied(normalized, d) || fieldMatchesDenied(accessPath, d),
+  );
+}
+
+/**
+ * Plan-field notation for a computed dependency relative to its owning entity.
+ * Same-entity root: `users.firstName`. Join path: `tokens.accessToken`.
+ * Cross-entity: `customer.firstName`.
+ */
+function depToPlanField(
+  entityKey: string,
+  dep: string,
+  joinPath: string,
+  schema: MeshSchema,
+): string {
+  if (!dep.includes(".")) {
+    if (joinPath) {
+      return `${joinPath}.${dep}`;
+    }
+    const table = entityTable(entityKey, schema.entities[entityKey]);
+    return `${table}.${dep}`;
+  }
+
+  const [refName, ...rest] = dep.split(".");
+  const field = rest.join(".");
+  const childPath = joinPath ? `${joinPath}.${refName}` : refName!;
+  return `${childPath}.${field}`;
+}
+
 /** Remove denied field paths from a join plan (silent strip). */
 export function stripFieldsFromPlan(
   plan: JoinPlan,
@@ -57,7 +96,34 @@ export function stripFieldsFromPlan(
     return plan;
   }
 
-  const denied = deniedPaths.map((p) => normalizeFieldPath(p, schema));
+  const deniedNormalized = deniedPaths.map((p) =>
+    normalizeFieldPath(p, schema),
+  );
+
+  const remainingComputed = (plan.computedFields ?? []).filter(
+    (entry) => !isAccessPathDenied(entry.entity, entry.name, deniedNormalized, schema),
+  );
+
+  // Deps fetched only for denied computed fields (not also requested) must go.
+  const depDenied: string[] = [];
+  for (const entry of plan.computedFields ?? []) {
+    if (!isAccessPathDenied(entry.entity, entry.name, deniedNormalized, schema)) {
+      continue;
+    }
+    for (const dep of entry.def.from) {
+      if (entry.requestedDeps.has(dep)) continue;
+      // Keep if another remaining computed still needs this dep
+      const stillNeeded = remainingComputed.some((other) =>
+        other.def.from.includes(dep) &&
+        other.entity === entry.entity &&
+        other.path === entry.path,
+      );
+      if (stillNeeded) continue;
+      depDenied.push(depToPlanField(entry.entity, dep, entry.path, schema));
+    }
+  }
+
+  const denied = [...deniedNormalized, ...depDenied];
 
   const fields = plan.fields.filter(
     (f) => !denied.some((d) => fieldMatchesDenied(f, d)),
@@ -70,7 +136,13 @@ export function stripFieldsFromPlan(
     ),
   }));
 
-  return { ...plan, fields, joins };
+  return {
+    ...plan,
+    fields,
+    joins,
+    computedFields:
+      remainingComputed.length > 0 ? remainingComputed : undefined,
+  };
 }
 
 /** Check if a field path matches a denied path (supports nested join paths). */

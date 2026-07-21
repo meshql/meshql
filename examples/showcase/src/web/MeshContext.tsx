@@ -1,6 +1,7 @@
 import {
   createAuthClient,
   type AuthMeshClient,
+  type QueryControls,
   type QuerySelection,
 } from "@meshql/client";
 import {
@@ -28,7 +29,7 @@ type MeshContextValue = {
   logout: () => Promise<void>;
   query: <T>(
     selection: QuerySelection,
-    options?: { entityId?: string; list?: Record<string, unknown> },
+    options?: { entityId?: string } & QueryControls,
   ) => Promise<T>;
   write: (
     op: "create" | "update" | "delete",
@@ -128,22 +129,21 @@ export function MeshProvider({ children }: { children: ReactNode }) {
   const query = useCallback(
     async <T,>(
       selection: QuerySelection,
-      options: { entityId?: string; list?: Record<string, unknown> } = {},
+      options: { entityId?: string } & QueryControls = {},
     ): Promise<T> => {
       const c = getClient();
       const root = Object.keys(selection)[0] ?? "unknown";
       const path = options.entityId
         ? `${MESH_URL}/${root}/${options.entityId}`
         : `${MESH_URL}/${root}`;
-      const payload = options.list ? { ...selection, $list: options.list } : selection;
 
       try {
         const data = await c.query<T>(selection, options);
-        logWire({ method: "GET", url: path, payload, response: data });
+        logWire({ method: "GET", url: path, payload: { selection, options }, response: data });
         return data;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        logWire({ method: "GET", url: path, payload, error: message });
+        logWire({ method: "GET", url: path, payload: { selection, options }, error: message });
         throw error;
       }
     },

@@ -5,8 +5,8 @@ import { InMemoryAccessCacheStore } from "./store.js";
 
 const schema = {
   entities: {
-    user: { type: {}, fields: ["id", "email"], table: "users" },
-    post: { type: {}, fields: ["id", "title"], table: "posts" },
+    user: { fields: ["id", "email"], table: "users" },
+    post: { fields: ["id", "title"], table: "posts" },
   },
   joins: {},
 };

@@ -1,22 +1,22 @@
 import { ValidationError } from "../errors/index.js";
 import type { AST, ASTNode } from "../parser/ast.js";
 import type { MeshSchema } from "../schema/schema.js";
-import { resolveEntityKey } from "../schema/schema.js";
-import { MAX_LIST_LIMIT, type ListOptions } from "./list-options.js";
+import {
+  entityQueryableFields,
+  resolveEntityKey,
+} from "../schema/schema.js";
 
 /**
  * Validate a parsed AST against the MeshQL schema.
  *
  * Entity resolution uses {@link resolveEntityKey} for the root, and each
  * ref's declared join config (`join.entity`) for nested nodes. There is no
- * naive singularization anywhere along the ref path \u2014 so irregular
- * plurals like `addresses` \u2192 `address` work as long as the entity is
+ * naive singularization anywhere along the ref path — so irregular
+ * plurals like `addresses` → `address` work as long as the entity is
  * reachable via a declared join (which every ref must have).
  *
- * When `ast.list` is present it is validated against the root entity: unknown
- * fields, oversized `limit`, and empty order/filter arrays all throw
- * {@link ValidationError} so the HTTP boundary can return a 400 without
- * having to peek at the plan itself.
+ * Read controls (filtering, ordering, pagination, aggregates) are validated
+ * during normalization; this pass only checks selection fields and joins.
  */
 export function validateAst(ast: AST, schema: MeshSchema): AST {
   const rootEntityKey = resolveEntityKey(ast.root.name, schema);
@@ -24,21 +24,16 @@ export function validateAst(ast: AST, schema: MeshSchema): AST {
     throw new ValidationError(`Unknown entity '${ast.root.name}'`);
   }
   validateNode(ast.root, rootEntityKey, schema);
-  if (ast.list) {
-    validateListOptions(ast.list, schema, rootEntityKey);
-  }
   return ast;
 }
 
 function validateNode(node: ASTNode, entityKey: string, schema: MeshSchema): void {
   const entityConfig = schema.entities[entityKey];
   if (!entityConfig) {
-    // Defensive: entityKey came from resolveEntityKey or a join config, so
-    // this is really unreachable at runtime. Kept as a guard to fail loud.
     throw new ValidationError(`Unknown entity '${node.name}'`);
   }
 
-  const knownFields = new Set(entityConfig.fields);
+  const knownFields = new Set(entityQueryableFields(entityConfig));
 
   for (const field of node.fields) {
     if (!knownFields.has(field)) {
@@ -61,7 +56,7 @@ function validateNode(node: ASTNode, entityKey: string, schema: MeshSchema): voi
       );
     }
 
-    const refFields = new Set(refEntity.fields);
+    const refFields = new Set(entityQueryableFields(refEntity));
     for (const field of ref.fields) {
       if (!refFields.has(field)) {
         throw new ValidationError(`Field '${field}' not found on entity '${ref.name}'`);
@@ -69,70 +64,5 @@ function validateNode(node: ASTNode, entityKey: string, schema: MeshSchema): voi
     }
 
     validateNode(ref, join.entity, schema);
-  }
-}
-
-/**
- * Validate a `$list` payload against the schema of the root entity.
- *
- * List options only apply to the root entity today \u2014 nested joins can't
- * be paginated/filtered independently. This mirrors what the reference SQL
- * builders can actually produce.
- */
-function validateListOptions(
-  list: ListOptions,
-  schema: MeshSchema,
-  rootEntityKey: string,
-): void {
-  const rootConfig = schema.entities[rootEntityKey];
-  const knownFields = new Set(rootConfig?.fields ?? []);
-
-  if (list.limit !== undefined) {
-    if (list.limit > MAX_LIST_LIMIT) {
-      throw new ValidationError(
-        `'list.limit' (${list.limit}) exceeds maximum of ${MAX_LIST_LIMIT}`,
-      );
-    }
-    if (list.limit < 1) {
-      throw new ValidationError("'list.limit' must be at least 1");
-    }
-  }
-
-  if (list.orderBy) {
-    if (list.orderBy.length === 0) {
-      throw new ValidationError("'list.orderBy' must not be empty when present");
-    }
-    for (const [i, order] of list.orderBy.entries()) {
-      if (knownFields.has(order.field)) continue;
-      if (order.field.includes(".")) {
-        throw new ValidationError(
-          `'list.orderBy[${i}].field' - '${order.field}' is a cross-entity path; ` +
-            `MeshQL list ordering must reference root entity '${rootEntityKey}' ` +
-            `fields only. Use a resolver for cross-entity ordering.`,
-        );
-      }
-      throw new ValidationError(
-        `'list.orderBy[${i}].field' - unknown field '${order.field}' on entity '${rootEntityKey}'`,
-      );
-    }
-  }
-
-  if (list.filter) {
-    if (list.filter.length === 0) {
-      throw new ValidationError("'list.filter' must not be empty when present");
-    }
-    for (const [i, filter] of list.filter.entries()) {
-      if (knownFields.has(filter.field)) continue;
-      if (filter.field.includes(".")) {
-        throw new ValidationError(
-          `'list.filter[${i}].field' - '${filter.field}' is a cross-entity path; ` +
-            `MeshQL list filters must reference root entity '${rootEntityKey}' ` +
-            `fields only. Use a resolver for cross-entity filtering.`,
-        );
-      }
-      throw new ValidationError(
-        `'list.filter[${i}].field' - unknown field '${filter.field}' on entity '${rootEntityKey}'`,
-      );
-    }
   }
 }

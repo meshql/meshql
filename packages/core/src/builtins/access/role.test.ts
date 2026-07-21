@@ -6,8 +6,8 @@ import type { JoinPlan } from "../../planner/join-plan.js";
 
 const schema: MeshSchema = {
   entities: {
-    user: { type: {}, fields: ["id", "email"] },
-    token: { type: {}, fields: ["accessToken"] },
+    user: { fields: ["id", "email"] },
+    token: { fields: ["accessToken"] },
   },
   joins: {
     "user.tokens": {

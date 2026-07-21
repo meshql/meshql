@@ -142,7 +142,6 @@ export function schemaFromPrismaSource(
     const table = unwrapString(tableMap?.args?.[0]?.value) ?? undefined;
 
     entities[key] = {
-      type: {},
       fields: scalarFields.map((f) => f.name),
       ...(idField && idField !== "id" ? { idField } : {}),
       ...(table ? { table } : {}),

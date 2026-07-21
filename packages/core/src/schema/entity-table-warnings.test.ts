@@ -12,9 +12,9 @@ describe("warnAmbiguousEntityTables", () => {
 
     warnAmbiguousEntityTables({
       entities: {
-        address: { type: {}, fields: ["id"] },
-        category: { type: {}, fields: ["id"] },
-        person: { type: {}, fields: ["id"] },
+        address: { fields: ["id"] },
+        category: { fields: ["id"] },
+        person: { fields: ["id"] },
       },
       joins: {},
     });
@@ -31,8 +31,8 @@ describe("warnAmbiguousEntityTables", () => {
 
     const schema: MeshSchema = {
       entities: {
-        address: { type: {}, fields: ["id"], table: "addresses" },
-        user: { type: {}, fields: ["id"] },
+        address: { fields: ["id"], table: "addresses" },
+        user: { fields: ["id"] },
       },
       joins: {},
     };
@@ -47,8 +47,8 @@ describe("warnAmbiguousEntityTables", () => {
 
     warnAmbiguousEntityTables({
       entities: {
-        user: { type: {}, fields: ["id"] },
-        post: { type: {}, fields: ["id"] },
+        user: { fields: ["id"] },
+        post: { fields: ["id"] },
       },
       joins: {},
     });

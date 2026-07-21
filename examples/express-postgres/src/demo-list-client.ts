@@ -15,10 +15,8 @@ const users = await client.query(
     },
   },
   {
-    list: {
-      limit: 10,
-      orderBy: [{ field: "name", dir: "asc" }],
-    },
+    page: { first: 10 },
+    orderBy: [{ field: "name", direction: "asc" }],
   },
 );
 

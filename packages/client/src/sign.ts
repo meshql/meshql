@@ -24,7 +24,6 @@ export function encodeQuery(
   return {
     "X-Mesh-Query": btoa(binary),
     "X-Mesh-Format": format,
-    "X-Mesh-Version": "1",
   };
 }
 
@@ -53,7 +52,6 @@ export function encodePersistedQuery(
   return {
     "X-Mesh-Query-Id": queryId,
     "X-Mesh-Format": format,
-    "X-Mesh-Version": "1",
   };
 }
 

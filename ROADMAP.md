@@ -4,6 +4,10 @@
 > to "drop-in REST middleware with field selection, integrity, native uploads,
 > and ORM-driven schemas." Optimised for a single maintainer working
 > ~8–10 hours/week.
+>
+> Historical milestone sections retain the API names that shipped at the time.
+> `$list` and version negotiation were superseded before the current release;
+> see `specs/05-read-controls.md` for the active query contract.
 
 ---
 
@@ -36,7 +40,7 @@ express()
 
 Every gap between this snippet and what the repo does today is a roadmap item.
 
-## Status (as of 0.7.1)
+## Status (as of 0.9.x)
 
 **Current sequence** — Phase 1 landed first (correctness took precedence over
 repositioning), then the chosen execution order is:
@@ -56,6 +60,8 @@ repositioning), then the chosen execution order is:
 | K | **Slice B** — shaper `shapeRefMany` O(N²)→O(N) + `makeFieldReader` hot-loop caching | ✅ (0.7.1) |
 | L | Language-agnostic **protocol specs** + conformance fixtures (`specs/`, docs.meshql.dev/specs) | ✅ |
 | M | **FAQ** on docs site + list `$list` field validation (no cross-entity filter/orderBy) | ✅ (0.7.1) |
+| N | **`@meshql/docs`** — interactive playground + schema introspection middleware | ✅ ready (0.10.0) |
+| O | **Computed fields in `@meshql/core`** — virtual / computed fields | 📋 next (0.11.0) |
 
 Phases 3 → 5 follow the original order. The headline plan below describes
 the *intended* phase progression; the Status table is the source of truth for
@@ -101,13 +107,115 @@ persisted queries land.
 | **P2** | **API audit** | Mark internals, freeze public surface heading into 1.0 | 1 week |
 | **P2** | **Security pass** | Replay nonces/timestamps, threat-model doc (complements v1.0 integrity audit) | 1 week |
 
+### v0.10.0 — Developer experience (`@meshql/docs`)
+
+> Swagger UI / GraphQL Playground — but for MeshQL. One line enables an
+> interactive schema browser and query runner at `/docs` on the user's server.
+> Biggest adoption lever before 1.0: evaluators can see what MeshQL does
+> without writing code.
+
+**Build first.** Computed fields (0.11) enhance the playground but docs
+ships standalone value on the existing schema.
+
+| Priority | Item | Notes | Effort |
+|---|---|---|---|
+| **P0** | **Core: `PluginContext.plan` + `ExecuteOptions.trace`** | Attach `JoinPlan` to plugin context; optional SQL trace collector for postgres/sqlite resolvers | 3 days |
+| **P0** | **`@meshql/docs` — schema introspection** | `GET /docs/schema` → `SchemaDoc` JSON from `mesh.schema` (entities, fields, joins); not a `__schema` query | 3 days |
+| **P0** | **`@meshql/docs` — execute proxy** | `POST /docs/execute` → `mesh.execute()` with request context; returns `{ data, meta: { durationMs, plan?, sql? } }` | 2 days |
+| **P0** | **Playground UI** | Self-contained SPA bundled in package: entity browser, click-to-build query, live response panel, join-plan visualization | 2 weeks |
+| **P0** | **SQL trace panel (dev mode)** | `sql: "dev"` shows actual SQL + params; killer differentiator vs GraphQL Playground | 2 days |
+| **P1** | **Framework adapters** | `@meshql/docs/express`, `/fastify`, `/hono` — same pattern as `@meshql/http` | 2 days |
+| **P1** | **Showcase `/docs` demo** | Wire `examples/showcase` — live eval path for adopters | 2 days |
+| **P1** | **Docs site package page** | `docs.meshql.dev/packages/docs` + guide page | 2 days |
+| **P2** | **Integrity-aware playground** | When `withIntegrity` is enabled, docs UI signs requests via `@meshql/client` | 3 days |
+
+**Public API:**
+
+```ts
+import { withDocs } from "@meshql/docs";
+
+withDocs(mesh, {
+  path: "/docs",
+  title: "My API",
+  theme: "dark",
+  auth: false,          // or "admin" | (ctx) => boolean
+  sql: "dev",           // show SQL panel; default false in production
+});
+```
+
+**Routes:**
+
+```
+GET  /docs              → static SPA (embedded in package)
+GET  /docs/schema       → JSON introspection
+POST /docs/execute      → run query (delegates to mesh.execute)
+```
+
+**Security defaults:** warn when `auth: false` in production; never expose raw
+`columns` / table mappings unless `sql: "dev"`.
+
+**Package:** `@meshql/docs` (JSR) · `meshql-docs` (npm). See [Phase 6](#phase-6--meshqldocs-interactive-playground-4-weeks).
+
+### v0.11.0 — Computed fields (in `@meshql/core`)
+
+> Virtual fields that don't exist in the DB but are computed on the fly from
+> real fields. Client asks for `{ user { fullName } }`; planner fetches
+> `firstName` + `lastName`; core applies `compute` before shaping.
+
+**Build after docs.** Playground shows computed fields with tooltips and SQL
+dep expansion once both land. Implemented schema-natively in core — no
+separate `@meshql/computed` package.
+
+| Priority | Item | Notes | Effort |
+|---|---|---|---|
+| **P0** | **Schema cleanup: remove `EntityConfig.type`** | Drop the compile-time-only placeholder from core, generated schemas, tests, and docs before the computed API extends `EntityConfig` | ✅ done |
+| **P0** | **Schema types in core** | `ComputedFieldDef` on `EntityConfig`; computed names queryable without listing in `fields` | ✅ done |
+| **P0** | **Planner dep expansion** | Requested computed field → expand `from` deps into `plan.fields`; computed name excluded from SQL | ✅ done |
+| **P0** | **Core execute path** | Flat + preshaped: inject/apply computed; strip unrequested source deps | ✅ done |
+| **P0** | **Access integration** | Denied computed field stripped at planner; unrequested source deps never fetched | ✅ done |
+| **P1** | **Cross-entity computed** | `from: ["customer.firstName"]` auto-adds customer join | ✅ done |
+| **P1** | **ORM preshaped path** | Prisma/Drizzle nested results — compute after resolver, before response | ✅ done (preshaped) |
+| **P1** | **Spec `04-computed-fields.md`** | Conformance fixtures | 2 days |
+| **P2** | **Docs integration** | Playground shows `kind: "computed"`, tooltip with `from` deps, SQL panel shows underlying columns | in progress (`kind: "computed"`) |
+
+**Public API:**
+
+```ts
+const mesh = createMesh({
+  entities: {
+    user: {
+      fields: ["id", "firstName", "lastName"],
+      computed: {
+        fullName: {
+          from: ["firstName", "lastName"],
+          compute: (deps) => `${deps.firstName ?? ""} ${deps.lastName ?? ""}`.trim(),
+          type: "string",
+        },
+      },
+    },
+  },
+  joins: {},
+});
+```
+
+Access control stays in `@meshql/access` (`"user.fullName": …`).
+
+**v1 limitations (document explicitly):**
+
+- Computed fields not available in `$list` `filter` / `orderBy`
+- Computed depending on computed → registration error
+- Sync `compute` only; async deferred to v1.x
+- Gateway / cross-service computed deferred
+
+See [Phase 7](#phase-7--computed-fields-in-meshqlcore-35-weeks).
+
 ### v1.0.0 — Stability contract
 
 Non-negotiables for the 1.0 cut:
 
 | Item | Notes |
 |---|---|
-| **Zero breaking changes** from 0.9 → 1.0 | Semver freeze starts here |
+| **Zero breaking changes** from 0.11 → 1.0 | Semver freeze starts here |
 | **`@meshql` npm org resolved** | Migrate `meshql-*` → `@meshql/*` cleanly |
 | **Security audit of `@meshql/integrity`** | External or structured self-audit with published findings |
 | **Performance benchmarks published** | vs GraphQL + dataloaders — numbers, not claims (`measure-shaper.mjs` is the seed) |
@@ -123,14 +231,17 @@ Non-negotiables for the 1.0 cut:
 - Schema can be hand-written or inferred from an ORM
 - Real list endpoints: pagination, filtering, ordering, cursors
 - Native file upload signed end-to-end
+- Opt-in interactive API playground (`@meshql/docs`) with SQL trace in dev mode
+- Virtual / computed fields (in `@meshql/core`) with access-control integration
 
 ## Non-goals (v1.0)
 
 - WebSocket subscriptions (SSE ships in 0.9; full duplex deferred)
 - Owning a SQL builder for every database — the resolver layer is the abstraction
 - Custom mutation verbs beyond entity CRUD — defer to a plugin in v1.x
-- A query IDE / GraphiQL clone
-- Browser-side schema editor
+- A standalone GraphiQL clone or browser-side schema editor
+- `__schema` introspection query in the MeshQL wire protocol (use `@meshql/docs` HTTP route instead)
+- Gateway / cross-service computed fields
 
 ## Phase summary
 
@@ -160,7 +271,9 @@ gantt
 | 4.5 | Wire protocol: persisted queries, access cache, core tests | `0.8.0` | ~2 weeks | ✅ done |
 | 5 | `schemaFromPrisma` / `schemaFromDrizzle` / `extendSchema` | `0.7.0` | 1 week | ✅ done |
 | 5b | Shaper perf: O(N) `shapeRefMany`, cached field readers | `0.7.1` | 2 evenings | ✅ done |
-| _post_ | Perf wire protocol, real-time, federation, v1.0 cut | `0.8 → 1.0` | 8–12 weeks | 🔄 in progress |
+| 6 | `@meshql/docs` — interactive playground + SQL trace | `0.10.0` | ~4 weeks | ✅ ready to release |
+| 7 | Computed fields in `@meshql/core` + planner deps | `0.11.0` | ~3.5 weeks | 📋 planned |
+| _post_ | API audit, benchmarks, auth adapters, v1.0 cut | `0.9 → 1.0` | 8–12 weeks | 🔄 in progress |
 
 Use Changesets (already configured) for every phase. Bump majors freely until 1.0.
 
@@ -246,7 +359,6 @@ being framed against the wrong mental model.
 
 ```ts
 export interface EntityConfig {
-  type: unknown;
   fields: string[];
   idField?: string;       // default "id"
   table?: string;
@@ -941,6 +1053,192 @@ Also shipped in 0.7.1: explicit rejection of cross-entity `list.filter` /
 
 ---
 
+## Phase 6 — `@meshql/docs` interactive playground (~4 weeks)
+
+> Like Swagger UI or GraphQL Playground — but for MeshQL. Auto-generates from
+> the user's existing schema. Zero extra config beyond one line.
+
+### 6.1 Core prerequisites
+
+Small additive changes in `@meshql/core` (needed by docs and computed):
+
+```ts
+// PluginContext — attach plan after buildJoinPlan
+interface PluginContext {
+  plan?: JoinPlan;
+  // ...existing
+}
+
+// ExecuteOptions — optional SQL trace
+interface ExecuteOptions {
+  trace?: { sql?: boolean };
+}
+```
+
+Postgres/sqlite resolvers: when `trace.sql` is set, collect `{ sql, params }`
+from `buildSelectSql()`. ORM adapters return `sql: null` with a note. Docs
+reads `meta.sql` only when `sql: "dev"`.
+
+### 6.2 Package layout
+
+```
+packages/docs/
+  src/
+    index.ts              # withDocs, createDocsHandler
+    introspection.ts      # buildSchemaDoc(mesh) → SchemaDoc
+    execute-proxy.ts      # POST /docs/execute
+    http.ts               # composite handler (pattern: persisted-queries)
+    adapters/             # express, fastify, hono
+  ui/                     # Vite SPA (Preact or vanilla; target <150KB gzipped)
+  dist/ui/                # built assets (CI build step)
+```
+
+Follow composite-handler pattern from `@meshql/persisted-queries`:
+`createDocsHandler(mesh)` routes `/docs/*` to static UI + schema + execute;
+delegates everything else to `createHttpHandler(mesh)`.
+
+### 6.3 Schema introspection (`buildSchemaDoc`)
+
+Transform `mesh.schema` into playground-friendly JSON:
+
+```ts
+interface SchemaDoc {
+  entities: Array<{
+    name: string;
+    fields: Array<{ name: string; kind: "scalar" | "computed"; type?: string }>;
+    joins: Array<{ name: string; entity: string; type: "one" | "many" }>;
+    listCapable: boolean;
+  }>;
+}
+```
+
+Not part of the MeshQL query language — explicit HTTP route only.
+
+### 6.4 Playground UI
+
+**Left panel:** entity browser → click entity → fields + joins → click fields
+to build query → generated query shown in real time (reuse `@meshql/client`
+`selectionToJson` / `selectionToQl`).
+
+**Right panel:** run query → real response → duration → join plan visualization
+→ SQL panel (dev mode).
+
+Reuse `@meshql/http` `decodeQuery` / `encodeQuery` for wire format toggle.
+
+### 6.5 Tasks (checklist)
+
+- [x] Core: `PluginContext.plan`
+- [x] Core: `ExecuteOptions.trace` + postgres/sqlite collector
+- [x] `buildSchemaDoc` + `GET /docs/schema`
+- [x] `POST /docs/execute` with `{ data, meta }` envelope
+- [x] `createDocsHandler` composite router
+- [x] Playground UI v1 (entity browser, query builder, response panel)
+- [x] SQL trace panel (`sql: "dev"`)
+- [x] Express adapter
+- [x] `withDocs(mesh, options)` convenience wrapper
+- [x] Showcase `/docs` integration
+- [x] Unit tests: introspection, execute proxy, auth gate
+- [x] E2E test: showcase hits `/docs/schema` and `/docs/execute`
+- [x] Docs site: package page + guide
+- [x] `docs/PUBLIC_API.md` entry for `@meshql/docs`
+
+### 6.6 Acceptance
+
+- `withDocs(mesh, { path: "/docs" })` serves a working playground in ≤10 lines
+  of app code.
+- Entity browser shows all entities, fields, and joins from `mesh.schema`.
+- Click-to-build query generates valid MeshQL; Run returns real data.
+- With `sql: "dev"`, response panel shows SQL + params for postgres/sqlite resolvers.
+- Access control applies: playground runs as the authenticated user, not god mode.
+- `auth: false` warns in production.
+
+**Release: 0.10.0**
+
+---
+
+## Phase 7 — `@meshql/computed` virtual fields (~3.5 weeks)
+
+> Virtual fields computed on the fly from real DB columns. Client never sees
+> source fields unless explicitly requested.
+
+### 7.1 Schema extension
+
+```ts
+interface ComputedFieldDef {
+  from: string[];                              // "firstName" or "customer.firstName"
+  compute: (...values: unknown[]) => unknown;
+  access?: (ctx: QueryContext) => boolean;
+  entity?: string;                           // cross-entity join signal
+  type?: "string" | "number" | "boolean";     // for introspection / docs
+}
+
+interface EntityConfig {
+  fields: string[];                          // includes computed names
+  computed?: Record<string, ComputedFieldDef>;
+  // ...existing
+}
+```
+
+### 7.2 Planner changes (`buildJoinPlan`)
+
+For each requested field in `entity.computed`:
+
+1. Add to `plan.computedFields` (new array on `JoinPlan`)
+2. Expand `from` deps into `plan.fields` (with join expansion for dotted paths)
+3. Do **not** add computed name to SQL fields
+4. Cross-entity `from: ["customer.firstName"]` → ensure customer join in plan
+
+`validateAst`: computed fields pass like normal scalars (listed in `fields`).
+`stripFieldsFromPlan`: deny computed field → strip deps too.
+
+### 7.3 Compute execution
+
+`@meshql/computed` registers an `onResult` plugin:
+
+```
+resolver → onResult (inject computed into flat rows) → shaper → onResponse
+```
+
+For preshaped ORM path (`preshaped: true`): compute after resolver, walk
+nested structure matching AST.
+
+Strip source fields (`firstName`, `lastName`) from response when client only
+asked for `fullName`.
+
+### 7.4 Tasks (checklist)
+
+- [ ] Remove `EntityConfig.type` from `@meshql/core` and `extendSchema`
+- [ ] Remove `type: {}` / `type: {} as T` from generated schemas, tests, examples, and docs
+- [ ] Add migration note: delete the placeholder; TypeScript types do not coerce DB values at runtime
+- [ ] `ComputedFieldDef` type in `@meshql/core` schema
+- [ ] `JoinPlan.computedFields` + planner dep expansion
+- [ ] `validateAst` allows computed field names
+- [ ] `stripFieldsFromPlan` handles computed + deps
+- [ ] `@meshql/computed` package + `withComputed` / `mesh.computed()`
+- [ ] `onResult` plugin: flat-row compute + source stripping
+- [ ] Access: denied computed → planner strip (deps never fetched)
+- [ ] Cross-entity computed with implicit join
+- [ ] Prisma/Drizzle preshaped path
+- [ ] Reject computed→computed at registration
+- [ ] Reject computed in `$list` filter/orderBy with clear error
+- [ ] Conformance fixtures in `specs/04-computed-fields.md`
+- [ ] `@meshql/docs` integration: `kind: "computed"` in SchemaDoc + tooltips
+- [ ] `docs/PUBLIC_API.md` entry for `@meshql/computed`
+
+### 7.5 Acceptance
+
+- `{ user { fullName } }` where `fullName` is computed from `firstName` +
+  `lastName` returns `{ fullName: "John Doe" }` without exposing source fields.
+- SQL plan includes `first_name, last_name`; does not SELECT a `full_name` column.
+- Access-denied computed field never fetches source columns.
+- Cross-entity `customerFullName` auto-joins `customer` when needed.
+- Playground shows computed fields with tooltip (`from` deps) and SQL panel
+  shows underlying columns.
+
+**Release: 0.11.0**
+
+---
+
 ## After Phase 5 — what's left for v1.0
 
 Phases 0–5 plus docs/specs landed the ORM-driven core. The **v0.8 → v1.0**
@@ -952,12 +1250,14 @@ track above is now the source of truth. Summary of what remains:
 | Showcase + express-prisma demos | ✅ done | — |
 | Production wire protocol (persisted queries) | ✅ done | 0.8.0 |
 | Access cache + core test coverage | ✅ done | 0.8.0 |
-| Real-time (SSE + pubsub) + gateway + codemods | ✅ | 0.9.0 |
+| Real-time (SSE + pubsub) + gateway + codemods | ✅ done | 0.9.0 |
+| Interactive playground (`@meshql/docs`) | ✅ ready to release | 0.10.0 |
+| Computed fields (in `@meshql/core`) | 📋 in progress | 0.11.0 |
 | Benchmarks, auth adapters, npm org, Go port, integrity audit | 📋 | 1.0.0 |
 | API audit + security pass | 📋 | 0.9.0 (prep) / 1.0.0 (freeze) |
 | Schema naming polish + stale README fixes | ✅ | this week |
 
-See **This week**, **v0.8.0**, **v0.9.0**, and **v1.0.0** at the top of this doc
+See **v0.10.0**, **v0.11.0**, and **v1.0.0** at the top of this doc
 for the prioritized checklist.
 
 ---
@@ -999,6 +1299,9 @@ Pin Node to 22 LTS; add 24 to the matrix in Phase 6.
 | `docs/orm-adapters.md` | Phase 4 | how to write a custom adapter |
 | `docs/schema-inference.md` | Phase 5 | Prisma + Drizzle coverage |
 | `docs/comparison.md` | post-Phase 5 | vs PostgREST, Hasura, hand-rolled |
+| `docs/playground.md` | Phase 6 | `@meshql/docs` setup + security |
+| `docs/computed-fields.md` | Phase 7 | virtual fields + access patterns |
+| `specs/04-computed-fields.md` | Phase 7 | conformance fixtures |
 | `ROADMAP.md` | this doc | maintained as phases close |
 
 ### Release process
@@ -1022,6 +1325,8 @@ Each phase ends with:
 | Multipart integrity is subtle | Write tests *first* in Phase 3; treat the protocol as the spec |
 | Plugin API drift before 1.0 | Document and freeze in the v1.0 phase |
 | Schema inference doesn't cover edge cases | Ship explicit `extendSchema` from day one so users have an escape hatch |
+| Playground exposes schema in production | Default `auth` required in prod; warn on `auth: false` |
+| Computed field dep explosion | Cap `from` array length; reject computed→computed at registration |
 
 ---
 

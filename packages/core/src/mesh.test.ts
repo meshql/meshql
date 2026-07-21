@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { createMesh } from "./index.js";
-import type { JoinPlan, MeshConfig, Resolver } from "./index.js";
+import type { CollectionResult, JoinPlan, MeshConfig, Resolver } from "./index.js";
 
 const schema: MeshConfig = {
   entities: {
-    user: { type: {}, fields: ["id", "name", "createdAt"] },
+    user: { fields: ["id", "name", "createdAt"] },
   },
   joins: {},
 };
@@ -13,17 +13,18 @@ function fakeResolver(rows: Record<string, unknown>[]): Resolver {
   return vi.fn(async () => rows);
 }
 
-describe("createMesh — list options wiring", () => {
-  it("passes $list from the JSON wire payload down to the resolver", async () => {
+describe("createMesh — collection reads", () => {
+  it("passes read controls from the JSON wire payload down to the resolver", async () => {
     const resolver = fakeResolver([{ user_id: 1, user_name: "Ada" }]);
     const mesh = createMesh(schema).resolve("user", resolver);
 
     const wire = JSON.stringify({
-      user: { id: true, name: true },
-      $list: {
-        limit: 10,
-        orderBy: [{ field: "name", dir: "asc" }],
-        filter: [{ field: "id", op: "gt", value: 100 }],
+      user: {
+        id: true,
+        name: true,
+        $where: { field: "id", op: "gt", value: 100 },
+        $orderBy: [{ field: "name", direction: "asc" }],
+        $page: { first: 10 },
       },
     });
 
@@ -32,75 +33,34 @@ describe("createMesh — list options wiring", () => {
     expect(resolver).toHaveBeenCalledOnce();
     const plan = (resolver as unknown as { mock: { calls: [JoinPlan][] } }).mock
       .calls[0]![0];
-    expect(plan.list).toEqual({
-      limit: 10,
-      orderBy: [{ field: "name", dir: "asc" }],
-      filter: [{ field: "id", op: "gt", value: 100 }],
-    });
-    // listMode was implicitly true because $list was present.
-    expect(Array.isArray(result)).toBe(true);
+    expect(plan.read?.where).toEqual({ field: "id", op: "gt", value: 100 });
+    expect(plan.read?.page?.first).toBe(10);
+    // Collection reads return an envelope.
+    const collection = result as CollectionResult<Record<string, unknown>>;
+    expect(Array.isArray(collection.items)).toBe(true);
+    expect(collection.pageInfo).toBeDefined();
   });
 
-  it("caller-supplied listOptions override wire $list", async () => {
-    const resolver = fakeResolver([]);
-    const mesh = createMesh(schema).resolve("user", resolver);
-
-    const wire = JSON.stringify({
-      user: { id: true },
-      $list: { limit: 5 },
-    });
-
-    await mesh.execute(wire, {
-      format: "json",
-      listOptions: { limit: 50 },
-    });
-
-    const plan = (resolver as unknown as { mock: { calls: [JoinPlan][] } }).mock
-      .calls[0]![0];
-    expect(plan.list?.limit).toBe(50);
-  });
-
-  it("explicit list: false disables list-shape mode even with wire $list", async () => {
+  it("explicit list: false returns a single record", async () => {
     const resolver = fakeResolver([{ user_id: 1, user_name: "Ada" }]);
     const mesh = createMesh(schema).resolve("user", resolver);
 
-    const wire = JSON.stringify({
-      user: { id: true, name: true },
-      $list: { limit: 5 },
-    });
-
+    const wire = JSON.stringify({ user: { id: true, name: true } });
     const result = await mesh.execute(wire, { format: "json", list: false });
 
     expect(Array.isArray(result)).toBe(false);
-    // $list still attached to the plan \u2014 the resolver can honour it.
-    const plan = (resolver as unknown as { mock: { calls: [JoinPlan][] } }).mock
-      .calls[0]![0];
-    expect(plan.list?.limit).toBe(5);
+    expect(result).toEqual({ id: 1, name: "Ada" });
   });
 
-  it("no wire $list, no listOptions → plan.list is undefined", async () => {
-    const resolver = fakeResolver([{ user_id: 1, user_name: "Ada" }]);
-    const mesh = createMesh(schema).resolve("user", resolver);
-
-    await mesh.execute(JSON.stringify({ user: { id: true, name: true } }), {
-      format: "json",
-    });
-
-    const plan = (resolver as unknown as { mock: { calls: [JoinPlan][] } }).mock
-      .calls[0]![0];
-    expect(plan.list).toBeUndefined();
-  });
-
-  it("propagates validator errors for invalid $list", async () => {
+  it("propagates validation errors for oversized pages", async () => {
     const mesh = createMesh(schema).resolve("user", fakeResolver([]));
 
     const wire = JSON.stringify({
-      user: { id: true },
-      $list: { limit: 9999 },
+      user: { id: true, $page: { first: 9999 } },
     });
 
     await expect(mesh.execute(wire, { format: "json" })).rejects.toThrow(
-      "'list.limit' (9999) exceeds maximum of 200",
+      /page\.first .* exceeds maximum/,
     );
   });
 });
@@ -108,8 +68,8 @@ describe("createMesh — list options wiring", () => {
 describe("createMesh — catch-all resolver", () => {
   const multiEntitySchema: MeshConfig = {
     entities: {
-      user: { type: {}, fields: ["id", "name"] },
-      post: { type: {}, fields: ["id", "title"] },
+      user: { fields: ["id", "name"] },
+      post: { fields: ["id", "title"] },
     },
     joins: {},
   };
@@ -123,10 +83,10 @@ describe("createMesh — catch-all resolver", () => {
 
     const mesh = createMesh(multiEntitySchema).resolve("*", catchAll);
 
-    const user = await mesh.execute("{ user { id name } }");
+    const user = await mesh.execute("{ user { id name } }", { list: false });
     expect(user).toEqual({ id: 1, name: "Ada" });
 
-    const post = await mesh.execute("{ post { id title } }");
+    const post = await mesh.execute("{ post { id title } }", { list: false });
     expect(post).toEqual({ id: 1, title: "Hi" });
 
     expect(catchAll).toHaveBeenCalledTimes(2);
@@ -140,7 +100,7 @@ describe("createMesh — catch-all resolver", () => {
       .resolve("user", specific)
       .resolve("*", catchAll);
 
-    const result = await mesh.execute("{ user { id name } }");
+    const result = await mesh.execute("{ user { id name } }", { list: false });
 
     expect(result).toEqual({ id: 42, name: "Specific" });
     expect(specific).toHaveBeenCalledOnce();
@@ -149,7 +109,7 @@ describe("createMesh — catch-all resolver", () => {
 
   it("still throws ResolverError when no resolver (specific or catch-all) matches", async () => {
     const mesh = createMesh(multiEntitySchema);
-    await expect(mesh.execute("{ user { id } }")).rejects.toThrow(
+    await expect(mesh.execute("{ user { id } }", { list: false })).rejects.toThrow(
       "No resolver registered for entity 'user'",
     );
   });
@@ -167,7 +127,7 @@ describe("createMesh — preshaped resolvers", () => {
       { preshaped: true },
     );
 
-    const result = await mesh.execute("{ user { id name } }");
+    const result = await mesh.execute("{ user { id name } }", { list: false });
     expect(result).toEqual({
       id: 1,
       name: "Ada",

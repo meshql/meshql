@@ -26,14 +26,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import pg from "pg";
 import {
   createMesh,
-  parseJson,
-  parseQl,
-  buildJoinPlan,
-  createQueryContext,
-  type JoinPlan,
+  type CollectionResult,
   type MeshSchema,
 } from "@meshql/core";
-import { buildSelectSql, decodeCursor, encodeCursor } from "./builder.js";
+import { buildSelectSql } from "./builder.js";
 
 const { Pool } = pg;
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -41,9 +37,8 @@ const describeIfDb = DATABASE_URL ? describe : describe.skip;
 
 const schema: MeshSchema = {
   entities: {
-    user: { type: {}, fields: ["id", "name"], table: "users" },
+    user: { fields: ["id", "name"], table: "users" },
     token: {
-      type: {},
       fields: ["accessToken", "expiresAt"],
       table: "tokens",
       columns: {
@@ -52,7 +47,6 @@ const schema: MeshSchema = {
       },
     },
     note: {
-      type: {},
       fields: ["body"],
       table: "notes",
     },
@@ -199,108 +193,81 @@ describeIfDb("buildSelectSql against real Postgres", () => {
     });
   });
 
-  describe("list options against real Postgres", () => {
-    function runListPlan(list: Record<string, unknown>): Promise<{
-      rows: Record<string, unknown>[];
-      plan: JoinPlan;
-    }> {
-      const ast = parseJson(
-        JSON.stringify({
-          user: { id: true, name: true },
-          $list: list,
-        }),
-      );
-      const plan = buildJoinPlan(
-        ast,
-        schema,
-        createQueryContext({ requestId: "list", method: "GET" }),
-        { list: ast.list },
-      );
-      const { sql, params } = buildSelectSql(plan, schema);
-      return pool.query(sql, params).then((res) => ({ rows: res.rows, plan }));
+  describe("collection controls against real Postgres", () => {
+    interface UserRow extends Record<string, unknown> {
+      id: number;
+      name: string;
     }
 
-    it("respects LIMIT and default id ORDER BY", async () => {
-      const { rows } = await runListPlan({ limit: 1 });
-      expect(rows).toHaveLength(1);
-      expect(rows[0]).toMatchObject({ user_id: 1, user_name: "Ada" });
-    });
-
-    it("applies filter (eq) via parameterised WHERE", async () => {
-      const { rows } = await runListPlan({
-        filter: [{ field: "name", op: "eq", value: "Grace" }],
-      });
-      expect(rows).toHaveLength(1);
-      expect(rows[0]).toMatchObject({ user_id: 2, user_name: "Grace" });
-    });
-
-    it("applies filter (in) via ANY on a Postgres array param", async () => {
-      const { rows } = await runListPlan({
-        filter: [{ field: "name", op: "in", value: ["Ada", "Grace"] }],
-      });
-      expect(rows).toHaveLength(2);
-      expect(rows.map((r) => r.user_name).sort()).toEqual(["Ada", "Grace"]);
-    });
-
-    it("applies filter (ilike) case-insensitively", async () => {
-      const { rows } = await runListPlan({
-        filter: [{ field: "name", op: "ilike", value: "a%" }],
-      });
-      expect(rows).toHaveLength(1);
-      expect(rows[0]!.user_name).toBe("Ada");
-    });
-
-    it("respects multi-key ORDER BY with mixed directions", async () => {
-      const { rows } = await runListPlan({
-        orderBy: [{ field: "name", dir: "desc" }],
-      });
-      expect(rows.map((r) => r.user_name)).toEqual(["Grace", "Ada"]);
-    });
-
-    it("paginates via cursor keyset (WHERE id > $cursor)", async () => {
-      const page1 = await runListPlan({ limit: 1 });
-      expect(page1.rows).toHaveLength(1);
-      const lastId = page1.rows[0]!.user_id as number;
-      const cursor = encodeCursor({ id: lastId });
-
-      const page2 = await runListPlan({ limit: 1, cursor });
-      expect(page2.rows).toHaveLength(1);
-      expect(page2.rows[0]!.user_id).toBeGreaterThan(lastId);
-
-      // Round-trip the cursor so decodeCursor's shape is exercised.
-      expect(decodeCursor(cursor)).toEqual({ id: lastId });
-    });
-
-    it("combines filter + orderBy + cursor + limit in one query", async () => {
-      const cursor = encodeCursor({ id: 0 });
-      const { rows } = await runListPlan({
-        filter: [{ field: "name", op: "in", value: ["Ada", "Grace"] }],
-        orderBy: [{ field: "name", dir: "asc" }],
-        cursor,
-        limit: 5,
-      });
-      expect(rows.map((r) => r.user_name)).toEqual(["Ada", "Grace"]);
-    });
-
-    it("end-to-end via mesh.execute with $list on the wire", async () => {
+    function runList(
+      controls: Record<string, unknown>,
+    ): Promise<CollectionResult<UserRow>> {
       const mesh = createMesh(schema);
       mesh.resolve("user", async (plan) => {
         const { sql, params } = buildSelectSql(plan, schema);
         const result = await pool.query(sql, params);
         return result.rows;
       });
-
-      const response = (await mesh.execute(
-        JSON.stringify({
-          user: { id: true, name: true },
-          $list: {
-            filter: [{ field: "name", op: "ilike", value: "g%" }],
-          },
-        }),
+      return mesh.execute(
+        JSON.stringify({ user: { id: true, name: true, ...controls } }),
         { format: "json" },
-      )) as Array<{ id: number; name: string }>;
+      ) as Promise<CollectionResult<UserRow>>;
+    }
 
-      expect(response).toEqual([{ id: 2, name: "Grace" }]);
+    it("respects $page.first and default id ORDER BY", async () => {
+      const result = await runList({ $page: { first: 1 } });
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toMatchObject({ id: 1, name: "Ada" });
+      expect(result.pageInfo.hasNextPage).toBe(true);
+    });
+
+    it("applies $where (eq) via parameterised WHERE", async () => {
+      const result = await runList({
+        $where: { field: "name", op: "eq", value: "Grace" },
+      });
+      expect(result.items).toEqual([{ id: 2, name: "Grace" }]);
+    });
+
+    it("applies $where (in) via ANY on a Postgres array param", async () => {
+      const result = await runList({
+        $where: { field: "name", op: "in", value: ["Ada", "Grace"] },
+      });
+      expect(result.items.map((r) => r.name).sort()).toEqual(["Ada", "Grace"]);
+    });
+
+    it("applies $where (ilike) case-insensitively", async () => {
+      const result = await runList({
+        $where: { field: "name", op: "ilike", value: "a%" },
+      });
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]!.name).toBe("Ada");
+    });
+
+    it("respects $orderBy with descending direction", async () => {
+      const result = await runList({
+        $orderBy: [{ field: "name", direction: "desc" }],
+      });
+      expect(result.items.map((r) => r.name)).toEqual(["Grace", "Ada"]);
+    });
+
+    it("paginates via keyset cursor (endCursor → $page.after)", async () => {
+      const page1 = await runList({ $page: { first: 1 } });
+      expect(page1.items).toHaveLength(1);
+      const after = page1.pageInfo.endCursor!;
+      expect(after).toBeTruthy();
+
+      const page2 = await runList({ $page: { first: 1, after } });
+      expect(page2.items).toHaveLength(1);
+      expect(page2.items[0]!.id).toBeGreaterThan(page1.items[0]!.id);
+    });
+
+    it("combines $where + $orderBy + $page in one query", async () => {
+      const result = await runList({
+        $where: { field: "name", op: "in", value: ["Ada", "Grace"] },
+        $orderBy: [{ field: "name", direction: "asc" }],
+        $page: { first: 5 },
+      });
+      expect(result.items.map((r) => r.name)).toEqual(["Ada", "Grace"]);
     });
   });
 });
