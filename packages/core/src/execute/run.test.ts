@@ -24,7 +24,7 @@ describe("executeDetailed + SQL trace", () => {
     });
 
     const result = await mesh.executeDetailed(
-      JSON.stringify({ user: { id: true, name: true } }),
+      JSON.stringify({ user: { $select: { id: true, name: true } } }),
       {
         format: "json",
         list: false,

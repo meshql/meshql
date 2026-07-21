@@ -2,15 +2,20 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { parseJsonQuery, normalizeReadTree } from "./query/index.js";
+import { parseJsonQuery, normalizeReadTree, astNodeToWire } from "./query/index.js";
+import { parseQl } from "./parser/index.js";
 import { buildJoinPlan } from "./planner/join-plan.js";
 import { createQueryContext } from "./resolver/context.js";
 import type { MeshSchema } from "./schema/schema.js";
 import { shape } from "./shaper/shaper.js";
 
-function astFromQuery(raw: string, schema: MeshSchema) {
+function astFromJsonQuery(raw: string, schema: MeshSchema) {
   const doc = parseJsonQuery(raw);
   return normalizeReadTree(doc.root, schema).ast;
+}
+
+function astFromQlQuery(raw: string, schema: MeshSchema) {
+  return normalizeReadTree(astNodeToWire(parseQl(raw).root), schema).ast;
 }
 
 const repoRoot = path.resolve(fileURLToPath(import.meta.url), "../../../..");
@@ -18,6 +23,11 @@ const repoRoot = path.resolve(fileURLToPath(import.meta.url), "../../../..");
 function loadFixture<T>(relativePath: string): T {
   const filePath = path.join(repoRoot, "specs/fixtures", relativePath);
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
+}
+
+function loadTextFixture(relativePath: string): string {
+  const filePath = path.join(repoRoot, "specs/fixtures", relativePath);
+  return fs.readFileSync(filePath, "utf8").trim();
 }
 
 const userTokensSchema: MeshSchema = {
@@ -62,7 +72,7 @@ describe("spec conformance fixtures", () => {
       shaped: Record<string, unknown>;
     }>("responses/user-with-tokens.json");
 
-    const ast = astFromQuery(JSON.stringify(query), userTokensSchema);
+    const ast = astFromJsonQuery(JSON.stringify(query), userTokensSchema);
     const plan = buildJoinPlan(
       ast,
       userTokensSchema,
@@ -70,6 +80,26 @@ describe("spec conformance fixtures", () => {
     );
 
     expect(shape(fixture.rows, ast.root, plan.joins)).toEqual(fixture.shaped);
+  });
+
+  it("user-with-tokens QL: equivalent AST and shaped result", () => {
+    const ql = loadTextFixture("queries/user-with-tokens.ql");
+    const json = loadFixture<Record<string, unknown>>("queries/user-with-tokens.json");
+    const fixture = loadFixture<{
+      rows: Record<string, unknown>[];
+      shaped: Record<string, unknown>;
+    }>("responses/user-with-tokens.json");
+
+    const qlAst = astFromQlQuery(ql, userTokensSchema);
+    const jsonAst = astFromJsonQuery(JSON.stringify(json), userTokensSchema);
+    expect(qlAst).toEqual(jsonAst);
+
+    const plan = buildJoinPlan(
+      qlAst,
+      userTokensSchema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+    );
+    expect(shape(fixture.rows, qlAst.root, plan.joins)).toEqual(fixture.shaped);
   });
 
   it("post-comments-author: parser → planner → shaper", () => {
@@ -81,7 +111,7 @@ describe("spec conformance fixtures", () => {
       shaped: Record<string, unknown>;
     }>("responses/post-comments-author.json");
 
-    const ast = astFromQuery(JSON.stringify(query), postCommentsSchema);
+    const ast = astFromJsonQuery(JSON.stringify(query), postCommentsSchema);
     const plan = buildJoinPlan(
       ast,
       postCommentsSchema,

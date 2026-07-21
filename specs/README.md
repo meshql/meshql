@@ -27,6 +27,7 @@ prefer fixtures when resolving ambiguity.
 | [05 — Read controls](./05-read-controls.md) | Filters, sorting, keyset pages, aggregates |
 | [06 — Integrity](./06-integrity.md) | Optional signing profile |
 | [07 — Uploads](./07-uploads.md) | Optional multipart profile |
+| [08 — Computed fields](./08-computed-fields.md) | Optional schema-defined virtual fields |
 | [Conformance](./conformance.md) | Must-pass cases |
 | [Fixtures](./fixtures/) | Golden inputs / outputs |
 

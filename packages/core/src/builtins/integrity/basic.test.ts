@@ -6,7 +6,7 @@ import { createQueryContext } from "../../resolver/context.js";
 
 describe("basicIntegrityPlugin", () => {
   const secret = "test-secret";
-  const queryHeader = Buffer.from('{"user":{"id":true}}', "utf8").toString("base64");
+  const queryHeader = Buffer.from('{"user":{"$select":{"id":true}}}', "utf8").toString("base64");
 
   it("accepts a valid signature", async () => {
     const plugin = basicIntegrityPlugin({ secret });

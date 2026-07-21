@@ -176,7 +176,7 @@ describe("computed execute", () => {
     ]);
 
     const data = await mesh.execute(
-      JSON.stringify({ user: { fullName: true } }),
+      JSON.stringify({ user: { $select: { fullName: true } } }),
       { format: "json", list: false },
     );
 
@@ -194,7 +194,9 @@ describe("computed execute", () => {
     ]);
 
     const data = await mesh.execute(
-      JSON.stringify({ user: { fullName: true, firstName: true } }),
+      JSON.stringify({
+        user: { $select: { fullName: true, firstName: true } },
+      }),
       { format: "json", list: false },
     );
 
@@ -214,7 +216,7 @@ describe("computed execute", () => {
     );
 
     const data = await mesh.execute(
-      JSON.stringify({ user: { fullName: true } }),
+      JSON.stringify({ user: { $select: { fullName: true } } }),
       { format: "json", list: false },
     );
 

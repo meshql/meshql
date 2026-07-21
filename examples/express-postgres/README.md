@@ -30,7 +30,7 @@ pnpm --filter express-postgres exec tsx src/demo-client.ts
 ### Test with curl
 
 ```bash
-Q=$(echo -n '{"user":{"id":true,"name":true,"tokens":{"accessToken":true,"expiresAt":true}}}' | base64 | tr -d '\n')
+Q=$(echo -n '{"user":{"$select":{"id":true,"name":true,"tokens":{"$select":{"accessToken":true,"expiresAt":true}}}}}' | base64 | tr -d '\n')
 
 curl -s "http://localhost:3001/mesh/user/1" \
   -H "X-Mesh-Query: $Q" \

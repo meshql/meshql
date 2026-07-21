@@ -9,7 +9,7 @@
  *
  * const client = createClient({ url: "http://localhost:3000/mesh" });
  * const user = await client.query({
- *   user: { id: true, email: true },
+ *   user: { $select: { id: true, email: true } },
  * });
  * ```
  */
@@ -22,12 +22,13 @@ export type {
   AuthTokens,
   WriteOptions,
   WritePayload,
-  QueryControls,
 } from "./client.js";
 export { encodeQuery, signQuery } from "./sign.js";
 export type { QueryFormat, SignQueryOptions } from "./sign.js";
+export { queryToQl } from "./query-builder.js";
 export {
-  selectionToJson,
-  selectionToQl,
-  type QuerySelection,
-} from "./query-builder.js";
+  queryToJson,
+  type MeshQuery,
+  type ReadNode,
+  type ReadSelection,
+} from "./read-query.js";

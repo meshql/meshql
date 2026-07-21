@@ -43,6 +43,7 @@ describe("kyselyResolver", () => {
     mesh.resolve("*", kyselyResolver({ executeQuery }, { schema, dialect: "sqlite" }));
 
     const result = await mesh.execute("{ user { id name tokens { accessToken } } }", {
+      format: "ql",
       context: { requestId: "1", method: "GET", entityId: "1" },
     });
 

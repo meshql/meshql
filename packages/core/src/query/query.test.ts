@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { normalizeReadTree } from "./normalize.js";
+import { parseQl } from "../parser/index.js";
+import { astNodeToWire, normalizeReadTree } from "./normalize.js";
 import { parseJsonQuery } from "./parse.js";
 
 const schema = {
@@ -62,5 +63,36 @@ describe("parseJsonQuery", () => {
         (entry) => "field" in entry && entry.field === "id",
       ),
     ).toBe(true);
+  });
+});
+
+describe("QL and JSON selection equivalence", () => {
+  it("normalizes to equivalent AST and default read controls", () => {
+    const ql = normalizeReadTree(
+      astNodeToWire(parseQl("{ post { id title comments { id body } } }").root),
+      schema,
+    );
+    const json = normalizeReadTree(
+      parseJsonQuery(
+        JSON.stringify({
+          post: {
+            $select: {
+              id: true,
+              title: true,
+              comments: { $select: { id: true, body: true } },
+            },
+          },
+        }),
+      ).root,
+      schema,
+    );
+
+    expect(ql.ast).toEqual(json.ast);
+    expect(ql.read.fields).toEqual(json.read.fields);
+    expect(ql.read.refs.map((ref) => ref.name)).toEqual(
+      json.read.refs.map((ref) => ref.name),
+    );
+    expect(ql.read.page?.first).toBe(json.read.page?.first);
+    expect(ql.read.orderBy).toEqual(json.read.orderBy);
   });
 });

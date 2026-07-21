@@ -28,8 +28,8 @@ local controls; collection responses use `{ items, pageInfo }`.
 }
 ```
 
-`$select` is canonical. A node may use its non-`$` keys as an equivalent
-selection shorthand. Unknown `$` keys MUST be rejected.
+Every read node uses `$select`. Fields outside `$select` and unknown `$` keys
+MUST be rejected.
 
 ## Controls
 

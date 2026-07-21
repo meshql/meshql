@@ -94,10 +94,10 @@ describe("withIntegrity", () => {
       return { id: "1" };
     });
 
-    const queryHeader = Buffer.from('{"user":{"id":true}}', "utf8").toString("base64");
+    const queryHeader = Buffer.from('{"user":{"$select":{"id":true}}}', "utf8").toString("base64");
     const signature = signQueryHeader(signingToken, queryHeader);
 
-    const result = await mesh.execute('{"user":{"id":true}}', {
+    const result = await mesh.execute('{"user":{"$select":{"id":true}}}', {
       format: "json",
       list: false,
       transport: { queryHeader, signature, token },

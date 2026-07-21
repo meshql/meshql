@@ -5,12 +5,12 @@ describe("InMemoryQueryStore", () => {
   it("saves and retrieves persisted queries", () => {
     const store = new InMemoryQueryStore();
     store.save("q_abcd1234", {
-      raw: '{"user":{"id":true}}',
+      raw: '{"user":{"$select":{"id":true}}}',
       format: "json",
       createdAt: 1,
     });
 
-    expect(store.get("q_abcd1234")?.raw).toBe('{"user":{"id":true}}');
-    expect(store.findByContent('{"user":{"id":true}}', "json")).toBe("q_abcd1234");
+    expect(store.get("q_abcd1234")?.raw).toBe('{"user":{"$select":{"id":true}}}');
+    expect(store.findByContent('{"user":{"$select":{"id":true}}}', "json")).toBe("q_abcd1234");
   });
 });

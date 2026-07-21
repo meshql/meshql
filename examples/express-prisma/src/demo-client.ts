@@ -8,10 +8,17 @@ async function main() {
   const post = await client.query(
     {
       post: {
-        id: true,
-        title: true,
-        author: { name: true },
-        comments: { body: true, author: { name: true } },
+        $select: {
+          id: true,
+          title: true,
+          author: { $select: { name: true } },
+          comments: {
+            $select: {
+              body: true,
+              author: { $select: { name: true } },
+            },
+          },
+        },
       },
     },
     { entityId: "1" },

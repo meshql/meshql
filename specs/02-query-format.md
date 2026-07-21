@@ -62,14 +62,17 @@ Nested multi-level:
 1. Scalar fields MUST be selected with boolean `true` or omitted.
 2. Relation fields MUST be read-node objects with a non-empty selection.
 3. Exactly one root entity MUST be present.
-4. `$select` is canonical. Non-`$` keys on a read node MAY be used as selection
-   shorthand.
+4. Every read node MUST contain `$select`; fields outside `$select` MUST be
+   rejected.
 5. Unknown fields, joins, and `$` controls MUST be rejected.
 6. QL remains selection-only; use JSON for read controls.
 
 ## QL selection
 
-Brace syntax reminiscent of GraphQL field sets:
+Brace syntax reminiscent of GraphQL field sets. QL is selection-only: it cannot
+carry `$where`, `$orderBy`, `$page`, or aggregate controls. Pass
+`X-Mesh-Format: ql` / `{ format: "ql" }` explicitly — JSON is the default on
+every public surface.
 
 ```
 { user { id name tokens { accessToken } } }
@@ -84,13 +87,15 @@ Multi-level:
 ### Informal grammar
 
 ```
-query      := "{" selection "}"
-selection  := IDENT "{" field* "}"
-field      := IDENT | IDENT "{" field* "}"
+query      := "{" IDENT selection "}"
+selection  := "{" field+ "}"
+field      := IDENT | IDENT selection
 ```
 
 Whitespace is insignificant. Identifiers are the same strings as MeshSchema
-entity/field/ref names.
+entity/field/ref names and MUST start with a letter or underscore. Unsupported
+characters, trailing tokens, missing braces, and empty selections MUST be
+rejected.
 
 ## Relationship to schema
 

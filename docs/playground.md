@@ -19,6 +19,7 @@ app.use(meshDocsExpressRouter(mesh, mesh.docs, "/docs"));
 Open `/docs` for:
 
 - **Entity browser** — fields and joins from `mesh.schema`
+- **Computed fields** — shown separately with optional runtime type hints
 - **Click-to-build query** — builds MeshQL selection JSON
 - **Live execute** — runs through `mesh.executeDetailed`
 - **SQL trace** (dev) — actual SQL + params for SQL adapters

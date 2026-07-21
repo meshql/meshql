@@ -1,44 +1,34 @@
-/** Nested JSON field selection used by the MeshQL client. */
-export type QuerySelection = {
-  [key: string]: boolean | QuerySelection;
-};
+import type { MeshQuery, ReadNode, ReadSelection } from "./read-query.js";
 
-/**
- * Serialize a field selection to JSON query format.
- *
- * This produces a bare selection map. For filtering, ordering, pagination,
- * and aggregation use {@link buildReadNode} / {@link readNodeToJson} from
- * `read-query`, which attaches `$where`/`$orderBy`/`$page` controls.
- */
-export function selectionToJson(selection: QuerySelection): string {
-  return JSON.stringify(selection);
-}
-
-/** Serialize a field selection to MeshQL brace syntax. */
-export function selectionToQl(selection: QuerySelection, rootName?: string): string {
-  const entries = Object.entries(selection);
+/** Serialize a canonical query to selection-only MeshQL brace syntax. */
+export function queryToQl(query: MeshQuery): string {
+  const entries = Object.entries(query);
   if (entries.length !== 1) {
-    throw new Error("Query selection must have exactly one root entity");
+    throw new Error("MeshQL query must have exactly one root entity");
   }
 
-  const [name, value] = entries[0]!;
-  const entityName = rootName ?? name;
-  return `{ ${entityName} ${renderNode(value)} }`;
+  const [rootName, node] = entries[0]!;
+  return `{ ${rootName} ${renderNode(node)} }`;
 }
 
-function renderNode(value: boolean | QuerySelection): string {
-  if (value === true) {
-    return "";
-  }
+function renderNode(node: ReadNode): string {
+  assertSelectionOnly(node);
+  return renderSelection(node.$select);
+}
 
+function renderSelection(selection: ReadSelection): string {
   const parts: string[] = [];
-  for (const [key, fieldValue] of Object.entries(value)) {
-    if (fieldValue === true) {
-      parts.push(key);
-    } else {
-      parts.push(`${key} ${renderNode(fieldValue)}`);
-    }
+  for (const [key, value] of Object.entries(selection)) {
+    parts.push(value === true ? key : `${key} ${renderNode(value)}`);
   }
-
   return `{ ${parts.join(" ")} }`;
+}
+
+function assertSelectionOnly(node: ReadNode): void {
+  const controls = Object.keys(node).filter((key) => key !== "$select");
+  if (controls.length > 0) {
+    throw new Error(
+      `QL format is selection-only; remove read control '${controls[0]}' or use format: 'json'`,
+    );
+  }
 }

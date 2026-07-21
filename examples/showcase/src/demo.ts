@@ -45,10 +45,12 @@ async function main() {
   const post = await author.query(
     {
       post: {
-        id: true,
-        title: true,
-        author: { name: true },
-        comments: { body: true },
+        $select: {
+          id: true,
+          title: true,
+          author: { $select: { name: true } },
+          comments: { $select: { body: true } },
+        },
       },
     },
     { entityId: "1" },
@@ -58,18 +60,22 @@ async function main() {
   // ── 3. Collection reads: where + orderBy ─────────────────
   section("3. Collection reads (v2 controls in signed payload)");
   const published = await guest.query(
-    { post: { id: true, title: true, status: true } },
     {
-      page: { first: 10 },
-      orderBy: [{ field: "createdAt", direction: "desc" }],
+      post: {
+        $select: { id: true, title: true, status: true },
+        $page: { first: 10 },
+        $orderBy: [{ field: "createdAt", direction: "desc" }],
+      },
     },
   );
   ok("guest list (published only)", published);
 
   const drafts = await author.query(
-    { post: { id: true, title: true, status: true } },
     {
-      where: { field: "status", op: "eq", value: "draft" },
+      post: {
+        $select: { id: true, title: true, status: true },
+        $where: { field: "status", op: "eq", value: "draft" },
+      },
     },
   );
   ok("author can list drafts", drafts);
@@ -77,18 +83,22 @@ async function main() {
   // ── 4. Keyset pagination ─────────────────────────────────
   section("4. Keyset pagination");
   const page1 = (await author.query(
-    { post: { id: true, title: true } },
     {
-      page: { first: 1 },
-      orderBy: [{ field: "id", direction: "asc" }],
+      post: {
+        $select: { id: true, title: true },
+        $page: { first: 1 },
+        $orderBy: [{ field: "id", direction: "asc" }],
+      },
     },
   )) as CollectionResult<{ id: number; title: string }>;
   const after = page1.pageInfo.endCursor;
   const page2 = (await author.query(
-    { post: { id: true, title: true } },
     {
-      page: { first: 1, after },
-      orderBy: [{ field: "id", direction: "asc" }],
+      post: {
+        $select: { id: true, title: true },
+        $page: { first: 1, after },
+        $orderBy: [{ field: "id", direction: "asc" }],
+      },
     },
   )) as CollectionResult<{ id: number; title: string }>;
   ok("page 1", page1.items);
@@ -97,11 +107,11 @@ async function main() {
   // ── 5. Access control ────────────────────────────────────
   section("5. Field access (user.email)");
   const guestUser = await guest.query(
-    { user: { id: true, name: true, email: true } },
+    { user: { $select: { id: true, name: true, email: true } } },
     { entityId: "1" },
   );
   const adminUser = await admin.query(
-    { user: { id: true, name: true, email: true } },
+    { user: { $select: { id: true, name: true, email: true } } },
     { entityId: "1" },
   );
   ok("guest cannot see email", guestUser);
@@ -109,11 +119,11 @@ async function main() {
 
   section("6. Row access (draft posts)");
   const guestDraft = await guest.query(
-    { post: { id: true, title: true, status: true } },
+    { post: { $select: { id: true, title: true, status: true } } },
     { entityId: "2" },
   );
   const authorDraft = await author.query(
-    { post: { id: true, title: true, status: true } },
+    { post: { $select: { id: true, title: true, status: true } } },
     { entityId: "2" },
   );
   ok("guest blocked from draft (empty)", guestDraft);
@@ -131,7 +141,7 @@ async function main() {
   ok("uploaded avatar", uploaded);
 
   const userWithAvatar = await author.query(
-    { user: { id: true, name: true, avatar: true } },
+    { user: { $select: { id: true, name: true, avatar: true } } },
     { entityId: "1" },
   );
   ok("user now has avatar path", userWithAvatar);

@@ -9,7 +9,7 @@ export interface ExecuteTraceOptions {
 
 /** Options passed to {@link MeshInstance.execute}. */
 export interface ExecuteOptions {
-  /** Query wire format. Defaults to `ql`. */
+  /** Query wire format. Defaults to `json`. */
   format?: "json" | "ql";
   /** Request context passed to resolvers. */
   context?: Partial<QueryContext> & Pick<QueryContext, "requestId" | "method">;

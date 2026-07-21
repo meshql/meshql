@@ -23,7 +23,7 @@ const gateway = createGateway({
   ],
 });
 
-const user = await gateway.execute('{"user":{"id":true,"posts":{"title":true}}}', {
+const user = await gateway.execute('{"user":{"$select":{"id":true,"posts":{"$select":{"title":true}}}}}', {
   entityId: "1",
 });
 ```

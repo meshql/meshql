@@ -81,12 +81,27 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.tag.outputs.publish_matrix) }}
     steps:
+      # `gh workflow run` needs a git repo to resolve the remote; without
+      # checkout it fails with "fatal: not a git repository".
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Dispatch publish workflow
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           set -euo pipefail
-          echo "Dispatching ${{ matrix.workflow }} for package=${{ matrix.package }} ref=${{ matrix.ref }}"
-          gh workflow run "${{ matrix.workflow }}" \
-            --ref "${{ matrix.ref }}" \
-            -f package="${{ matrix.package }}"
+          # Dispatch against main (workflow_dispatch needs a branch ref that
+          # contains the workflow file). Package versions already live on
+          # main after the Version Packages merge; tag refs are for audit.
+          echo "Dispatching ${{ matrix.workflow }} for package=${{ matrix.package }} (tag ${{ matrix.ref }})"
+          if [ "${{ matrix.workflow }}" = "publish-npm.yml" ]; then
+            gh workflow run "${{ matrix.workflow }}" \
+              --ref main \
+              -f package="${{ matrix.package }}" \
+              -f publish_registry=true
+          else
+            gh workflow run "${{ matrix.workflow }}" \
+              --ref main \
+              -f package="${{ matrix.package }}"
+          fi

@@ -24,8 +24,13 @@ const client = createAuthClient({ url: "/mesh", format: "json" });
 await client.login({ email: "ada@example.com", password: "demo" });
 
 const posts = await client.query(
-  { post: { id: true, title: true } },
-  { list: { limit: 10 } },
+  {
+    post: {
+      $select: { id: true, title: true },
+      $page: { first: 10 },
+      $orderBy: [{ field: "id", direction: "asc" }],
+    },
+  },
 );
 ```
 
@@ -37,10 +42,29 @@ import { createClient } from "meshql-client";
 const client = createClient({ url: "http://localhost:3000/mesh" });
 
 const user = await client.query({
-  user: { id: true, email: true, tokens: { accessToken: true } },
+  user: {
+    $select: {
+      id: true,
+      email: true,
+      tokens: { $select: { accessToken: true } },
+    },
+  },
 });
 
 console.log(user.email);
+```
+
+JSON is the default format and supports read controls. For selection-only QL:
+
+```ts
+const client = createClient({
+  url: "http://localhost:3000/mesh",
+  format: "ql",
+});
+
+await client.query({
+  user: { $select: { id: true, email: true } },
+});
 ```
 
 JSR import: `@meshql/client`.

@@ -8,7 +8,7 @@ import {
 } from "./decode.js";
 
 describe("decodeQuery", () => {
-  const raw = '{"user":{"id":true}}';
+  const raw = '{"user":{"$select":{"id":true}}}';
   const encoded = encodeQuery(raw, "json");
 
   it("decodes a base64 X-Mesh-Query header", () => {

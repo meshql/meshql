@@ -70,10 +70,11 @@ Illustrative plan:
 Exact string forms of `fields` / `on` may differ by SQL dialect adapters;
 cardinality, paths, and join keys MUST remain consistent with the query tree.
 
-## Point vs list
+## Point vs collection
 
-- Point read: `context.entityId` is set; `list` is absent.
-- List read: `list` MAY be set; `entityId` is absent.
+- Point read: `context.entityId` is set.
+- Collection read: `context.entityId` is absent and `read` carries the
+  normalized controls, including the effective page and deterministic order.
 
 ## Preshaped resolvers
 

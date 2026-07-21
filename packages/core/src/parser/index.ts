@@ -40,6 +40,11 @@ export function parseQl(query: string): AST {
     }
 
     expect("RBRACE", `Expected '}' closing entity '${name}'`);
+
+    if (node.fields.length === 0 && node.refs.length === 0) {
+      throw new ParseError(`Entity '${name}' must select at least one field`);
+    }
+
     return node;
   }
 
@@ -50,9 +55,10 @@ export function parseQl(query: string): AST {
   consume();
   const rootName = expect("IDENT", "Expected root entity name").value;
   const root = parseNode(rootName);
+  expect("RBRACE", "Expected '}' closing query");
 
-  if (peek().type === "RBRACE") {
-    consume();
+  if (peek().type !== "EOF") {
+    throw new ParseError("Unexpected trailing content in QL query");
   }
 
   return { root };
