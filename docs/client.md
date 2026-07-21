@@ -28,7 +28,15 @@ import { createClient } from "@meshql/client";
 const client = createClient({ url: "http://localhost:3000/mesh", format: "json" });
 
 const user = await client.query(
-  { user: { id: true, name: true, tokens: { accessToken: true } } },
+  {
+    user: {
+      $select: {
+        id: true,
+        name: true,
+        tokens: { $select: { accessToken: true } },
+      },
+    },
+  },
   { entityId: "1" },
 );
 ```
@@ -50,10 +58,12 @@ const tokens = await client.login({ email: "ada@example.com", password: "demo" }
 // tokens: { signingToken, token, expiresAt }
 
 const posts = await client.query(
-  { post: { id: true, title: true } },
   {
-    page: { first: 20 },
-    orderBy: [{ field: "createdAt", direction: "desc" }],
+    post: {
+      $select: { id: true, title: true },
+      $page: { first: 20 },
+      $orderBy: [{ field: "createdAt", direction: "desc" }],
+    },
   },
 );
 ```
@@ -70,26 +80,28 @@ Signed requests include:
 
 ## Collection queries
 
-Pass read controls in the second argument. The client serializes them as
-`$where`, `$orderBy`, `$page`, `$groupBy`, `$aggregate`, `$having`, and
-`$distinct` in the signed JSON payload:
+Pass read controls on the query node itself (`$where`, `$orderBy`, `$page`,
+`$groupBy`, `$aggregate`, `$having`, `$distinct`). The second argument is for
+transport metadata only (for example `entityId`):
 
 ```typescript
 const page = await client.query(
-  { post: { id: true, title: true, status: true } },
   {
-    page: { first: 10, after: previous.pageInfo.endCursor },
-    orderBy: [{ field: "createdAt", direction: "desc" }],
-    where: { field: "status", op: "eq", value: "published" },
+    post: {
+      $select: { id: true, title: true, status: true },
+      $page: { first: 10, after: previous.pageInfo.endCursor },
+      $orderBy: [{ field: "createdAt", direction: "desc" }],
+      $where: { field: "status", op: "eq", value: "published" },
+    },
   },
 );
 
 console.log(page.items, page.pageInfo.endCursor);
 ```
 
-Read controls require `format: "json"` (the default). Do not combine them with
-`entityId`; point reads return an object, while collection reads return
-`{ items, pageInfo }`.
+Read controls require `format: "json"` (the default). Do not combine root
+controls with `entityId`; point reads return an object, while collection reads
+return `{ items, pageInfo }`.
 
 ---
 
@@ -124,8 +136,7 @@ const client = createAuthClient({ url: "/mesh", format: "json" });
 await client.login({ email, password });
 
 const data = await client.query(
-  { post: { id: true, title: true } },
-  { page: { first: 50 } },
+  { post: { $select: { id: true, title: true }, $page: { first: 50 } } },
 );
 ```
 

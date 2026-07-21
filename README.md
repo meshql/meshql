@@ -202,7 +202,7 @@ npx tsx src/index.ts
 ### 4. Test with curl
 
 ```bash
-Q=$(echo -n '{"user":{"id":true,"name":true,"tokens":{"accessToken":true}}}' | base64 | tr -d '\n')
+Q=$(echo -n '{"user":{"$select":{"id":true,"name":true,"tokens":{"$select":{"accessToken":true}}}}}' | base64 | tr -d '\n')
 
 curl -s "http://localhost:3001/mesh/user/1" \
   -H "X-Mesh-Query: $Q" \
@@ -220,7 +220,15 @@ import { createClient } from "@meshql/client";
 
 const client = createClient({ url: "http://localhost:3001/mesh" });
 const user = await client.query(
-  { user: { id: true, name: true, tokens: { accessToken: true } } },
+  {
+    user: {
+      $select: {
+        id: true,
+        name: true,
+        tokens: { $select: { accessToken: true } },
+      },
+    },
+  },
   { entityId: "1" },
 );
 console.log(user);
@@ -228,16 +236,17 @@ console.log(user);
 
 ### Collection queries and catch-all resolvers
 
-**Collection reads** — pass controls to the client; they are serialized into
-the signed query payload:
+**Collection reads** — use the same canonical query object as the wire payload:
 
 ```typescript
 const users = await client.query(
-  { user: { id: true, name: true } },
   {
-    page: { first: 10 },
-    orderBy: [{ field: "name", direction: "asc" }],
-    where: { field: "role", op: "eq", value: "admin" },
+    user: {
+      $select: { id: true, name: true },
+      $page: { first: 10 },
+      $orderBy: [{ field: "name", direction: "asc" }],
+      $where: { field: "role", op: "eq", value: "admin" },
+    },
   },
 );
 console.log(users.items, users.pageInfo);

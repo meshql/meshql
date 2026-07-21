@@ -1,7 +1,7 @@
 import {
-  selectionToJson,
+  queryToJson,
   signQuery,
-  type QuerySelection,
+  type MeshQuery,
 } from "@meshql/client";
 import type { StoredAuth } from "./types.js";
 
@@ -15,14 +15,14 @@ export type SseSubscribeOptions = {
 
 /** Fetch-based SSE reader — EventSource cannot send signed MeshQL headers. */
 export function subscribeMeshEvents(
-  selection: QuerySelection,
+  query: MeshQuery,
   options: SseSubscribeOptions,
 ): () => void {
   const controller = new AbortController();
   let closed = false;
 
   const run = async () => {
-    const raw = selectionToJson(selection);
+    const raw = queryToJson(query);
     const headers = await signQuery(raw, {
       format: "json",
       signingToken: options.auth.signingToken,

@@ -138,6 +138,7 @@ describe("prismaResolver", () => {
     ), { preshaped: true });
 
     const result = await mesh.execute("{ post { id title comments { body author { name } } } }", {
+      format: "ql",
       context: { requestId: "1", method: "GET", entityId: "1" },
     });
 

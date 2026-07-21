@@ -1,9 +1,13 @@
 {
   "user": {
-    "id": true,
-    "name": true,
-    "tokens": {
-      "accessToken": true
+    "$select": {
+      "id": true,
+      "name": true,
+      "tokens": {
+        "$select": {
+          "accessToken": true
+        }
+      }
     }
   }
 }

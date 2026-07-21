@@ -75,6 +75,15 @@ See [07 — Uploads](./07-uploads.md).
 
 ```json
 {
+  "query": "{\"user\":{\"$select\":{\"id\":true,\"name\":true}}}",
+  "format": "json"
+}
+```
+
+QL remains available when `format` is set to `ql`:
+
+```json
+{
   "query": "{ user { id name } }",
   "format": "ql"
 }
@@ -83,7 +92,7 @@ See [07 — Uploads](./07-uploads.md).
 | Field | Required | Notes |
 |-------|----------|-------|
 | `query` | Yes | Raw query string (not base64) |
-| `format` | No | Defaults to `ql` |
+| `format` | No | Defaults to `json` |
 
 Content-Type: `application/json`.
 
