@@ -30,8 +30,6 @@ export function validateAst(ast: AST, schema: MeshSchema): AST {
 function validateNode(node: ASTNode, entityKey: string, schema: MeshSchema): void {
   const entityConfig = schema.entities[entityKey];
   if (!entityConfig) {
-    // Defensive: entityKey came from resolveEntityKey or a join config, so
-    // this is really unreachable at runtime. Kept as a guard to fail loud.
     throw new ValidationError(`Unknown entity '${node.name}'`);
   }
 

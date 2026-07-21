@@ -65,38 +65,6 @@ export function extractContentHash(raw: string): string | undefined {
   }
 }
 
-/** Options for {@link MeshInstance.executeUpload}. */
-export interface ExecuteUploadOptions {
-  /** Entity receiving the upload (e.g. `"user"`). */
-  entity: string;
-  /** Field on the entity (e.g. `"avatar"`). Resolver key is `entity.field`. */
-  field: string;
-  /** Uploaded file bytes and metadata. */
-  file: MeshFile;
-  /** Primary key when attaching to an existing record. */
-  entityId?: string;
-  /**
-   * Signed wire payload (decoded `X-Mesh-Query`). Must include
-   * `contentHash` when integrity is enabled.
-   */
-  query: string;
-  /** HTTP transport metadata for integrity verification. */
-  transport?: ExecuteTransport;
-  /** Extra context fields (e.g. metadata from a multipart `meta` part). */
-  context?: Partial<QueryContext> & Pick<QueryContext, "requestId" | "method">;
-}
-
-/** Extract `contentHash` from an upload wire payload without full AST parse. */
-export function extractContentHash(raw: string): string | undefined {
-  try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const hash = parsed.contentHash;
-    return typeof hash === "string" && hash.length > 0 ? hash : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 /** A configured MeshQL server instance with registered resolvers. */
 export interface MeshInstance {
   schema: MeshConfig;
@@ -167,80 +135,6 @@ export function createMesh(config: MeshConfig): MeshInstance {
 
     executeDetailed(query, options = {}) {
       return runMeshExecute(config, registry, plugins, query, options);
-    },
-
-    async executeUpload(options) {
-      const startTime = Date.now();
-      const uploadKey = `${options.entity}.${options.field}`;
-      const context = createQueryContext(
-        options.context ?? {
-          requestId: crypto.randomUUID(),
-          method: "POST",
-          entity: options.entity,
-          entityId: options.entityId,
-        },
-      );
-      context.entity = options.entity;
-      if (options.entityId !== undefined) {
-        context.entityId = options.entityId;
-      }
-
-      const pluginCtx: PluginContext & { contentHash?: string } = {
-        queryContext: context,
-        transport: options.transport,
-        startTime,
-        contentHash: extractContentHash(options.query),
-      };
-
-      try {
-        await plugins.runOnRequest(options.query, pluginCtx);
-
-        const entityKey = resolveEntityKey(options.entity, config);
-        if (!entityKey) {
-          throw new ValidationError(`Unknown entity '${options.entity}'`);
-        }
-
-        const entityConfig = config.entities[entityKey];
-        const plan = {
-          rootEntity: entityKey,
-          fields: [options.field],
-          idField: entityIdField(entityConfig),
-          joins: [],
-          context,
-        };
-
-        const file = await plugins.runOnUpload(options.file, plan, pluginCtx);
-
-        const uploadResolver = registry.getUpload(uploadKey);
-        if (!uploadResolver) {
-          throw new ResolverError(
-            `No upload resolver registered for '${uploadKey}'`,
-            options.entity,
-          );
-        }
-
-        let result: Record<string, unknown>;
-        try {
-          result = await uploadResolver(file, plan);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Upload failed";
-          throw new ResolverError(message, options.entity);
-        }
-
-        result = (await plugins.runOnResult(result, pluginCtx)) as Record<
-          string,
-          unknown
-        >;
-        return (await plugins.runOnResponse(result, pluginCtx)) as Record<
-          string,
-          unknown
-        >;
-      } catch (error) {
-        if (error instanceof MeshError) {
-          await plugins.runOnError(error, pluginCtx);
-        }
-        throw error;
-      }
     },
 
     async executeUpload(options) {

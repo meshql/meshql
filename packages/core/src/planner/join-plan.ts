@@ -316,7 +316,6 @@ export function buildJoinPlan(
     rootEntityKey,
     undefined,
     fields,
-    idField: rootIdField,
     joins,
     computedFields,
     schema,
