@@ -5,7 +5,7 @@ import { formatSseEvent, handleMeshSse } from "./handler.js";
 
 const schema = {
   entities: {
-    post: { type: {}, fields: ["id", "title"], table: "posts" },
+    post: { fields: ["id", "title"], table: "posts" },
   },
   joins: {},
 };

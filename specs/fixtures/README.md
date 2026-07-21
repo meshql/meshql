@@ -9,4 +9,6 @@ Golden inputs for conformance and alternative implementations.
 
 When changing shaper or wire behavior, update these fixtures in the same PR.
 
-`@meshql/core` runs them in CI via `packages/core/src/conformance-fixtures.test.ts`.
+`@meshql/core` runs selection/shaper fixtures in CI. The SQLite and Postgres
+builders both run `queries/collection-controls.json`, providing a shared
+cross-dialect contract for filters, ordering, and sentinel pagination.

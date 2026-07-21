@@ -14,7 +14,7 @@ export type MeshSchemaOverride = {
  * Shallow-merge a base MeshQL schema with an override.
  *
  * - Entity configs are merged field-by-field; `fields` / `columns` /
- *   `type` / `table` / `idField` from the override win when present.
+ *   `table` / `idField` / `computed` from the override win when present.
  * - Join entries set to `undefined` are removed; otherwise they replace or
  *   add the join key.
  * - The base schema is never mutated.
@@ -40,7 +40,6 @@ export function extendSchema(
     }
 
     entities[key] = {
-      type: patch.type !== undefined ? patch.type : entity.type,
       fields: patch.fields !== undefined ? [...patch.fields] : [...entity.fields],
       idField: patch.idField !== undefined ? patch.idField : entity.idField,
       table: patch.table !== undefined ? patch.table : entity.table,
@@ -49,6 +48,12 @@ export function extendSchema(
           ? { ...patch.columns }
           : entity.columns
             ? { ...entity.columns }
+            : undefined,
+      computed:
+        patch.computed !== undefined
+          ? { ...patch.computed }
+          : entity.computed
+            ? { ...entity.computed }
             : undefined,
     };
   }
@@ -59,11 +64,11 @@ export function extendSchema(
       continue;
     }
     entities[key] = {
-      type: patch.type ?? {},
       fields: [...patch.fields],
       idField: patch.idField,
       table: patch.table,
       columns: patch.columns ? { ...patch.columns } : undefined,
+      computed: patch.computed ? { ...patch.computed } : undefined,
     };
   }
 

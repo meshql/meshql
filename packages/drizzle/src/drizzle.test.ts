@@ -11,17 +11,14 @@ import { buildDrizzleQuery, drizzleQueryKey, drizzleResolver } from "./index.js"
 const schema: MeshSchema = {
   entities: {
     post: {
-      type: {},
       fields: ["id", "title"],
       table: "posts",
     },
     comment: {
-      type: {},
       fields: ["id", "body"],
       table: "comments",
     },
     user: {
-      type: {},
       fields: ["id", "name"],
       table: "users",
     },

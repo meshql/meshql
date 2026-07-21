@@ -22,6 +22,7 @@ export type {
   AuthTokens,
   WriteOptions,
   WritePayload,
+  QueryControls,
 } from "./client.js";
 export { encodeQuery, signQuery } from "./sign.js";
 export type { QueryFormat, SignQueryOptions } from "./sign.js";

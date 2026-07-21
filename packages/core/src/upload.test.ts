@@ -4,7 +4,7 @@ import type { MeshFile } from "./index.js";
 
 const schema = {
   entities: {
-    user: { type: {}, fields: ["id", "name", "avatar"] },
+    user: { fields: ["id", "name", "avatar"] },
   },
   joins: {},
 };

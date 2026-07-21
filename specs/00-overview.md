@@ -46,15 +46,15 @@ Server
 | Level | Name | MUST implement |
 |-------|------|----------------|
 | **L1** | Core | HTTP routes + headers (01), query formats (02), JoinPlan semantics (03), shaper (04), error JSON |
-| **L2** | Lists | L1 + `$list` (05) on list routes |
+| **L2** | Collections | L1 + JSON read controls (05) and collection envelopes |
 | **L3** | Integrity | L2 + HMAC signing + auth token headers (06) |
 | **L4** | Uploads | L3 + multipart upload routes + `contentHash` (07) |
 
 An implementation MAY claim a level only if it passes the corresponding
 [conformance](./conformance.md) cases (and fixtures where provided).
 
-## Protocol version
+## Protocol evolution
 
-Clients SHOULD send `X-Mesh-Version: 1`. Servers MUST accept missing version
-as `1` until a later major is published. Incompatible changes require a new
-version number.
+The pre-release protocol has one current wire format. Clients do not send a
+version-selection header. Breaking changes are documented in package
+changelogs until a stable release policy is published.

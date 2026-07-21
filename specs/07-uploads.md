@@ -1,6 +1,6 @@
 # 07 — Uploads profile (optional)
 
-**Status:** Draft (protocol v1)  
+**Status:** Draft  
 **Applies to:** Compliance Level 4+
 
 File uploads use `multipart/form-data` plus the same Mesh headers as reads.

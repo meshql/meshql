@@ -8,17 +8,14 @@ import type { MeshSchema } from "../schema/schema.js";
 const schema: MeshSchema = {
   entities: {
     post: {
-      type: {},
       fields: ["id", "title"],
       table: "posts",
     },
     comment: {
-      type: {},
       fields: ["id", "body"],
       table: "comments",
     },
     user: {
-      type: {},
       fields: ["id", "name"],
       table: "users",
     },
@@ -53,14 +50,14 @@ describe("buildPlanRelationTree", () => {
       path: "comments",
       refName: "comments",
       entity: "comment",
-      scalars: ["body", "id"],
     });
+    expect(tree.relations[0]?.scalars.sort()).toEqual(["body", "id"]);
     expect(tree.relations[0]?.children[0]).toMatchObject({
       path: "comments.author",
       refName: "author",
       entity: "user",
-      scalars: ["name", "id"],
       children: [],
     });
+    expect(tree.relations[0]?.children[0]?.scalars.sort()).toEqual(["id", "name"]);
   });
 });

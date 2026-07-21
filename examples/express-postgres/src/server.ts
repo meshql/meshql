@@ -13,12 +13,10 @@ import { inMemoryRows, queryInMemory } from "./data.js";
 const schema: MeshSchema = {
   entities: {
     user: {
-      type: {} as User,
       fields: ["id", "name", "avatar"],
       table: "users",
     },
     token: {
-      type: {} as Token,
       fields: ["accessToken", "expiresAt"],
       table: "tokens",
       columns: {

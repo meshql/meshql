@@ -1,0 +1,47 @@
+{
+  "name": "@meshql/docs",
+  "version": "0.1.0",
+  "description": "MeshQL interactive API docs and query playground middleware",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./express": {
+      "types": "./dist/adapters/express.d.ts",
+      "import": "./dist/adapters/express.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "check-types": "tsc --noEmit",
+    "publish:jsr": "jsr publish"
+  },
+  "dependencies": {
+    "@meshql/core": "workspace:*",
+    "@meshql/http": "workspace:*"
+  },
+  "peerDependencies": {
+    "express": "^4 || ^5"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@meshql/typescript-config": "workspace:*",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.15.3",
+    "express": "^5.1.0",
+    "tsup": "^8.4.0",
+    "typescript": "5.9.2",
+    "vitest": "^3.0.0"
+  }
+}

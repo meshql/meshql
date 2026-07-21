@@ -1,11 +1,11 @@
 # 02 — Query format
 
-**Status:** Draft (protocol v1)  
+**Status:** Draft  
 **Applies to:** Compliance Level 1+
 
-The query declares **which root entity and fields** (including nested refs)
-the client wants. It does not contain the entity id (that is in the URL) or
-untrusted filters outside `$list` (see [05](./05-list-options.md)).
+The query declares the root entity, selected fields and nested refs. JSON reads
+may also include the controls defined in [05 — Read controls](./05-read-controls.md).
+The entity id remains in the URL or request context.
 
 ## Formats
 
@@ -24,10 +24,12 @@ nested objects for relations and `true` for scalars:
 ```json
 {
   "user": {
-    "id": true,
-    "name": true,
-    "tokens": {
-      "accessToken": true
+    "$select": {
+      "id": true,
+      "name": true,
+      "tokens": {
+        "$select": { "accessToken": true }
+      }
     }
   }
 }
@@ -38,14 +40,17 @@ Nested multi-level:
 ```json
 {
   "post": {
-    "id": true,
-    "title": true,
-    "comments": {
+    "$select": {
       "id": true,
-      "body": true,
-      "author": {
-        "id": true,
-        "name": true
+      "title": true,
+      "comments": {
+        "$select": {
+          "id": true,
+          "body": true,
+          "author": {
+            "$select": { "id": true, "name": true }
+          }
+        }
       }
     }
   }
@@ -54,14 +59,13 @@ Nested multi-level:
 
 ### Rules
 
-1. Scalar fields MUST be selected with boolean `true` (or omitted). Servers
-   SHOULD reject unknown keys that are not relations or `$list`.
-2. Relation fields MUST be objects (possibly empty object meaning relation
-   requested with no scalars — implementations SHOULD still require valid
-   nested fields per schema).
-3. Exactly one root entity selection SHOULD be present for point/list routes
-   matching `:entity`. Extra roots MAY be rejected.
-4. Sibling key `$list` is reserved (L2). See [05 — List options](./05-list-options.md).
+1. Scalar fields MUST be selected with boolean `true` or omitted.
+2. Relation fields MUST be read-node objects with a non-empty selection.
+3. Exactly one root entity MUST be present.
+4. `$select` is canonical. Non-`$` keys on a read node MAY be used as selection
+   shorthand.
+5. Unknown fields, joins, and `$` controls MUST be rejected.
+6. QL remains selection-only; use JSON for read controls.
 
 ## QL selection
 

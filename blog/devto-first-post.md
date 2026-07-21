@@ -4,7 +4,7 @@ published: false
 tags: typescript, node, api, graphql, sql, webdev, opensource
 series: MeshQL
 canonical_url: https://github.com/meshql/meshql
-cover_image: https://raw.githubusercontent.com/meshql/meshql/main/assets/meshql-logo.png
+cover_image: https://raw.githubusercontent.com/meshql/meshql/main/assets/meshql-logo-mark.svg
 ---
 
 So I built **MeshQL**.

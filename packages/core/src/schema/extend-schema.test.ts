@@ -5,13 +5,11 @@ import type { MeshSchema } from "./schema.js";
 const base: MeshSchema = {
   entities: {
     user: {
-      type: {},
       fields: ["id", "name", "email"],
       table: "users",
       columns: { email: "email_address" },
     },
     post: {
-      type: {},
       fields: ["id", "title"],
       table: "posts",
     },
@@ -70,5 +68,23 @@ describe("extendSchema", () => {
       entities: { user: { fields: ["id"], columns: { id: "user_id" } } },
     });
     expect(replaced.entities.user!.columns).toEqual({ id: "user_id" });
+  });
+
+  it("adds a new entity from an override without a type placeholder", () => {
+    const schema = extendSchema(base, {
+      entities: {
+        comment: {
+          fields: ["id", "body"],
+          table: "comments",
+        },
+      },
+    });
+
+    expect(schema.entities.comment).toEqual({
+      fields: ["id", "body"],
+      table: "comments",
+      idField: undefined,
+      columns: undefined,
+    });
   });
 });

@@ -5,8 +5,8 @@ import { createQueryContext } from "../resolver/context.js";
 
 const schema: MeshSchema = {
   entities: {
-    user: { type: {}, fields: ["id", "email"], table: "users" },
-    token: { type: {}, fields: ["accessToken"], table: "tokens" },
+    user: { fields: ["id", "email"], table: "users" },
+    token: { fields: ["accessToken"], table: "tokens" },
   },
   joins: {
     "user.tokens": {

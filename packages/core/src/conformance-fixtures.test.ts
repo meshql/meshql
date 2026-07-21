@@ -2,11 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { parseJson } from "./parser/index.js";
+import { parseJsonQuery, normalizeReadTree } from "./query/index.js";
 import { buildJoinPlan } from "./planner/join-plan.js";
 import { createQueryContext } from "./resolver/context.js";
 import type { MeshSchema } from "./schema/schema.js";
 import { shape } from "./shaper/shaper.js";
+
+function astFromQuery(raw: string, schema: MeshSchema) {
+  const doc = parseJsonQuery(raw);
+  return normalizeReadTree(doc.root, schema).ast;
+}
 
 const repoRoot = path.resolve(fileURLToPath(import.meta.url), "../../../..");
 
@@ -17,8 +22,8 @@ function loadFixture<T>(relativePath: string): T {
 
 const userTokensSchema: MeshSchema = {
   entities: {
-    user: { type: {}, fields: ["id", "name"], table: "users" },
-    token: { type: {}, fields: ["accessToken"], table: "tokens" },
+    user: { fields: ["id", "name"], table: "users" },
+    token: { fields: ["accessToken"], table: "tokens" },
   },
   joins: {
     "user.tokens": {
@@ -31,9 +36,9 @@ const userTokensSchema: MeshSchema = {
 
 const postCommentsSchema: MeshSchema = {
   entities: {
-    post: { type: {}, fields: ["id", "title"], table: "posts" },
-    comment: { type: {}, fields: ["id", "body"], table: "comments" },
-    user: { type: {}, fields: ["id", "name"], table: "users" },
+    post: { fields: ["id", "title"], table: "posts" },
+    comment: { fields: ["id", "body"], table: "comments" },
+    user: { fields: ["id", "name"], table: "users" },
   },
   joins: {
     "post.comments": {
@@ -57,7 +62,7 @@ describe("spec conformance fixtures", () => {
       shaped: Record<string, unknown>;
     }>("responses/user-with-tokens.json");
 
-    const ast = parseJson(JSON.stringify(query));
+    const ast = astFromQuery(JSON.stringify(query), userTokensSchema);
     const plan = buildJoinPlan(
       ast,
       userTokensSchema,
@@ -76,7 +81,7 @@ describe("spec conformance fixtures", () => {
       shaped: Record<string, unknown>;
     }>("responses/post-comments-author.json");
 
-    const ast = parseJson(JSON.stringify(query));
+    const ast = astFromQuery(JSON.stringify(query), postCommentsSchema);
     const plan = buildJoinPlan(
       ast,
       postCommentsSchema,

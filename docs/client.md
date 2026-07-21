@@ -33,7 +33,7 @@ const user = await client.query(
 );
 ```
 
-The client sets `X-Mesh-Query`, `X-Mesh-Format`, and `X-Mesh-Version` on every request.
+The client sets `X-Mesh-Query` and `X-Mesh-Format` on every request.
 
 ---
 
@@ -51,7 +51,10 @@ const tokens = await client.login({ email: "ada@example.com", password: "demo" }
 
 const posts = await client.query(
   { post: { id: true, title: true } },
-  { list: { limit: 20, orderBy: [{ field: "createdAt", dir: "desc" }] } },
+  {
+    page: { first: 20 },
+    orderBy: [{ field: "createdAt", direction: "desc" }],
+  },
 );
 ```
 
@@ -59,31 +62,34 @@ Signed requests include:
 
 | Header | Purpose |
 |--------|---------|
-| `X-Mesh-Query` | Base64-encoded selection (and optional `$list`) |
+| `X-Mesh-Query` | Base64-encoded selection and read controls |
 | `X-Mesh-Signature` | HMAC over `X-Mesh-Query` |
 | `X-Mesh-Token` | Wire token from `POST /mesh/auth` |
 
 ---
 
-## List queries
+## Collection queries
 
-Pass `list` in the second argument — serialized as `$list` in the signed JSON payload:
+Pass read controls in the second argument. The client serializes them as
+`$where`, `$orderBy`, `$page`, `$groupBy`, `$aggregate`, `$having`, and
+`$distinct` in the signed JSON payload:
 
 ```typescript
 const page = await client.query(
   { post: { id: true, title: true, status: true } },
   {
-    list: {
-      limit: 10,
-      orderBy: [{ field: "createdAt", dir: "desc" }],
-      filter: [{ field: "status", op: "eq", value: "published" }],
-      cursor: "...", // from encodeCursor() on the server
-    },
+    page: { first: 10, after: previous.pageInfo.endCursor },
+    orderBy: [{ field: "createdAt", direction: "desc" }],
+    where: { field: "status", op: "eq", value: "published" },
   },
 );
+
+console.log(page.items, page.pageInfo.endCursor);
 ```
 
-`list` requires `format: "json"` (the default). Do not combine `list` with `entityId`.
+Read controls require `format: "json"` (the default). Do not combine them with
+`entityId`; point reads return an object, while collection reads return
+`{ items, pageInfo }`.
 
 ---
 
@@ -117,7 +123,10 @@ Pattern:
 const client = createAuthClient({ url: "/mesh", format: "json" });
 await client.login({ email, password });
 
-const data = await client.query({ post: { id: true, title: true } }, { list: { limit: 50 } });
+const data = await client.query(
+  { post: { id: true, title: true } },
+  { page: { first: 50 } },
+);
 ```
 
 Build with Vite (or any bundler). The showcase bundles `@meshql/client` directly —

@@ -5,8 +5,6 @@
  */
 import { MeshError, ResolverError, ValidationError } from "./errors/index.js";
 import { parseQuery } from "./parser/index.js";
-import { buildJoinPlan } from "./planner/join-plan.js";
-import type { ListOptions } from "./planner/list-options.js";
 import { validateAst } from "./planner/validator.js";
 import type { MeshConfig } from "./schema/schema.js";
 import {
@@ -18,8 +16,12 @@ import {
   type ResolverOptions,
   type UploadResolver,
 } from "./resolver/index.js";
-import { shape, shapeMany } from "./shaper/shaper.js";
-import type { AST } from "./parser/ast.js";
+import type { CollectionResult } from "./query/types.js";
+import { runMeshExecute } from "./execute/run.js";
+import type { ExecuteDetailedResult, ExecuteMeta } from "./execute/run.js";
+import type { ExecuteOptions } from "./execute/options.js";
+export type { ExecuteOptions, ExecuteTraceOptions } from "./execute/options.js";
+export type { ExecuteDetailedResult, ExecuteMeta } from "./execute/run.js";
 import {
   PluginRunner,
   type ExecuteTransport,
@@ -29,30 +31,7 @@ import {
 } from "./plugin/index.js";
 import { entityIdField, resolveEntityKey } from "./schema/schema.js";
 import { warnAmbiguousEntityTables } from "./schema/entity-table-warnings.js";
-
-/** Options passed to {@link MeshInstance.execute}. */
-export interface ExecuteOptions {
-  /** Query wire format. Defaults to `ql`. */
-  format?: "json" | "ql";
-  /** Request context passed to resolvers. */
-  context?: Partial<QueryContext> & Pick<QueryContext, "requestId" | "method">;
-  /** Return a list of shaped records instead of a single object. */
-  list?: boolean;
-  /**
-   * Pagination, filtering, and ordering options attached to the plan.
-   *
-   * Precedence: this option overrides any `$list` declared in the wire
-   * payload. Setting it implicitly enables list-shape mode (`list: true`);
-   * pass `list: false` explicitly to opt back into single-record shaping.
-   *
-   * For HTTP transport, prefer declaring `$list` in the JSON wire payload
-   * so the value is covered by the request signature. This option exists
-   * for programmatic callers and adapters that construct plans directly.
-   */
-  listOptions?: ListOptions;
-  /** HTTP transport metadata for integrity verification. */
-  transport?: ExecuteTransport;
-}
+import { validateComputedFields } from "./schema/validate-computed.js";
 
 /** Options for {@link MeshInstance.executeUpload}. */
 export interface ExecuteUploadOptions {
@@ -105,7 +84,19 @@ export interface MeshInstance {
   execute(
     query: string,
     options?: ExecuteOptions,
-  ): Promise<Record<string, unknown> | Record<string, unknown>[]>;
+  ): Promise<
+    | Record<string, unknown>
+    | CollectionResult<Record<string, unknown>>
+    | null
+  >;
+  /**
+   * Like {@link MeshInstance.execute} but returns timing, plan summary,
+   * and optional SQL trace entries.
+   */
+  executeDetailed(
+    query: string,
+    options?: ExecuteOptions,
+  ): Promise<ExecuteDetailedResult>;
   /** Handle a multipart file upload for an entity field. */
   executeUpload(
     options: ExecuteUploadOptions,
@@ -115,6 +106,7 @@ export interface MeshInstance {
 /** Create a MeshQL instance from a schema configuration. */
 export function createMesh(config: MeshConfig): MeshInstance {
   warnAmbiguousEntityTables(config);
+  validateComputedFields(config);
   const registry = new ResolverRegistry();
   const plugins = new PluginRunner();
 
@@ -137,99 +129,12 @@ export function createMesh(config: MeshConfig): MeshInstance {
     },
 
     async execute(query, options = {}) {
-      const format = options.format ?? "ql";
-      const startTime = Date.now();
-      const context = createQueryContext(
-        options.context ?? {
-          requestId: crypto.randomUUID(),
-          method: "GET",
-        },
-      );
+      const { data } = await runMeshExecute(config, registry, plugins, query, options);
+      return data;
+    },
 
-      const pluginCtx: PluginContext = {
-        queryContext: context,
-        transport: options.transport,
-        startTime,
-      };
-
-      let rawQuery = query;
-
-      try {
-        rawQuery = await plugins.runOnRequest(rawQuery, pluginCtx);
-
-        const ast: AST = parseQuery(rawQuery, format);
-        pluginCtx.ast = ast;
-
-        validateAst(ast, config);
-
-        // Resolve list options: explicit caller override wins over the
-        // wire-declared `$list`, which wins over none. listOptions presence
-        // implies list-shape mode unless the caller passed `list: false`.
-        const listOptions = options.listOptions ?? ast.list;
-        const listMode = options.list ?? listOptions !== undefined;
-
-        const plan = buildJoinPlan(ast, config, context, {
-          list: listOptions,
-        });
-
-        const planResult = await plugins.runOnPlan(plan, pluginCtx);
-
-        if (isPlanShortCircuit(planResult)) {
-          let shortResponse = planResult.response;
-          if (!listMode && Array.isArray(shortResponse) && shortResponse.length === 0) {
-            shortResponse = {};
-          }
-          const finalResponse = await plugins.runOnResponse(shortResponse, pluginCtx);
-          return finalResponse as Record<string, unknown> | Record<string, unknown>[];
-        }
-
-        const resolverEntry = registry.getEntry(planResult.rootEntity);
-        if (!resolverEntry) {
-          throw new ResolverError(
-            `No resolver registered for entity '${planResult.rootEntity}'`,
-            planResult.rootEntity,
-          );
-        }
-
-        let raw: unknown;
-        try {
-          raw = await resolverEntry.resolver(planResult);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Resolver failed";
-          throw new ResolverError(message, planResult.rootEntity);
-        }
-
-        raw = await plugins.runOnResult(raw, pluginCtx);
-
-        if (resolverEntry.preshaped) {
-          let response: unknown = raw;
-          if (!listMode) {
-            if (Array.isArray(raw)) {
-              response = raw[0] ?? {};
-            }
-          } else if (!Array.isArray(raw)) {
-            response = raw === null || raw === undefined ? [] : [raw];
-          }
-
-          return (await plugins.runOnResponse(response, pluginCtx)) as
-            | Record<string, unknown>
-            | Record<string, unknown>[];
-        }
-
-        const rows = Array.isArray(raw) ? raw : [raw as Record<string, unknown>];
-
-        const shaped = listMode
-          ? shapeMany(rows, ast.root, planResult.joins, planResult.idField)
-          : shape(rows, ast.root, planResult.joins);
-
-        const response = await plugins.runOnResponse(shaped, pluginCtx);
-        return response as Record<string, unknown> | Record<string, unknown>[];
-      } catch (error) {
-        if (error instanceof MeshError) {
-          await plugins.runOnError(error, pluginCtx);
-        }
-        throw error;
-      }
+    executeDetailed(query, options = {}) {
+      return runMeshExecute(config, registry, plugins, query, options);
     },
 
     async executeUpload(options) {
@@ -319,7 +224,7 @@ export {
   IntegrityError,
   RateLimitError,
 } from "./errors/index.js";
-export { parseQuery, parseQl, parseJson, tokenize } from "./parser/index.js";
+export { parseQuery, parseQl, tokenize } from "./parser/index.js";
 export type { AST, ASTNode } from "./parser/ast.js";
 export {
   buildJoinPlan,
@@ -361,6 +266,41 @@ export {
 } from "./orm/plan-relations.js";
 export { decodeCursor, encodeCursor, type CursorPayload } from "./planner/cursor.js";
 export {
+  parseJsonQuery,
+  normalizeReadTree,
+  astNodeToWire,
+  readNodeAt,
+  queryScopeFingerprint,
+  toCollectionResult,
+  emptyPageInfo,
+  encodeReadCursor,
+  decodeReadCursor,
+  assertCursorMatchesRead,
+  buildCursorFromRow,
+  normalizeOrderForCursor,
+  renderWhereSql,
+  renderReadWhereSql,
+  renderCursorPredicateSql,
+  QUERY_PROTOCOL_VERSION,
+  COMPARISON_OPS,
+  AGGREGATE_FNS,
+  DEFAULT_PAGE_FIRST,
+  MAX_PAGE_FIRST,
+} from "./query/index.js";
+export type {
+  WhereExpr,
+  SortExpr,
+  PageInput,
+  AggregateSpec,
+  ReadNodeWire,
+  NormalizedReadNode,
+  CollectionResult,
+  PageInfo,
+  QueryDocument,
+  ExecuteResult,
+} from "./query/types.js";
+export type { ReadCursorPayload } from "./query/read-cursor.js";
+export {
   DEFAULT_LIST_LIMIT,
   FILTER_OPS,
   MAX_LIST_LIMIT,
@@ -370,12 +310,21 @@ export type { Filter, FilterOp, ListOptions, OrderBy } from "./planner/list-opti
 export {
   entityTable,
   entityIdField,
+  entityQueryableFields,
+  isComputedField,
   resolveEntityKey,
   type MeshConfig,
   type MeshSchema,
   type EntityConfig,
+  type ComputedFieldDef,
   type JoinConfig,
 } from "./schema/schema.js";
+export { validateComputedFields } from "./schema/validate-computed.js";
+export {
+  injectComputedIntoFlatRows,
+  applyComputedToPreshaped,
+} from "./computed/apply.js";
+export type { PlanComputedField } from "./computed/types.js";
 export {
   extendSchema,
   type MeshSchemaOverride,
@@ -406,3 +355,13 @@ export {
   signQueryHeader,
   verifyQuerySignature,
 } from "./crypto/hmac.js";
+export {
+  createSqlTraceCollector,
+  recordPlanSql,
+  type SqlTraceCollector,
+  type SqlTraceEntry,
+} from "./trace/sql-trace.js";
+export {
+  summarizeJoinPlan,
+  type JoinPlanSummary,
+} from "./trace/join-plan-summary.js";

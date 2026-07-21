@@ -1,10 +1,43 @@
-import type { ListOptions } from "@meshql/core";
+import type {
+  AggregateSpec,
+  PageInput,
+  SortExpr,
+  WhereExpr,
+} from "@meshql/core";
 import {
   selectionToJson,
   selectionToQl,
   type QuerySelection,
 } from "./query-builder.js";
+import {
+  buildReadNode,
+  readNodeToJson,
+  type ReadSelection,
+} from "./read-query.js";
 import { signPersistedQuery, signQuery } from "./sign.js";
+
+/** Read controls attachable to a collection query. */
+export interface QueryControls {
+  where?: WhereExpr;
+  orderBy?: SortExpr[];
+  page?: PageInput;
+  groupBy?: string[];
+  aggregate?: Record<string, AggregateSpec>;
+  having?: WhereExpr;
+  distinct?: string[];
+}
+
+function hasControls(controls: QueryControls): boolean {
+  return (
+    controls.where !== undefined ||
+    controls.orderBy !== undefined ||
+    controls.page !== undefined ||
+    controls.groupBy !== undefined ||
+    controls.aggregate !== undefined ||
+    controls.having !== undefined ||
+    controls.distinct !== undefined
+  );
+}
 
 /** Auth credentials returned from login. */
 export interface AuthTokens {
@@ -84,16 +117,17 @@ export interface MeshClient {
   /**
    * Execute a field selection query against the MeshQL server.
    *
-   * Pass `entityId` for point reads (`GET /:entity/:id`). Pass `list` for
-   * list reads (`GET /:entity`) with pagination, filters, and ordering —
-   * the value is serialized into the signed body as `$list` metadata.
+   * Pass `entityId` for point reads (`GET /:entity/:id`). Pass read
+   * controls (`where`, `orderBy`, `page`, `groupBy`, `aggregate`, `having`,
+   * `distinct`) for collection reads (`GET /:entity`); they are serialized
+   * into the signed body alongside the selection.
    *
-   * `list` requires `format: 'json'` on the client (the QL brace format
-   * has no list syntax). Passing both `entityId` and `list` throws.
+   * Controls require `format: 'json'` on the client (the QL brace format
+   * has no control syntax). Passing both `entityId` and controls throws.
    */
   query<T = Record<string, unknown>>(
     selection: QuerySelection,
-    options?: { entityId?: string; list?: ListOptions },
+    options?: { entityId?: string } & QueryControls,
   ): Promise<T>;
   /**
    * Upload a file to an entity field.
@@ -187,27 +221,47 @@ export function createClient(options: MeshClientOptions): MeshClient {
 
   async function executeQuery<T>(
     selection: QuerySelection,
-    requestOptions: { entityId?: string; list?: ListOptions } = {},
+    requestOptions: { entityId?: string } & QueryControls = {},
   ): Promise<T> {
     const rootEntity = Object.keys(selection)[0];
     if (!rootEntity) {
       throw new Error("Query selection must include a root entity");
     }
 
-    if (requestOptions.list && requestOptions.entityId) {
-      throw new Error("Cannot combine `list` with `entityId` — use one or the other");
-    }
+    const controlsPresent = hasControls(requestOptions);
 
-    if (requestOptions.list && format !== "json") {
+    if (controlsPresent && requestOptions.entityId) {
       throw new Error(
-        "`list` options require format: 'json' on the client (the QL brace format has no list syntax)",
+        "Cannot combine read controls with `entityId` — use one or the other",
       );
     }
 
-    const raw =
-      format === "json"
-        ? selectionToJson(selection, requestOptions.list)
-        : selectionToQl(selection);
+    if (controlsPresent && format !== "json") {
+      throw new Error(
+        "Read controls require format: 'json' on the client (the QL brace format has no control syntax)",
+      );
+    }
+
+    let raw: string;
+    if (format === "json") {
+      if (controlsPresent) {
+        const innerSelection = selection[rootEntity] as ReadSelection;
+        const node = buildReadNode(innerSelection, {
+          ...(requestOptions.where ? { $where: requestOptions.where } : {}),
+          ...(requestOptions.orderBy ? { $orderBy: requestOptions.orderBy } : {}),
+          ...(requestOptions.page ? { $page: requestOptions.page } : {}),
+          ...(requestOptions.groupBy ? { $groupBy: requestOptions.groupBy } : {}),
+          ...(requestOptions.aggregate ? { $aggregate: requestOptions.aggregate } : {}),
+          ...(requestOptions.having ? { $having: requestOptions.having } : {}),
+          ...(requestOptions.distinct ? { $distinct: requestOptions.distinct } : {}),
+        });
+        raw = readNodeToJson(rootEntity, node);
+      } else {
+        raw = selectionToJson(selection);
+      }
+    } else {
+      raw = selectionToQl(selection);
+    }
 
     const path = requestOptions.entityId
       ? `${options.url}/${rootEntity}/${requestOptions.entityId}`

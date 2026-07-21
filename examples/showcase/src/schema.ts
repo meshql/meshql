@@ -26,12 +26,17 @@ export interface Comment {
 export const schema: MeshSchema = {
   entities: {
     user: {
-      type: {} as User,
       fields: ["id", "name", "email", "role", "avatar"],
       table: "users",
+      computed: {
+        displayName: {
+          from: ["name", "role"],
+          compute: (deps) => `${deps.name} (${deps.role})`,
+          type: "string",
+        },
+      },
     },
     post: {
-      type: {} as Post,
       fields: ["id", "title", "body", "status", "createdAt"],
       table: "posts",
       columns: {
@@ -39,7 +44,6 @@ export const schema: MeshSchema = {
       },
     },
     comment: {
-      type: {} as Comment,
       fields: ["id", "body", "createdAt"],
       table: "comments",
       columns: {
@@ -54,6 +58,7 @@ export const schema: MeshSchema = {
       type: "many",
       table: "posts",
     },
+    // Root: `post { author }` — key is `{entity}.{ref}`
     "post.author": {
       entity: "user",
       on: "users.id = posts.author_id",
@@ -66,8 +71,20 @@ export const schema: MeshSchema = {
       type: "many",
       table: "comments",
     },
-    // Nested join keys use the parent ref name from the selection
-    // (`comments.author`, not `comment.author`).
+    // Nested: `user { posts { author } }` — key is `{parentRef}.{ref}`,
+    // not `{entity}.{ref}` (same pattern as `comments.author` below).
+    "posts.author": {
+      entity: "user",
+      on: "users.id = posts.author_id",
+      type: "one",
+      table: "users",
+    },
+    "posts.comments": {
+      entity: "comment",
+      on: "comments.post_id = posts.id",
+      type: "many",
+      table: "comments",
+    },
     "comments.author": {
       entity: "user",
       on: "users.id = comments.author_id",

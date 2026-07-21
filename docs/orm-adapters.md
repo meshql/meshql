@@ -155,9 +155,11 @@ Package reference: [packages/kysely/README.md](../packages/kysely/README.md).
 All three adapters support:
 
 - **Point read** — `GET /mesh/post/1` → `findUnique` / `findFirst` with `where` from `plan.context.entityId`
-- **List** — `plan.list` with limit, cursor, `orderBy`, and filters (mapped to ORM/SQL equivalents)
+- **Collection** — `plan.read` with `$where`, `$orderBy`, `$page`, and supported aggregate controls
 
-Use `@meshql/client` with the `list` option; it serializes `$list` into the signed query payload.
+Use `@meshql/client` with `where`, `orderBy`, and `page`; the client serializes
+the controls into the signed query payload. Unsupported adapter capabilities
+are rejected explicitly.
 
 ## Nested fields
 

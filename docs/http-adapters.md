@@ -34,7 +34,7 @@ import { createMesh } from "@meshql/core";
 
 const mesh = createMesh({
   entities: {
-    user: { type: {} as User, fields: ["id", "name"], table: "users" },
+    user: { fields: ["id", "name"], table: "users" },
   },
   joins: {},
 });
@@ -84,7 +84,6 @@ Change the base path with the second argument / `options.basePath`.
 |--------|----------|-------------|
 | `X-Mesh-Query` | Yes | Base64-encoded query string |
 | `X-Mesh-Format` | No | `json` (default) or `ql` |
-| `X-Mesh-Version` | No | Protocol version, defaults to latest (`1`) |
 | `X-Mesh-Signature` | When integrity enabled | `sha256=` HMAC over `X-Mesh-Query` |
 | `X-Mesh-Token` | When integrity enabled | Wire token from `POST /mesh/auth` |
 
@@ -94,30 +93,21 @@ Change the base path with the second argument / `options.basePath`.
 { "user": { "id": true, "name": true } }
 ```
 
-**List reads** — add a `$list` sibling key in the same JSON payload (covered by
-the signature when integrity is enabled). Use this for pagination, filtering,
-and ordering on `GET /mesh/:entity` (no `:id`):
+**Collection reads** — add controls to the entity read node. They are covered
+by the signature when integrity is enabled:
 
 ```json
 {
-  "user": { "id": true, "name": true },
-  "$list": {
-    "limit": 20,
-    "orderBy": [{ "field": "name", "dir": "asc" }],
-    "filter": [{ "field": "role", "op": "in", "value": ["admin", "owner"] }],
-    "cursor": "eyJpZCI6MTAwfQ"
+  "user": {
+    "$select": { "id": true, "name": true },
+    "$page": { "first": 20, "after": null },
+    "$orderBy": [{ "field": "name", "direction": "asc" }],
+    "$where": { "field": "role", "op": "in", "value": ["admin", "owner"] }
   }
 }
 ```
 
-| `$list` key | Type | Notes |
-|-------------|------|-------|
-| `limit` | integer | Default 50, max 200 |
-| `cursor` | string | Opaque keyset cursor from `encodeCursor()` |
-| `orderBy` | `{ field, dir }[]` | Multi-key sort; `dir` is `asc` or `desc` |
-| `filter` | `{ field, op, value }[]` | Ops: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `nin`, `like`, `ilike` |
-
-List metadata is **not** passed as URL query strings — it lives in the signed
+Read controls are **not** passed as URL query strings — they live in the signed
 `X-Mesh-Query` body so filters and page size cannot be tampered with separately
 from the field selection.
 
@@ -136,7 +126,7 @@ const headers = encodeQuery(
   JSON.stringify({ user: { id: true, name: true } }),
   "json",
 );
-// { "X-Mesh-Query": "...", "X-Mesh-Format": "json", "X-Mesh-Version": "1" }
+// { "X-Mesh-Query": "...", "X-Mesh-Format": "json" }
 ```
 
 ### POST body
@@ -218,9 +208,9 @@ curl -s "http://localhost:3001/mesh/user" \
   -H "X-Mesh-Query: $Q" \
   -H "X-Mesh-Format: json"
 
-# List
+# Collection with a keyset page
 curl -s "http://localhost:3001/mesh/user" \
-  -H "X-Mesh-Query: $(mesh_query '{"user":{"id":true,"name":true},"$list":{"limit":10,"orderBy":[{"field":"name","dir":"asc"}]}}')" \
+  -H "X-Mesh-Query: $(mesh_query '{"user":{"$select":{"id":true,"name":true},"$page":{"first":10},"$orderBy":[{"field":"name","direction":"asc"}]}}')" \
   -H "X-Mesh-Format: json"
 
 # QL format
@@ -410,15 +400,13 @@ const user = await client.query(
   { entityId: "123" },
 );
 
-// List read with pagination, filters, and ordering ($list in signed payload)
+// Collection read with pagination, filters, and ordering
 const admins = await client.query(
   { user: { id: true, name: true } },
   {
-    list: {
-      limit: 10,
-      orderBy: [{ field: "name", dir: "asc" }],
-      filter: [{ field: "role", op: "in", value: ["admin", "owner"] }],
-    },
+    page: { first: 10 },
+    orderBy: [{ field: "name", direction: "asc" }],
+    where: { field: "role", op: "in", value: ["admin", "owner"] },
   },
 );
 ```

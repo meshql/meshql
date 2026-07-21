@@ -8,27 +8,10 @@ describe("selectionToJson", () => {
     );
   });
 
-  it("appends $list metadata when provided", () => {
-    const raw = selectionToJson(
-      { user: { id: true } },
-      {
-        limit: 20,
-        filter: [{ field: "role", op: "eq", value: "admin" }],
-      },
-    );
-    const parsed = JSON.parse(raw);
-    expect(parsed).toEqual({
-      user: { id: true },
-      $list: {
-        limit: 20,
-        filter: [{ field: "role", op: "eq", value: "admin" }],
-      },
-    });
-  });
-
-  it("omits $list when the argument is undefined", () => {
-    const raw = selectionToJson({ user: { id: true } });
-    expect(raw).not.toContain("$list");
+  it("serializes a nested selection", () => {
+    expect(
+      selectionToJson({ user: { id: true, tokens: { accessToken: true } } }),
+    ).toBe('{"user":{"id":true,"tokens":{"accessToken":true}}}');
   });
 });
 

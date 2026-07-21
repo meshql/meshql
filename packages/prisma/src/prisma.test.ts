@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  buildCursorFromRow,
   buildJoinPlan,
   createMesh,
   createQueryContext,
+  normalizeReadTree,
   parseQl,
   type MeshSchema,
 } from "@meshql/core";
@@ -16,19 +18,16 @@ import {
 const schema: MeshSchema = {
   entities: {
     post: {
-      type: {},
       fields: ["id", "title", "body", "status", "createdAt"],
       table: "posts",
       columns: { createdAt: "created_at" },
     },
     comment: {
-      type: {},
       fields: ["id", "body", "createdAt"],
       table: "comments",
       columns: { createdAt: "created_at" },
     },
     user: {
-      type: {},
       fields: ["id", "name"],
       table: "users",
     },
@@ -91,27 +90,32 @@ describe("buildPrismaWhere", () => {
 });
 
 describe("buildPrismaListArgs", () => {
-  it("maps cursor pagination to Prisma cursor + skip", () => {
-    const ast = parseQl("{ post { id title } }");
+  it("maps keyset pagination to Prisma cursor + skip", () => {
+    const readNode = {
+      name: "post",
+      select: { id: true, title: true },
+      orderBy: [{ field: "createdAt", direction: "desc" as const }],
+    };
+    const { read: cursorRead } = normalizeReadTree(readNode, schema);
+    const after = buildCursorFromRow(cursorRead, { createdAt: "2026-01-01", id: 5 })!;
+
+    const { ast, read } = normalizeReadTree(
+      { ...readNode, page: { first: 10, after } },
+      schema,
+    );
     const plan = buildJoinPlan(
       ast,
       schema,
       createQueryContext({ requestId: "1", method: "GET" }),
-      {
-        list: {
-          limit: 10,
-          cursor: Buffer.from(JSON.stringify({ id: 5 }), "utf8").toString(
-            "base64url",
-          ),
-          orderBy: [{ field: "createdAt", dir: "desc" }],
-        },
-      },
+      { read },
     );
 
+    // The normalized read appends an `id` tiebreaker to the sort keys; the
+    // keyset cursor carries the id as its final value.
     expect(buildPrismaListArgs(plan, schema)).toEqual({
       take: 10,
       where: undefined,
-      orderBy: { created_at: "desc" },
+      orderBy: [{ created_at: "desc" }, { id: "asc" }],
       cursor: { id: 5 },
       skip: 1,
     });

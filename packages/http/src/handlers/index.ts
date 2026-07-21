@@ -1,6 +1,12 @@
-import type { MeshInstance } from "@meshql/core";
+import type { CollectionResult, MeshInstance } from "@meshql/core";
 import { MeshError } from "@meshql/core";
 import { decodeQuery, type DecodeQueryOptions } from "../transport/decode.js";
+
+/** Response envelope returned by MeshQL HTTP handlers. */
+export type HandlerResult =
+  | Record<string, unknown>
+  | CollectionResult<Record<string, unknown>>
+  | null;
 
 export interface HttpRequest {
   method: string;
@@ -15,7 +21,7 @@ export function handleGet(
   mesh: MeshInstance,
   req: HttpRequest,
   context: HttpHandlerContext = {},
-): Promise<Record<string, unknown> | Record<string, unknown>[]> {
+): Promise<HandlerResult> {
   const entity = req.params.entity;
   const entityId = req.params.id;
   const { raw, format, transport } = decodeQuery(req, context);
@@ -37,7 +43,7 @@ export function handleGet(
 export async function handlePost(
   mesh: MeshInstance,
   req: HttpRequest,
-): Promise<Record<string, unknown> | Record<string, unknown>[]> {
+): Promise<HandlerResult> {
   const body = req.body as { query?: string; format?: "json" | "ql" } | undefined;
   const query = body?.query;
 
@@ -60,7 +66,7 @@ export function handlePut(
   mesh: MeshInstance,
   req: HttpRequest,
   context: HttpHandlerContext = {},
-): Promise<Record<string, unknown> | Record<string, unknown>[]> {
+): Promise<HandlerResult> {
   const entity = req.params.entity;
   const entityId = req.params.id;
   const { raw, format, transport } = decodeQuery(req, context);
