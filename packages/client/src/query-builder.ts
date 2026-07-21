@@ -1,5 +1,3 @@
-import type { ListOptions } from "@meshql/core";
-
 /** Nested JSON field selection used by the MeshQL client. */
 export type QuerySelection = {
   [key: string]: boolean | QuerySelection;

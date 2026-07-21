@@ -1,11 +1,4 @@
 import { ParseError } from "../errors/index.js";
-import {
-  FILTER_OPS,
-  isFilterOp,
-  type Filter,
-  type ListOptions,
-  type OrderBy,
-} from "../planner/list-options.js";
 import type { AST, ASTNode } from "./ast.js";
 import { tokenize, type Token } from "./tokenizer.js";
 
