@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseQl } from "../parser/index.js";
+import { parseJson, parseQl } from "../parser/index.js";
 import { validateAst } from "./validator.js";
 import type { MeshSchema } from "../schema/schema.js";
 
