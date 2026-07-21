@@ -88,7 +88,10 @@ jobs:
 
       - name: Dispatch publish workflow
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          # The job-scoped token has `actions: write` above and can dispatch
+          # workflow_dispatch events. RELEASE_PAT is reserved for checkout/tag
+          # pushes and may not have Actions workflow permissions.
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           # Dispatch against main (workflow_dispatch needs a branch ref that
