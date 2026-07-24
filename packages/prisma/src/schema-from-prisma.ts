@@ -10,6 +10,7 @@ import {
   type Value,
 } from "@mrleebo/prisma-ast";
 import type { EntityConfig, JoinConfig, MeshSchema } from "@meshql/core";
+import { entityIdField } from "@meshql/core";
 
 const PRISMA_SCALARS = new Set([
   "String",
@@ -103,6 +104,26 @@ function isModelField(field: Field, modelNames: Set<string>): boolean {
   return Boolean(typeName && modelNames.has(typeName));
 }
 
+function physicalIdColumn(entity: EntityConfig | undefined): string {
+  const idField = entityIdField(entity);
+  return entity?.columns?.[idField] ?? idField;
+}
+
+/**
+ * Prisma implicit M2M junction: `_ModelAToModelB` (alphabetical), columns `A`/`B`.
+ * `A` references the alphabetically first model.
+ */
+function implicitM2MThrough(
+  parentModelName: string,
+  childModelName: string,
+): { table: string; from: string; to: string } {
+  const [first, second] = [parentModelName, childModelName].sort();
+  const table = `_${first}To${second}`;
+  const from = parentModelName === first ? "A" : "B";
+  const to = parentModelName === first ? "B" : "A";
+  return { table, from, to };
+}
+
 /**
  * Parse a Prisma schema source string into a MeshQL {@link MeshSchema}.
  */
@@ -171,6 +192,7 @@ export function schemaFromPrismaSource(
       const meta = relationMeta(field);
 
       let on: string;
+      let through: JoinConfig["through"];
 
       if (meta.fields.length > 0 && meta.references.length > 0) {
         on = meta.fields
@@ -182,15 +204,16 @@ export function schemaFromPrismaSource(
           })
           .join(" AND ");
       } else if (childModel) {
-        const back = childModel.properties
-          .filter((p): p is Field => p.type === "field")
-          .find((f) => {
-            if (fieldTypeName(f) !== model.name) return false;
-            return relationMeta(f).fields.length > 0;
-          });
+        const childFields = childModel.properties.filter(
+          (p): p is Field => p.type === "field",
+        );
+        const backWithFk = childFields.find((f) => {
+          if (fieldTypeName(f) !== model.name) return false;
+          return relationMeta(f).fields.length > 0;
+        });
 
-        if (back) {
-          const backMeta = relationMeta(back);
+        if (backWithFk) {
+          const backMeta = relationMeta(backWithFk);
           on = backMeta.fields
             .map((fk, i) => {
               const ref = backMeta.references[i] ?? "id";
@@ -199,6 +222,17 @@ export function schemaFromPrismaSource(
               return `${childTable}.${fkCol} = ${parentTable}.${refCol}`;
             })
             .join(" AND ");
+        } else if (
+          field.array &&
+          childFields.some((f) => {
+            if (fieldTypeName(f) !== model.name || !f.array) return false;
+            return relationMeta(f).fields.length === 0;
+          })
+        ) {
+          // Implicit many-to-many: neither side declares @relation(fields:...).
+          through = implicitM2MThrough(model.name, typeName);
+          const parentIdCol = physicalIdColumn(entities[parentKey]);
+          on = `${through.table}.${through.from} = ${parentTable}.${parentIdCol}`;
         } else {
           on = `${childTable}.${parentKey}_id = ${parentTable}.id`;
         }
@@ -211,6 +245,7 @@ export function schemaFromPrismaSource(
         on,
         type,
         table: childTable,
+        ...(through ? { through } : {}),
       };
     }
   }

@@ -10,12 +10,11 @@ import {
   DEFAULT_LIST_LIMIT,
   MAX_LIST_LIMIT,
   buildPathToSqlAlias,
+  emitJoinSql,
   entityTable,
   joinsInDependencyOrder,
-  physicalTableForJoin,
   renderReadWhereSql,
   resolvePlanField,
-  rewriteJoinOn,
   rowAliasForPlanField,
 } from "@meshql/core";
 
@@ -261,10 +260,7 @@ export function buildSelectSql(
     }
 
     joinedPaths.add(join.path);
-    const sqlAlias = pathToAlias.get(join.path)!;
-    const physicalTable = physicalTableForJoin(join, schema);
-    const onClause = rewriteJoinOn(join.on, join, plan.joins, pathToAlias, schema);
-    sql += ` LEFT JOIN ${physicalTable} AS ${sqlAlias} ON ${onClause}`;
+    sql += emitJoinSql(join, plan, schema, pathToAlias, rootTable);
   }
 
   const whereClauses: string[] = [];
