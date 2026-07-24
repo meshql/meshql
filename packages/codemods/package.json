@@ -1,6 +1,6 @@
 {
   "name": "@meshql/codemods",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "GraphQL SDL to MeshQL schema migration tools",
   "license": "MIT",
   "type": "module",

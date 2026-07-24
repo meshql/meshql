@@ -1,5 +1,13 @@
 # @meshql/docs
 
+## 0.2.3
+
+### Patch Changes
+
+- Updated dependencies [1bd0c4a]
+  - @meshql/core@0.10.0
+  - @meshql/http@0.8.1
+
 ## 0.2.2
 
 ### Patch Changes

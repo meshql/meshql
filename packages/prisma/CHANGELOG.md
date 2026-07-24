@@ -1,5 +1,21 @@
 # @meshql/prisma
 
+## 0.8.0
+
+### Minor Changes
+
+- 1bd0c4a: Add many-to-many support via optional `JoinConfig.through`.
+
+  SQL builders emit a two-hop join (parent → junction → child) using
+  `emitJoinSql`, with collision-safe junction aliases and physical id columns
+  from `entityIdField` / `columns`. Prisma implicit M2M (`Post.tags` / `Tag.posts`)
+  is detected as `_AToB` with `A`/`B` columns.
+
+### Patch Changes
+
+- Updated dependencies [1bd0c4a]
+  - @meshql/core@0.10.0
+
 ## 0.7.4
 
 ### Patch Changes
