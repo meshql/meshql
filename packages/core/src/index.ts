@@ -241,7 +241,11 @@ export type {
 } from "./planner/join-plan.js";
 export {
   buildPathToSqlAlias,
+  emitJoinSql,
   joinsInDependencyOrder,
+  junctionAliasForJoinPath,
+  parentEntityForJoin,
+  parentSqlRefForJoin,
   physicalTableForJoin,
   resolvePlanField,
   rewriteJoinOn,
@@ -311,7 +315,9 @@ export type { Filter, FilterOp, ListOptions, OrderBy } from "./planner/list-opti
 export {
   entityTable,
   entityIdField,
+  entityPhysicalIdColumn,
   entityQueryableFields,
+  hasThroughJoin,
   isComputedField,
   resolveEntityKey,
   type MeshConfig,
@@ -319,6 +325,7 @@ export {
   type EntityConfig,
   type ComputedFieldDef,
   type JoinConfig,
+  type ThroughConfig,
 } from "./schema/schema.js";
 export { validateComputedFields } from "./schema/validate-computed.js";
 export {

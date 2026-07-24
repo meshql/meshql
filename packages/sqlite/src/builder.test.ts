@@ -132,6 +132,40 @@ describe("buildSelectSql (SQLite) — point read", () => {
     expect(sql).not.toMatch(/ORDER BY/);
     expect(sql).not.toMatch(/LIMIT/);
   });
+
+  it("emits two-hop LEFT JOINs for many-to-many through joins", () => {
+    const m2mSchema: MeshSchema = {
+      entities: {
+        post: { fields: ["id", "title"], table: "posts" },
+        tag: { fields: ["id", "name"], table: "tags" },
+      },
+      joins: {
+        "post.tags": {
+          entity: "tag",
+          on: "post_tags.post_id = posts.id",
+          type: "many",
+          table: "tags",
+          through: { table: "post_tags", from: "post_id", to: "tag_id" },
+        },
+      },
+    };
+
+    const ast = parseQl("{ post { id title tags { name } } }");
+    const plan = buildJoinPlan(
+      ast,
+      m2mSchema,
+      createQueryContext({ requestId: "1", method: "GET", entityId: "1" }),
+    );
+    const { sql, params } = buildSelectSql(plan, m2mSchema);
+
+    expect(sql).toBe(
+      'SELECT posts.id AS "post_id", posts.title AS "post_title", tags.id AS "tags_id", tags.name AS "tags_name" FROM posts' +
+        ' LEFT JOIN post_tags AS tags__junc ON tags__junc."post_id" = posts.id' +
+        ' LEFT JOIN tags AS tags ON tags.id = tags__junc."tag_id"' +
+        " WHERE posts.id = ?",
+    );
+    expect(params).toEqual(["1"]);
+  });
 });
 
 describe("buildSelectSql (SQLite) — collection reads", () => {

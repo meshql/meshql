@@ -282,3 +282,113 @@ describeIfDb("buildSelectSql against real Postgres", () => {
     });
   });
 });
+
+const m2mSchema: MeshSchema = {
+  entities: {
+    post: { fields: ["id", "title"], table: "posts" },
+    tag: { fields: ["id", "name"], table: "tags" },
+  },
+  joins: {
+    "post.tags": {
+      entity: "tag",
+      on: "_PostToTag.A = posts.id",
+      type: "many",
+      table: "tags",
+      through: { table: "_PostToTag", from: "A", to: "B" },
+    },
+    "tag.posts": {
+      entity: "post",
+      on: "_PostToTag.B = tags.id",
+      type: "many",
+      table: "posts",
+      through: { table: "_PostToTag", from: "B", to: "A" },
+    },
+  },
+};
+
+describeIfDb("buildSelectSql M2M through joins against real Postgres", () => {
+  const pool = new Pool({ connectionString: DATABASE_URL });
+
+  beforeAll(async () => {
+    await pool.query(`DROP TABLE IF EXISTS "_PostToTag", tags, posts CASCADE`);
+    await pool.query(`
+      CREATE TABLE posts (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL
+      );
+      CREATE TABLE tags (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL
+      );
+      CREATE TABLE "_PostToTag" (
+        "A" INTEGER NOT NULL REFERENCES posts(id),
+        "B" INTEGER NOT NULL REFERENCES tags(id),
+        PRIMARY KEY ("A", "B")
+      );
+    `);
+
+    await pool.query(`INSERT INTO posts (id, title) VALUES (1, 'Hello'), (2, 'World')`);
+    await pool.query(`INSERT INTO tags (id, name) VALUES (1, 'ts'), (2, 'sql'), (3, 'orm')`);
+    await pool.query(`
+      INSERT INTO "_PostToTag" ("A", "B") VALUES
+        (1, 1), (1, 2),
+        (2, 2), (2, 3)
+    `);
+  });
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  it("round-trips post → tags via junction table", async () => {
+    const mesh = createMesh(m2mSchema);
+    mesh.resolve("post", async (plan) => {
+      const { sql, params } = buildSelectSql(plan, m2mSchema);
+      const result = await pool.query(sql, params);
+      return result.rows;
+    });
+
+    const response = await mesh.execute(
+      "{ post { id title tags { id name } } }",
+      {
+        format: "ql",
+        context: { requestId: "1", method: "GET", entityId: "1" },
+      },
+    );
+
+    expect(response).toEqual({
+      id: 1,
+      title: "Hello",
+      tags: [
+        { id: 1, name: "ts" },
+        { id: 2, name: "sql" },
+      ],
+    });
+  });
+
+  it("round-trips tag → posts (reverse M2M)", async () => {
+    const mesh = createMesh(m2mSchema);
+    mesh.resolve("tag", async (plan) => {
+      const { sql, params } = buildSelectSql(plan, m2mSchema);
+      const result = await pool.query(sql, params);
+      return result.rows;
+    });
+
+    const response = await mesh.execute(
+      "{ tag { id name posts { id title } } }",
+      {
+        format: "ql",
+        context: { requestId: "1", method: "GET", entityId: "2" },
+      },
+    );
+
+    expect(response).toEqual({
+      id: 2,
+      name: "sql",
+      posts: [
+        { id: 1, title: "Hello" },
+        { id: 2, title: "World" },
+      ],
+    });
+  });
+});

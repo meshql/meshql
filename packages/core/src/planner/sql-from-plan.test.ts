@@ -5,7 +5,9 @@ import { buildJoinPlan } from "./join-plan.js";
 import { parseQl } from "../parser/index.js";
 import {
   buildPathToSqlAlias,
+  emitJoinSql,
   joinsInDependencyOrder,
+  junctionAliasForJoinPath,
   resolvePlanField,
   rewriteJoinOn,
   rowAliasForPlanField,
@@ -111,5 +113,84 @@ describe("resolvePlanField", () => {
       sqlColumn: "title",
       entityKey: "post",
     });
+  });
+});
+
+const m2mSchema: MeshSchema = {
+  entities: {
+    post: { fields: ["id", "title"], table: "posts" },
+    tag: { fields: ["id", "name"], table: "tags" },
+  },
+  joins: {
+    "post.tags": {
+      entity: "tag",
+      on: "_PostToTag.A = posts.id",
+      type: "many",
+      table: "tags",
+      through: { table: "_PostToTag", from: "A", to: "B" },
+    },
+  },
+};
+
+describe("emitJoinSql — through (M2M)", () => {
+  it("emits a two-hop join with a collision-safe junction alias", () => {
+    const ast = parseQl("{ post { id tags { name } } }");
+    const plan = buildJoinPlan(
+      ast,
+      m2mSchema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+    );
+    const pathToAlias = buildPathToSqlAlias(plan);
+    const tagsJoin = plan.joins.find((join) => join.path === "tags")!;
+
+    expect(junctionAliasForJoinPath("tags")).toBe("tags__junc");
+    expect(
+      emitJoinSql(tagsJoin, plan, m2mSchema, pathToAlias, "posts"),
+    ).toBe(
+      ' LEFT JOIN _PostToTag AS tags__junc ON tags__junc."A" = posts.id' +
+        ' LEFT JOIN tags AS tags ON tags.id = tags__junc."B"',
+    );
+  });
+
+  it("uses entityPhysicalIdColumn for non-id primary keys", () => {
+    const schema: MeshSchema = {
+      entities: {
+        post: {
+          fields: ["uuid", "title"],
+          idField: "uuid",
+          table: "posts",
+          columns: { uuid: "post_uuid" },
+        },
+        tag: {
+          fields: ["uuid", "name"],
+          idField: "uuid",
+          table: "tags",
+          columns: { uuid: "tag_uuid" },
+        },
+      },
+      joins: {
+        "post.tags": {
+          entity: "tag",
+          on: "post_tags.post_id = posts.post_uuid",
+          type: "many",
+          table: "tags",
+          through: { table: "post_tags", from: "post_id", to: "tag_id" },
+        },
+      },
+    };
+
+    const ast = parseQl("{ post { uuid tags { name } } }");
+    const plan = buildJoinPlan(
+      ast,
+      schema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+    );
+    const pathToAlias = buildPathToSqlAlias(plan);
+    const tagsJoin = plan.joins.find((join) => join.path === "tags")!;
+
+    expect(emitJoinSql(tagsJoin, plan, schema, pathToAlias, "posts")).toBe(
+      ' LEFT JOIN post_tags AS tags__junc ON tags__junc."post_id" = posts.post_uuid' +
+        ' LEFT JOIN tags AS tags ON tags.tag_uuid = tags__junc."tag_id"',
+    );
   });
 });

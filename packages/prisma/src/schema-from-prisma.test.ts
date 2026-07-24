@@ -89,4 +89,76 @@ model Account {
     expect(schema.entities.account!.idField).toBe("uuid");
     expect(schema.entities.account!.fields).toEqual(["uuid", "name"]);
   });
+
+  it("detects Prisma implicit many-to-many and emits through", () => {
+    const schema = schemaFromPrismaSource(`
+model Post {
+  id   Int   @id @default(autoincrement())
+  title String
+  tags Tag[]
+
+  @@map("posts")
+}
+
+model Tag {
+  id    Int    @id @default(autoincrement())
+  name  String
+  posts Post[]
+
+  @@map("tags")
+}
+`);
+
+    expect(schema.joins["post.tags"]).toMatchObject({
+      entity: "tag",
+      type: "many",
+      table: "tags",
+      on: "_PostToTag.A = posts.id",
+      through: { table: "_PostToTag", from: "A", to: "B" },
+    });
+    expect(schema.joins["tag.posts"]).toMatchObject({
+      entity: "post",
+      type: "many",
+      table: "posts",
+      on: "_PostToTag.B = tags.id",
+      through: { table: "_PostToTag", from: "B", to: "A" },
+    });
+  });
+
+  it("keeps explicit junction models as one-to-many (no through)", () => {
+    const schema = schemaFromPrismaSource(`
+model Post {
+  id       Int       @id
+  title    String
+  postTags PostTag[]
+}
+
+model Tag {
+  id       Int       @id
+  name     String
+  postTags PostTag[]
+}
+
+model PostTag {
+  postId Int
+  tagId  Int
+  post   Post @relation(fields: [postId], references: [id])
+  tag    Tag  @relation(fields: [tagId], references: [id])
+
+  @@id([postId, tagId])
+}
+`);
+
+    expect(schema.joins["post.postTags"]?.through).toBeUndefined();
+    expect(schema.joins["post.postTags"]).toMatchObject({
+      entity: "postTag",
+      type: "many",
+      on: "postTags.postId = posts.id",
+    });
+    expect(schema.joins["postTag.tag"]).toMatchObject({
+      entity: "tag",
+      type: "one",
+      on: "postTags.tagId = tags.id",
+    });
+  });
 });
