@@ -164,7 +164,21 @@ Yes for Bun and Deno — see [integrations](/integrations/bun). For edge, the SQ
 
 ### How do mutations work?
 
-Reads use **GET** with the shaped query in `X-Mesh-Query` (cacheable). Creates, updates, and deletes use normal **POST**, **PUT**, and **DELETE** on `/mesh/:entity` routes with JSON or multipart bodies. Integrity signing applies to mutations too when enabled. See [HTTP adapters](/reference/http-adapters).
+Same resource URLs as reads — **not** a GraphQL mutation, **not** `/mesh/write`.
+
+```http
+PUT    /mesh/user/1              # update scalars (+ optional X-Mesh-Query for response)
+POST   /mesh/user/1/tokens       # create child
+DELETE /mesh/user/1/tokens/42    # delete child
+PUT    /mesh/user/1/business     # connect one { "entityId": "…" }
+DELETE /mesh/user/1/business     # disconnect one
+```
+
+Same resource URLs as reads. See [Reads and writes](/guide/reads-and-writes).
+
+**Today:** write verbs are not in `@meshql/http` yet (`DELETE` → **405**;
+current `PUT` is still a temporary **read transport**). Implement the same `/mesh/...`
+paths in your app until core writes land.
 
 ## Transport
 
@@ -190,7 +204,7 @@ See [HTTP wire spec](/specs/http-wire).
 
 POST has TLS encryption — but that's not what the header design is solving. TLS protects data in transit (nobody can intercept). The header design solves character safety, cacheability, and query integrity — completely different concerns.
 
-That said, MeshQL does use POST — for mutations (creating records). GET is for reads. This is correct HTTP semantics, not an arbitrary choice.
+MeshQL uses **GET** for shaped reads so responses can be cached. `POST /mesh` is also a **read** when the query is too large for headers — not a mutation endpoint. Writes use the same resource URLs with `PUT` / `POST` / `DELETE` ([Reads and writes](/guide/reads-and-writes)).
 
 ### Is the base64 query encrypted?
 
@@ -239,21 +253,23 @@ Public API, exposed to internet
 Sensitive data (financial, medical, personal)
 → integrity + access both, strongly recommended
 
-Need CSRF protection on mutations?
-→ integrity handles this automatically
+Need CSRF protection on your write routes?
+→ sign those requests the same way (integrity), or keep mutations behind same-origin + CSRF tokens
 ```
 
 ### Does integrity work for all HTTP methods?
 
-Yes — and the value is different per method:
+Integrity signs whatever MeshQL (or your write preview) verifies. Today that means:
 
-**GET** — highest value. Prevents schema probing, arbitrary query crafting, and DB stress from unknown clients.
+**GET** — highest value on shaped reads. Prevents schema probing and arbitrary query crafting.
 
-**POST** — confirms request came from your actual client before any record creation happens.
+**POST `/mesh`** — same signing story for body-based **reads**.
 
-**PUT** — unsigned PUT rejected immediately, never reaches field write access checks or DB.
+**PUT `/mesh/:entity/:id`** — signed **point read** transport (not an update). Unsigned requests are rejected when integrity is enabled.
 
-**DELETE** — most critical. Integrity makes CSRF attacks on DELETE impossible. An unsigned DELETE never reaches your resolver, period.
+**Uploads** — multipart routes are signed (including `contentHash`) when integrity is on.
+
+**Your write routes on `/mesh/...`** — sign `PUT`/`POST`/`DELETE` the same way when integrity is on. Core `DELETE` is not implemented yet (**405**).
 
 ### Does MeshQL implement authentication?
 
@@ -296,13 +312,13 @@ If the signing token is compromised, the attacker can only act as that user for 
 
 Four levels, all independent and composable:
 
-**Method level** — can this user call PUT or DELETE at all?
+**Method level** — can this user call a given HTTP method on an entity (including write routes you wire yourself)?
 
 ```typescript
 methods: {
   user: {
     GET: (ctx) => true,
-    DELETE: (ctx) => ctx.role === 'admin',
+    DELETE: (ctx) => ctx.role === 'admin', // your write handler / future mutation profile
   },
 }
 ```
@@ -417,8 +433,8 @@ GraphQL type          → MeshQL entity
 GraphQL object field  → MeshQL join
 GraphQL resolver      → MeshQL resolve() function
 GraphQL dataloader    → not needed, covered by join
-GraphQL mutation      → PUT/POST/DELETE route
-GraphQL subscription  → not supported
+GraphQL mutation      → REST PUT/POST/DELETE on /mesh/{entity}/… (not a mutation DSL)
+GraphQL subscription  → @meshql/sse + @meshql/pubsub
 ```
 
 ### How long does a typical GraphQL migration take?

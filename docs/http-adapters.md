@@ -68,9 +68,13 @@ With **`@meshql/integrity`** (`meshIntegrityExpressRouter`), these are added:
 | `POST` | `/mesh/auth` | Login — returns `signingToken` + `token` |
 | `POST` | `/mesh/logout` | Revoke session (`X-Mesh-Token` header) |
 
-Core mutations (create/update/delete entities) are not in the base HTTP handler yet —
-`DELETE` returns **405** until a mutation story lands in core. The [showcase](../examples/showcase)
-uses a preview `POST /mesh/write` route for signed CRUD demos.
+Writes use the **same** `/mesh` resource URLs (`PUT` update, `POST`/`DELETE` on
+relations). That is not shipped in `@meshql/http` yet (`DELETE` → **405**; today’s
+`PUT` is still a temporary point-read transport; `POST .../:field` is file upload).
+
+**Product rule:** REST resource-per-URL for writes — no GraphQL mutation DSL, no
+`/mesh/write` RPC. Implement the target paths yourself until core lands.
+See [Reads and writes](/guide/reads-and-writes).
 
 Change the base path with the second argument / `options.basePath`.
 

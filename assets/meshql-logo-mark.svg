@@ -1,13 +1,14 @@
 <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MeshQL">
   <title>MeshQL</title>
-  <line x1="18" y1="6" x2="6" y2="18" stroke="#7C3AED" stroke-width="1.2" stroke-dasharray="4 2"/>
-  <line x1="18" y1="6" x2="30" y2="18" stroke="#7C3AED" stroke-width="1.2" stroke-dasharray="4 2"/>
-  <line x1="6" y1="18" x2="18" y2="30" stroke="#00D4FF" stroke-width="1.2" stroke-dasharray="4 2"/>
-  <line x1="30" y1="18" x2="18" y2="30" stroke="#00D4FF" stroke-width="1.2" stroke-dasharray="4 2"/>
-  <line x1="6" y1="18" x2="30" y2="18" stroke="#7C3AED" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.4"/>
-  <circle cx="18" cy="6" r="3" fill="#7C3AED"/>
+  <line x1="16.232" y1="7.768" x2="7.768" y2="16.232" stroke="#7C3AED" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="2.5 2.2353"/>
+  <line x1="19.768" y1="7.768" x2="28.232" y2="16.232" stroke="#7C3AED" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="2.5 2.2353"/>
+  <line x1="7.768" y1="19.768" x2="16.232" y2="28.232" stroke="#00D4FF" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="2.5 2.2353"/>
+  <line x1="28.232" y1="19.768" x2="19.768" y2="28.232" stroke="#00D4FF" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="2.5 2.2353"/>
+  <line x1="8.5" y1="18" x2="15.45" y2="18" stroke="#7C3AED" stroke-width="0.9" stroke-linecap="round" stroke-dasharray="2.5 1.95"/>
+  <line x1="20.55" y1="18" x2="27.5" y2="18" stroke="#7C3AED" stroke-width="0.9" stroke-linecap="round" stroke-dasharray="2.5 1.95"/>
+  <circle cx="18" cy="6" r="2.5" fill="#7C3AED"/>
   <circle cx="6" cy="18" r="2.5" fill="#9D5FFF"/>
   <circle cx="30" cy="18" r="2.5" fill="#9D5FFF"/>
-  <circle cx="18" cy="30" r="3" fill="#00D4FF"/>
-  <circle cx="18" cy="18" r="2" fill="#F0F2FF" opacity="0.9"/>
+  <circle cx="18" cy="30" r="2.5" fill="#00D4FF"/>
+  <circle cx="18" cy="18" r="2" fill="#F0F2FF"/>
 </svg>
