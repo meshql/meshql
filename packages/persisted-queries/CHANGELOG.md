@@ -1,5 +1,13 @@
 # @meshql/persisted-queries
 
+## 0.2.5
+
+### Patch Changes
+
+- Updated dependencies [f2511aa]
+  - @meshql/core@0.10.0
+  - @meshql/http@0.8.1
+
 ## 0.2.4
 
 ### Patch Changes

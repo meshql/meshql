@@ -1,5 +1,13 @@
 # @meshql/access-cache
 
+## 0.2.4
+
+### Patch Changes
+
+- Updated dependencies [f2511aa]
+  - @meshql/core@0.10.0
+  - @meshql/access@0.2.10
+
 ## 0.2.3
 
 ### Patch Changes

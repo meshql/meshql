@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.8
+
+### Patch Changes
+
+- Updated dependencies [f2511aa]
+  - @meshql/core@0.10.0
+
 ## 0.5.7
 
 ### Patch Changes

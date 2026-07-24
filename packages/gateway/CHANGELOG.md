@@ -1,5 +1,13 @@
 # @meshql/gateway
 
+## 0.2.4
+
+### Patch Changes
+
+- Updated dependencies [f2511aa]
+  - @meshql/core@0.10.0
+  - @meshql/client@0.8.1
+
 ## 0.2.3
 
 ### Patch Changes

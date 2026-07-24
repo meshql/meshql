@@ -1,5 +1,14 @@
 # @meshql/kysely
 
+## 0.6.6
+
+### Patch Changes
+
+- Updated dependencies [f2511aa]
+  - @meshql/core@0.10.0
+  - @meshql/postgres@0.6.3
+  - @meshql/sqlite@0.6.3
+
 ## 0.6.5
 
 ### Patch Changes
