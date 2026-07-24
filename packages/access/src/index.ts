@@ -1,7 +1,6 @@
 /**
  * Entity, row, and field access control for MeshQL.
  *
- * @module
  * @example
  * ```ts
  * import { createMesh } from "@meshql/core";

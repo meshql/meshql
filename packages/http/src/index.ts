@@ -1,8 +1,6 @@
 /**
  * HTTP transport for MeshQL queries and framework-agnostic request handling.
  *
- * @module
- *
  * @example
  * ```ts
  * import { createMesh } from "@meshql/core";

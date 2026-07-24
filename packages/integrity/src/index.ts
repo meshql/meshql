@@ -1,7 +1,6 @@
 /**
  * Request signing and integrity token lifecycle for MeshQL HTTP servers.
  *
- * @module
  * @example
  * ```ts
  * import { createMesh } from "@meshql/core";

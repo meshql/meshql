@@ -1,8 +1,6 @@
 /**
  * Typed client SDK for MeshQL APIs.
  *
- * @module
- *
  * @example
  * ```ts
  * import { createClient } from "@meshql/client";
