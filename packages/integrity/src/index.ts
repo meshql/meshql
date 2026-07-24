@@ -1,3 +1,19 @@
+/**
+ * Request signing and integrity token lifecycle for MeshQL HTTP servers.
+ *
+ * @module
+ * @example
+ * ```ts
+ * import { createMesh } from "@meshql/core";
+ * import { withIntegrity, issueToken } from "@meshql/integrity";
+ *
+ * const mesh = withIntegrity(createMesh({ entities: {} }), {
+ *   secret: "master",
+ *   authenticate: async () => ({ userId: "u1", sessionId: "s1" }),
+ * });
+ * const { token } = issueToken(mesh.integrity, { userId: "u1", sessionId: "s1" });
+ * ```
+ */
 export {
   withIntegrity,
   createIntegrityPlugin,

@@ -1,3 +1,18 @@
+/**
+ * Entity, row, and field access control for MeshQL.
+ *
+ * @module
+ * @example
+ * ```ts
+ * import { createMesh } from "@meshql/core";
+ * import { withAccess } from "@meshql/access";
+ *
+ * const mesh = createMesh({ entities: { user: { fields: ["id"], table: "users" } } });
+ * withAccess(mesh, {
+ *   entityAccess: { user: (ctx) => Boolean(ctx.userId) },
+ * });
+ * ```
+ */
 import type { MeshInstance } from "@meshql/core";
 import {
   emptyResponse,

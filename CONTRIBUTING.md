@@ -130,6 +130,7 @@ For **each** publishable package:
 1. Go to [jsr.io/new](https://jsr.io/new) and create it under the `@meshql` scope (if not created yet).
 2. Open the package on JSR → **Settings** → **GitHub repository**.
 3. Enter `meshql/meshql` and click **Link**.
+4. Ensure `packages/{pkg}/README.md` exists (publish verify fails without it).
 
 **Setup checklist:**
 
@@ -139,12 +140,14 @@ For **each** publishable package:
 | `@meshql/http` | yes | yes |
 | `@meshql/client` | yes | yes |
 | `@meshql/upload` | yes | yes |
-| `@meshql/integrity` | **required before first tag** | **required before first tag** |
-| `@meshql/access` | **required before first tag** | **required before first tag** |
+| `@meshql/integrity` | yes | yes |
+| `@meshql/access` | yes | yes |
 | `@meshql/persisted-queries` | yes | yes |
 | `@meshql/access-cache` | yes | yes |
 
 Without linking, CI fails with `actorNotAuthorized` or `Following packages don't exist`. See [docs/jsr-settings.md](./docs/jsr-settings.md) for descriptions and runtime compatibility.
+
+**CI dispatch:** Release dispatches Publish JSR with `RELEASE_PAT` (must be a `@meshql` scope member such as `rp01`) so OIDC is not attributed to `github-actions[bot]` (`actorNotScopeMember`). The PAT needs permission to trigger workflows. npm still dispatches with `GITHUB_TOKEN`.
 
 ### Local JSR publish
 
