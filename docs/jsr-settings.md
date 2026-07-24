@@ -78,6 +78,8 @@ The **Overview** tab uses the package **Readme Source** setting:
 | **JSDoc (with Readme fallback)** (default) | Module `@module` JSDoc on the `.` export, or README if that is absent |
 | **Readme** | Always the published `README.md` |
 
-If Overview looks empty or only shows a short module blurb and you want the Install/Example README instead, open the package on JSR → **Settings** → **Readme Source** → **Readme**.
+MeshQL entrypoints **omit `@module`** so the default setting falls back to the full package README (Install, examples, etc.). Keep symbol-level JSDoc on exports for the Docs sidebar.
+
+Optional: set **Readme Source → Readme** on each package’s JSR Settings if you later add `@module` again but still want Overview to show README.
 
 After changing settings, republish or wait for the next release; scores update when documentation is regenerated on publish.

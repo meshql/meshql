@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.9
+
+### Patch Changes
+
+- Show full package README on JSR Overview (omit entrypoint `@module` so README fallback applies).
+
 ## 0.5.8
 
 ### Patch Changes
