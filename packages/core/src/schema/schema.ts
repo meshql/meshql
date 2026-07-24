@@ -46,12 +46,37 @@ export interface EntityConfig {
   computed?: Record<string, ComputedFieldDef>;
 }
 
+/**
+ * Junction / pivot table for many-to-many relations.
+ *
+ * When present on a {@link JoinConfig}, SQL builders emit a two-hop join
+ * (`parent → junction → child`) instead of a single LEFT JOIN on `on`.
+ */
+export interface ThroughConfig {
+  /** Physical junction table name (e.g. `"_PostToTag"` or `"post_tags"`). */
+  table: string;
+  /** Column in the junction referencing the parent (e.g. `"post_id"` or `"A"`). */
+  from: string;
+  /** Column in the junction referencing the child (e.g. `"tag_id"` or `"B"`). */
+  to: string;
+}
+
 /** Join definition between a root entity and a nested relation. */
 export interface JoinConfig {
   entity: string;
+  /**
+   * Join predicate for a direct FK hop.
+   * Ignored by SQL builders when {@link through} is set (kept for docs / tooling).
+   */
   on: string;
   type: "one" | "many";
   table?: string;
+  /**
+   * Junction / pivot table for many-to-many relations.
+   * When present, the SQL builder emits a two-hop join:
+   *   parent → junction → child
+   */
+  through?: ThroughConfig;
 }
 
 /** Alias for {@link MeshSchema}. */
@@ -65,6 +90,22 @@ export function entityTable(entity: string, config?: EntityConfig): string {
 /** Resolve the identifying field for an entity. Defaults to `"id"`. */
 export function entityIdField(config?: EntityConfig): string {
   return config?.idField ?? "id";
+}
+
+/**
+ * Resolve the physical SQL column for an entity's id field.
+ * Honors {@link EntityConfig.columns} remapping (e.g. `uuid` → `"user_uuid"`).
+ */
+export function entityPhysicalIdColumn(config?: EntityConfig): string {
+  const idField = entityIdField(config);
+  return config?.columns?.[idField] ?? idField;
+}
+
+/** True when the join declares a many-to-many junction via {@link JoinConfig.through}. */
+export function hasThroughJoin(
+  join: JoinConfig | undefined,
+): join is JoinConfig & { through: ThroughConfig } {
+  return Boolean(join?.through);
 }
 
 /** Queryable field names: physical fields ∪ computed keys. */
