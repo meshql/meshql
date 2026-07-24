@@ -114,19 +114,24 @@ export function createGateway(config: GatewayConfig): GatewayInstance {
 
       for (const [joinPath, join] of joinEntries) {
         const joinField = joinPath.slice(rootEntity.length + 1);
-        const joinService = serviceForEntity(config, join.entity);
+        if (!join.entity) {
+          // Polymorphic joins are not stitched across services in v1.
+          continue;
+        }
+        const targetEntity = join.entity;
+        const joinService = serviceForEntity(config, targetEntity);
         if (!joinService || joinService.name === rootService.name) {
           continue;
         }
 
         const nestedQuery =
           format === "json"
-            ? JSON.stringify({ [join.entity]: { $select: { id: true } } })
-            : `{ ${join.entity} { id } }`;
+            ? JSON.stringify({ [targetEntity]: { $select: { id: true } } })
+            : `{ ${targetEntity} { id } }`;
 
         const nested = await fetchService(
           joinService,
-          join.entity,
+          targetEntity,
           nestedQuery,
           { format },
           config.headers,
