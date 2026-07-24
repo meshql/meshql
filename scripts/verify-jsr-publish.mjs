@@ -93,6 +93,15 @@ for (const pkg of packages) {
   }
 
   const shortName = jsrShortName(result.manifest.name);
+  const readmePath = path.join(packagesDir, pkg, "README.md");
+  if (!fs.existsSync(readmePath)) {
+    console.error(
+      `::error::packages/${pkg}/README.md is missing. JSR Overview falls back to README when module docs are absent; add a package README before publishing.`,
+    );
+    failed = true;
+    continue;
+  }
+
   const exists = await jsrPackageExists(shortName);
   if (!exists) {
     console.error(

@@ -69,6 +69,15 @@ Optionally mark **Cloudflare Workers** as **Unknown support** unless you have te
 
 ## Readme source
 
-Leave the default **JSDoc (with Readme fallback)** so module docs and README both count toward documentation score.
+Each package **must** ship a root `README.md` (CI fails publish verify if it is missing).
+
+The **Overview** tab uses the package **Readme Source** setting:
+
+| Setting | Overview shows |
+| --- | --- |
+| **JSDoc (with Readme fallback)** (default) | Module `@module` JSDoc on the `.` export, or README if that is absent |
+| **Readme** | Always the published `README.md` |
+
+If Overview looks empty or only shows a short module blurb and you want the Install/Example README instead, open the package on JSR → **Settings** → **Readme Source** → **Readme**.
 
 After changing settings, republish or wait for the next release; scores update when documentation is regenerated on publish.

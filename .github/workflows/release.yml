@@ -88,23 +88,38 @@ jobs:
 
       - name: Dispatch publish workflow
         env:
-          # The job-scoped token has `actions: write` above and can dispatch
-          # workflow_dispatch events. RELEASE_PAT is reserved for checkout/tag
-          # pushes and may not have Actions workflow permissions.
-          GH_TOKEN: ${{ github.token }}
+          # npm: GITHUB_TOKEN is enough (publish uses NPM_TOKEN).
+          # jsr: dispatch as RELEASE_PAT owner (a @meshql scope member).
+          # github-actions[bot] hits JSR actorNotScopeMember when the scope
+          # requires the triggering user to be a member (default).
+          WORKFLOW: ${{ matrix.workflow }}
+          PACKAGE: ${{ matrix.package }}
+          REF_TAG: ${{ matrix.ref }}
+          RELEASE_PAT: ${{ secrets.RELEASE_PAT }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           # Dispatch against main (workflow_dispatch needs a branch ref that
           # contains the workflow file). Package versions already live on
           # main after the Version Packages merge; tag refs are for audit.
-          echo "Dispatching ${{ matrix.workflow }} for package=${{ matrix.package }} (tag ${{ matrix.ref }})"
-          if [ "${{ matrix.workflow }}" = "publish-npm.yml" ]; then
-            gh workflow run "${{ matrix.workflow }}" \
+          if [ "${WORKFLOW}" = "publish-jsr.yml" ]; then
+            if [ -z "${RELEASE_PAT}" ]; then
+              echo "::error::RELEASE_PAT is required to dispatch Publish JSR (must be a @meshql JSR scope member)."
+              exit 1
+            fi
+            export GH_TOKEN="${RELEASE_PAT}"
+          else
+            export GH_TOKEN="${GITHUB_TOKEN}"
+          fi
+
+          echo "Dispatching ${WORKFLOW} for package=${PACKAGE} (tag ${REF_TAG}) as $(gh api user --jq .login)"
+          if [ "${WORKFLOW}" = "publish-npm.yml" ]; then
+            gh workflow run "${WORKFLOW}" \
               --ref main \
-              -f package="${{ matrix.package }}" \
+              -f package="${PACKAGE}" \
               -f publish_registry=true
           else
-            gh workflow run "${{ matrix.workflow }}" \
+            gh workflow run "${WORKFLOW}" \
               --ref main \
-              -f package="${{ matrix.package }}"
+              -f package="${PACKAGE}"
           fi
