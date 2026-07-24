@@ -10,6 +10,13 @@ export type MeshSchemaOverride = {
   joins?: Record<string, JoinConfig | undefined>;
 };
 
+function cloneJoin(join: JoinConfig): JoinConfig {
+  return {
+    ...join,
+    through: join.through ? { ...join.through } : undefined,
+  };
+}
+
 /**
  * Shallow-merge a base MeshQL schema with an override.
  *
@@ -74,7 +81,7 @@ export function extendSchema(
 
   const joins: Record<string, JoinConfig> = {};
   for (const [key, join] of Object.entries(base.joins)) {
-    joins[key] = { ...join };
+    joins[key] = cloneJoin(join);
   }
 
   for (const [key, join] of Object.entries(override.joins ?? {})) {
@@ -82,7 +89,7 @@ export function extendSchema(
       delete joins[key];
       continue;
     }
-    joins[key] = { ...join };
+    joins[key] = cloneJoin(join);
   }
 
   return { entities, joins };

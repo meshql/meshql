@@ -994,7 +994,7 @@ Field arrays are *replaced* not concatenated — so users can explicitly hide.
   - flat scalar fields
   - `@map` directives
   - one-to-many relation
-  - many-to-many relation (junction table)
+  - many-to-many relation (junction table) — implicit Prisma M2M via `JoinConfig.through`
   - composite primary keys (decide: reject, or pick first id?)
 - Each fixture → expected `MeshSchema` snapshot.
 

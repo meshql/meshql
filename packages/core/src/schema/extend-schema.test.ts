@@ -87,4 +87,27 @@ describe("extendSchema", () => {
       columns: undefined,
     });
   });
+
+  it("clones through on join overrides without sharing references", () => {
+    const through = { table: "post_tags", from: "post_id", to: "tag_id" };
+    const schema = extendSchema(base, {
+      entities: {
+        tag: { fields: ["id", "name"], table: "tags" },
+      },
+      joins: {
+        "post.tags": {
+          entity: "tag",
+          on: "post_tags.post_id = posts.id",
+          type: "many",
+          through,
+        },
+      },
+    });
+
+    expect(schema.joins["post.tags"]?.through).toEqual(through);
+    expect(schema.joins["post.tags"]?.through).not.toBe(through);
+
+    schema.joins["post.tags"]!.through!.from = "mutated";
+    expect(through.from).toBe("post_id");
+  });
 });
