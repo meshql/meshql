@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1
+
+### Patch Changes
+
+- Updated dependencies [1bd0c4a]
+  - @meshql/core@0.10.0
+
 ## 0.8.0
 
 ### Minor Changes
