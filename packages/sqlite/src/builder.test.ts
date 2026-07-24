@@ -166,6 +166,42 @@ describe("buildSelectSql (SQLite) — point read", () => {
     );
     expect(params).toEqual(["1"]);
   });
+
+  it("emits polymorphic LEFT JOINs and CASE selects for commentable", () => {
+    const schema: MeshSchema = {
+      entities: {
+        comment: { fields: ["id", "body"], table: "comments" },
+        post: { fields: ["id", "title"], table: "posts" },
+        image: { fields: ["id", "url"], table: "images" },
+      },
+      joins: {
+        "comment.commentable": {
+          type: "one",
+          entities: ["post", "image"],
+          on: "/* poly */",
+          polymorphic: {
+            typeColumn: "commentable_type",
+            idColumn: "commentable_id",
+            map: { Post: "post", Image: "image" },
+          },
+        },
+      },
+    };
+
+    const ast = parseQl("{ comment { id commentable { id title url } } }");
+    const plan = buildJoinPlan(
+      ast,
+      schema,
+      createQueryContext({ requestId: "1", method: "GET", entityId: "1" }),
+    );
+    const { sql } = buildSelectSql(plan, schema);
+
+    expect(sql).toContain("LEFT JOIN posts AS commentable__post");
+    expect(sql).toContain("LEFT JOIN images AS commentable__image");
+    expect(sql).toContain('AS "commentable_$entity"');
+    expect(sql).toContain("commentable__post.title");
+    expect(sql).toContain("commentable__image.url");
+  });
 });
 
 describe("buildSelectSql (SQLite) — collection reads", () => {

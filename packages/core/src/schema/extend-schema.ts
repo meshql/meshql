@@ -13,7 +13,11 @@ export type MeshSchemaOverride = {
 function cloneJoin(join: JoinConfig): JoinConfig {
   return {
     ...join,
+    entities: join.entities ? [...join.entities] : undefined,
     through: join.through ? { ...join.through } : undefined,
+    polymorphic: join.polymorphic
+      ? { ...join.polymorphic, map: { ...join.polymorphic.map } }
+      : undefined,
   };
 }
 

@@ -5,11 +5,14 @@ import type {
   EntityConfig,
   JoinConfig,
   MeshSchema,
+  PolymorphicConfig,
 } from "../schema/schema.js";
 import {
   entityIdField,
   entityTable,
+  hasPolymorphicJoin,
   isComputedField,
+  joinTargetEntity,
   resolveEntityKey,
 } from "../schema/schema.js";
 import type { QueryContext } from "../resolver/context.js";
@@ -62,8 +65,9 @@ export interface ResolvedJoin {
    */
   path: string;
   /**
-   * Schema join key: `{parentAstNodeName}.{refName}`, e.g. `"post.comments"`
-   * or `"comments.author"`.
+   * Schema join key: `{parentEntityKey}.{refName}`, e.g. `"post.comments"`
+   * or `"comment.author"` (always the parent entity key, never the selection
+   * path segment — so nested `blogs.tags` still resolves `blog.tags`).
    */
   joinKey: string;
   entity: string;
@@ -78,6 +82,11 @@ export interface ResolvedJoin {
    * Defaults to `"id"`.
    */
   idField: string;
+  /**
+   * Present when the schema join is polymorphic. SQL builders emit one LEFT
+   * JOIN per target; the shaper projects `$entity` + fields for the concrete type.
+   */
+  polymorphic?: PolymorphicConfig & { entities: string[] };
 }
 
 /** Options for {@link buildJoinPlan}. */
@@ -96,14 +105,14 @@ export function qualifiedJoinField(joinPath: string, field: string): string {
 }
 
 function ensureJoin(
-  nodeName: string,
+  parentEntityKey: string,
   refName: string,
   parentJoinPath: string | undefined,
   joins: ResolvedJoin[],
   fields: string[],
   schema: MeshSchema,
 ): ResolvedJoin {
-  const joinKey = `${nodeName}.${refName}`;
+  const joinKey = `${parentEntityKey}.${refName}`;
   const joinPath = parentJoinPath ? `${parentJoinPath}.${refName}` : refName;
   const existing = joins.find((j) => j.path === joinPath);
   if (existing) return existing;
@@ -113,7 +122,8 @@ function ensureJoin(
     throw new ValidationError(`No join defined for '${joinKey}'`);
   }
 
-  const joinEntityConfig = schema.entities[joinConfig.entity];
+  const targetEntity = joinTargetEntity(joinConfig);
+  const joinEntityConfig = schema.entities[targetEntity];
   const joinIdField = entityIdField(joinEntityConfig);
   const joinFields = [qualifiedJoinField(joinPath, joinIdField)];
   fields.push(...joinFields);
@@ -121,12 +131,20 @@ function ensureJoin(
   const resolved: ResolvedJoin = {
     path: joinPath,
     joinKey,
-    entity: joinConfig.entity,
+    entity: targetEntity,
     on: joinConfig.on,
     fields: joinFields,
     type: joinConfig.type,
     refName,
     idField: joinIdField,
+    ...(hasPolymorphicJoin(joinConfig)
+      ? {
+          polymorphic: {
+            ...joinConfig.polymorphic,
+            entities: [...joinConfig.entities],
+          },
+        }
+      : {}),
   };
   joins.push(resolved);
   return resolved;
@@ -155,7 +173,6 @@ function addPhysicalField(
 function expandComputedDeps(
   entityKey: string,
   def: ComputedFieldDef,
-  nodeName: string,
   joinPath: string | undefined,
   fields: string[],
   joins: ResolvedJoin[],
@@ -182,7 +199,7 @@ function expandComputedDeps(
     }
 
     const childJoin = ensureJoin(
-      nodeName,
+      entityKey,
       refName,
       joinPath,
       joins,
@@ -222,7 +239,6 @@ function planNodeFields(
       const requestedDeps = expandComputedDeps(
         entityKey,
         def,
-        node.name,
         parentJoinPath,
         fields,
         joins,
@@ -249,6 +265,51 @@ function planNodeFields(
   }
 }
 
+function planPolymorphicFields(
+  ref: ASTNode,
+  join: ResolvedJoin,
+  fields: string[],
+  schema: MeshSchema,
+): void {
+  const poly = join.polymorphic!;
+  if (ref.refs.length > 0) {
+    throw new ValidationError(
+      `Nested selections under polymorphic join '${join.joinKey}' are not supported`,
+    );
+  }
+
+  const unionFields = new Set<string>();
+  for (const entityKey of poly.entities) {
+    for (const name of schema.entities[entityKey]?.fields ?? []) {
+      unionFields.add(name);
+    }
+  }
+
+  for (const field of ref.fields) {
+    if (!unionFields.has(field)) {
+      throw new ValidationError(
+        `Field '${field}' not found on any polymorphic target of '${join.joinKey}'`,
+      );
+    }
+    const qualified = qualifiedJoinField(join.path, field);
+    if (!fields.includes(qualified)) {
+      fields.push(qualified);
+    }
+    if (!join.fields.includes(qualified)) {
+      join.fields.push(qualified);
+    }
+  }
+
+  // Always fetch id for shaping
+  const idQualified = qualifiedJoinField(join.path, join.idField);
+  if (!fields.includes(idQualified)) {
+    fields.push(idQualified);
+  }
+  if (!join.fields.includes(idQualified)) {
+    join.fields.push(idQualified);
+  }
+}
+
 function planNodeRefs(
   node: ASTNode,
   entityKey: string,
@@ -260,13 +321,18 @@ function planNodeRefs(
 ): void {
   for (const ref of node.refs) {
     const join = ensureJoin(
-      node.name,
+      entityKey,
       ref.name,
       parentJoinPath,
       joins,
       fields,
       schema,
     );
+
+    if (join.polymorphic) {
+      planPolymorphicFields(ref, join, fields, schema);
+      continue;
+    }
 
     planNodeFields(
       ref,
