@@ -61,12 +61,38 @@ export interface ThroughConfig {
   to: string;
 }
 
+/**
+ * Discriminated polymorphic association (e.g. Rails-style `commentable`).
+ *
+ * Parent row holds a type discriminator + target id; the concrete entity is
+ * one of {@link JoinConfig.entities}.
+ */
+export interface PolymorphicConfig {
+  /** Parent-table column with the type discriminator (e.g. `"commentable_type"`). */
+  typeColumn: string;
+  /** Parent-table column with the target row id (e.g. `"commentable_id"`). */
+  idColumn: string;
+  /** DB discriminator value → MeshQL entity key (e.g. `{ Post: "post" }`). */
+  map: Record<string, string>;
+}
+
 /** Join definition between a root entity and a nested relation. */
 export interface JoinConfig {
-  entity: string;
+  /**
+   * Single target entity key. Required for normal joins; omit when
+   * {@link polymorphic} is set (use {@link entities} instead).
+   */
+  entity?: string;
+  /**
+   * Target entity keys for a polymorphic join. Required when
+   * {@link polymorphic} is set; must include every value in
+   * {@link PolymorphicConfig.map}.
+   */
+  entities?: string[];
   /**
    * Join predicate for a direct FK hop.
-   * Ignored by SQL builders when {@link through} is set (kept for docs / tooling).
+   * Ignored by SQL builders when {@link through} or {@link polymorphic} is set
+   * (kept for docs / tooling).
    */
   on: string;
   type: "one" | "many";
@@ -77,6 +103,11 @@ export interface JoinConfig {
    *   parent → junction → child
    */
   through?: ThroughConfig;
+  /**
+   * Polymorphic one-relation (type + id columns on the parent).
+   * Not combined with {@link through}. `type` must be `"one"` in v1.
+   */
+  polymorphic?: PolymorphicConfig;
 }
 
 /** Alias for {@link MeshSchema}. */
@@ -106,6 +137,27 @@ export function hasThroughJoin(
   join: JoinConfig | undefined,
 ): join is JoinConfig & { through: ThroughConfig } {
   return Boolean(join?.through);
+}
+
+/** True when the join is a polymorphic association. */
+export function hasPolymorphicJoin(
+  join: JoinConfig | undefined,
+): join is JoinConfig & {
+  polymorphic: PolymorphicConfig;
+  entities: string[];
+} {
+  return Boolean(join?.polymorphic && join.entities?.length);
+}
+
+/**
+ * Primary target entity for a join. For polymorphic joins, returns the first
+ * declared entity (SQL/shaper use the full `entities` list).
+ */
+export function joinTargetEntity(join: JoinConfig): string {
+  if (join.entity) return join.entity;
+  const first = join.entities?.[0];
+  if (first) return first;
+  throw new Error("JoinConfig requires `entity` or non-empty `entities`");
 }
 
 /** Queryable field names: physical fields ∪ computed keys. */

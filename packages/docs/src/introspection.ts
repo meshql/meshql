@@ -18,8 +18,12 @@ export interface SchemaFieldDoc {
 export interface SchemaJoinDoc {
   /** Ref name in queries (e.g. `posts` in `{ user { posts { id } } }`). */
   name: string;
+  /** Primary / first target entity key. */
   entity: string;
   type: "one" | "many";
+  /** Present for polymorphic joins — all possible target entity keys. */
+  entities?: string[];
+  polymorphic?: boolean;
 }
 
 /** Entity entry in schema introspection output. */
@@ -94,10 +98,18 @@ export function buildSchemaDoc(
         continue;
       }
       const refName = joinKey.slice(prefix.length);
+      const target =
+        join.entity ?? join.entities?.[0] ?? "";
       joins.push({
         name: refName,
-        entity: join.entity,
+        entity: target,
         type: join.type,
+        ...(join.polymorphic
+          ? {
+              polymorphic: true,
+              entities: join.entities ? [...join.entities] : undefined,
+            }
+          : {}),
       });
     }
 

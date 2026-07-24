@@ -4,6 +4,7 @@ import type { AST, ASTNode } from "../parser/ast.js";
 import {
   entityIdField,
   entityQueryableFields,
+  hasPolymorphicJoin,
   isComputedField,
   resolveEntityKey,
   type MeshSchema,
@@ -197,7 +198,7 @@ export function normalizeReadTree(
     refs.push(
       normalizeReadTree(refValue, schema, {
         path: path ? `${path}.${refName}` : refName,
-        parentEntity: wire.name,
+        parentEntity: entityKey,
         parentRef: refName,
       }).read,
     );
@@ -244,7 +245,11 @@ function resolveRefEntity(
   if (!join) {
     throw new ValidationError(`No join defined for '${joinKey}' at path '${path}'`);
   }
-  return join.entity;
+  if (hasPolymorphicJoin(join)) {
+    // Polymorphic targets are resolved at shape time via $entity.
+    return join.entities[0];
+  }
+  return join.entity ?? undefined;
 }
 
 /** Find a normalized read node by dot path (empty string = root). */

@@ -204,7 +204,7 @@ describeIfSqlite("buildSelectSql round-trips against node:sqlite", () => {
           type: "many",
           table: "comments",
         },
-        "comments.author": {
+        "comment.author": {
           entity: "user",
           on: "users.id = comments.author_id",
           type: "one",

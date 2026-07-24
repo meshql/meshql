@@ -58,7 +58,6 @@ export const schema: MeshSchema = {
       type: "many",
       table: "posts",
     },
-    // Root: `post { author }` — key is `{entity}.{ref}`
     "post.author": {
       entity: "user",
       on: "users.id = posts.author_id",
@@ -71,21 +70,7 @@ export const schema: MeshSchema = {
       type: "many",
       table: "comments",
     },
-    // Nested: `user { posts { author } }` — key is `{parentRef}.{ref}`,
-    // not `{entity}.{ref}` (same pattern as `comments.author` below).
-    "posts.author": {
-      entity: "user",
-      on: "users.id = posts.author_id",
-      type: "one",
-      table: "users",
-    },
-    "posts.comments": {
-      entity: "comment",
-      on: "comments.post_id = posts.id",
-      type: "many",
-      table: "comments",
-    },
-    "comments.author": {
+    "comment.author": {
       entity: "user",
       on: "users.id = comments.author_id",
       type: "one",
