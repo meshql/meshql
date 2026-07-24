@@ -1,8 +1,4 @@
-/**
- * MeshQL core: define schemas, register resolvers, and execute shaped queries.
- *
- * @module
- */
+/** MeshQL core: define schemas, register resolvers, and execute shaped queries. */
 import { MeshError, ResolverError, ValidationError } from "./errors/index.js";
 import { parseQuery } from "./parser/index.js";
 import { validateAst } from "./planner/validator.js";
