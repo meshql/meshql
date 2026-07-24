@@ -23,7 +23,7 @@ consume this plan to fetch only requested data.
 | Field | Type | Meaning |
 |-------|------|---------|
 | `path` | string | Dot-separated ref path from root selection, e.g. `comments` or `comments.author` |
-| `joinKey` | string | Schema join key: `{parentAstName}.{refName}` e.g. `post.comments` |
+| `joinKey` | string | Schema join key: `{parentEntityKey}.{refName}` e.g. `post.comments` or `comment.author` |
 | `entity` | string | Target entity key |
 | `on` | string | Join predicate / hint from schema (SQL-like string in the TS reference) |
 | `fields` | string[] | Selected fields for this join hop |
@@ -55,7 +55,7 @@ Illustrative plan:
     },
     {
       "path": "comments.author",
-      "joinKey": "comments.author",
+      "joinKey": "comment.author",
       "entity": "user",
       "type": "one",
       "refName": "author",

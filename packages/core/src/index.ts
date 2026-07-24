@@ -28,6 +28,7 @@ import {
 import { entityIdField, resolveEntityKey } from "./schema/schema.js";
 import { warnAmbiguousEntityTables } from "./schema/entity-table-warnings.js";
 import { validateComputedFields } from "./schema/validate-computed.js";
+import { validateJoins } from "./schema/validate-joins.js";
 
 /** Options for {@link MeshInstance.executeUpload}. */
 export interface ExecuteUploadOptions {
@@ -102,6 +103,7 @@ export interface MeshInstance {
 /** Create a MeshQL instance from a schema configuration. */
 export function createMesh(config: MeshConfig): MeshInstance {
   warnAmbiguousEntityTables(config);
+  validateJoins(config);
   validateComputedFields(config);
   const registry = new ResolverRegistry();
   const plugins = new PluginRunner();
@@ -243,6 +245,9 @@ export {
   parentEntityForJoin,
   parentSqlRefForJoin,
   physicalTableForJoin,
+  polymorphicEntitySelectExpr,
+  polymorphicSelectExpr,
+  polymorphicTargetAlias,
   resolvePlanField,
   rewriteJoinOn,
   rowAliasForPlanField,
@@ -314,6 +319,8 @@ export {
   entityPhysicalIdColumn,
   entityQueryableFields,
   hasThroughJoin,
+  hasPolymorphicJoin,
+  joinTargetEntity,
   isComputedField,
   resolveEntityKey,
   type MeshConfig,
@@ -322,8 +329,10 @@ export {
   type ComputedFieldDef,
   type JoinConfig,
   type ThroughConfig,
+  type PolymorphicConfig,
 } from "./schema/schema.js";
 export { validateComputedFields } from "./schema/validate-computed.js";
+export { validateJoins } from "./schema/validate-joins.js";
 export {
   injectComputedIntoFlatRows,
   applyComputedToPreshaped,

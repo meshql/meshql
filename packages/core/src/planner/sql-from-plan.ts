@@ -7,6 +7,7 @@ import type { MeshSchema } from "../schema/schema.js";
 import {
   entityPhysicalIdColumn,
   entityTable,
+  hasPolymorphicJoin,
   hasThroughJoin,
 } from "../schema/schema.js";
 
@@ -36,6 +37,14 @@ export function junctionAliasForJoinPath(path: string): string {
   return `${joinPathAlias(path)}__junc`;
 }
 
+/** Per-target alias for a polymorphic join hop (`commentable__post`). */
+export function polymorphicTargetAlias(
+  joinPath: string,
+  entityKey: string,
+): string {
+  return `${joinPathAlias(joinPath)}__${entityKey}`;
+}
+
 /** Row alias emitted in SELECT AS for a plan field. */
 export function rowAliasForPlanField(
   qualified: string,
@@ -63,6 +72,20 @@ function replaceWord(haystack: string, word: string, replacement: string): strin
 /** Quote a physical identifier for SQL (needed for Prisma junction cols `A`/`B`). */
 function quoteIdent(ident: string): string {
   return `"${ident.replace(/"/g, '""')}"`;
+}
+
+function sqlStringLiteral(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function discriminatorForEntity(
+  map: Record<string, string>,
+  entityKey: string,
+): string | undefined {
+  for (const [disc, key] of Object.entries(map)) {
+    if (key === entityKey) return disc;
+  }
+  return undefined;
 }
 
 /** Rewrite a schema ON clause to use SQL aliases for parent joins and self. */
@@ -130,11 +153,38 @@ export function parentEntityForJoin(
   return parentJoin?.entity ?? plan.rootEntity;
 }
 
+function emitPolymorphicJoinSql(
+  join: ResolvedJoin,
+  plan: JoinPlan,
+  schema: MeshSchema,
+  pathToAlias: Map<string, string>,
+  rootTable: string,
+): string {
+  const poly = join.polymorphic!;
+  const parentRef = parentSqlRefForJoin(join, pathToAlias, rootTable);
+  let sql = "";
+
+  for (const entityKey of poly.entities) {
+    const disc = discriminatorForEntity(poly.map, entityKey);
+    if (disc === undefined) continue;
+    const table = entityTable(entityKey, schema.entities[entityKey]);
+    const alias = polymorphicTargetAlias(join.path, entityKey);
+    const idCol = entityPhysicalIdColumn(schema.entities[entityKey]);
+    sql +=
+      ` LEFT JOIN ${table} AS ${alias}` +
+      ` ON ${parentRef}.${quoteIdent(poly.typeColumn)} = ${sqlStringLiteral(disc)}` +
+      ` AND ${parentRef}.${quoteIdent(poly.idColumn)} = ${alias}.${idCol}`;
+  }
+
+  return sql;
+}
+
 /**
  * Emit LEFT JOIN clause(s) for one resolved join.
  *
  * Direct FK joins emit a single hop. Joins with {@link JoinConfig.through}
- * emit parent → junction → child.
+ * emit parent → junction → child. Polymorphic joins emit one LEFT JOIN per
+ * target entity.
  */
 export function emitJoinSql(
   join: ResolvedJoin,
@@ -143,6 +193,10 @@ export function emitJoinSql(
   pathToAlias: Map<string, string>,
   rootTable: string,
 ): string {
+  if (join.polymorphic || hasPolymorphicJoin(schema.joins[join.joinKey])) {
+    return emitPolymorphicJoinSql(join, plan, schema, pathToAlias, rootTable);
+  }
+
   const joinConfig = schema.joins[join.joinKey];
   const sqlAlias = pathToAlias.get(join.path)!;
   const physicalTable = physicalTableForJoin(join, schema);
@@ -165,6 +219,66 @@ export function emitJoinSql(
 
   const onClause = rewriteJoinOn(join.on, join, plan.joins, pathToAlias, schema);
   return ` LEFT JOIN ${physicalTable} AS ${sqlAlias} ON ${onClause}`;
+}
+
+/**
+ * SELECT expression for a field on a polymorphic join (CASE over targets).
+ * Returns undefined when the qualified field is not on a poly join.
+ */
+export function polymorphicSelectExpr(
+  qualified: string,
+  plan: JoinPlan,
+  schema: MeshSchema,
+  rootTable: string,
+): string | undefined {
+  const joinPaths = plan.joins.map((join) => join.path);
+  const parsed = parseQualifiedPlanField(qualified, plan.rootEntity, joinPaths);
+  if (!parsed.joinPath) return undefined;
+
+  const join = plan.joins.find((candidate) => candidate.path === parsed.joinPath);
+  if (!join?.polymorphic) return undefined;
+
+  const poly = join.polymorphic;
+  const parentRef = parentSqlRefForJoin(join, buildPathToSqlAlias(plan), rootTable);
+  const branches: string[] = [];
+  for (const entityKey of poly.entities) {
+    const config = schema.entities[entityKey];
+    if (!config?.fields.includes(parsed.column)) continue;
+    const disc = discriminatorForEntity(poly.map, entityKey);
+    if (disc === undefined) continue;
+    const alias = polymorphicTargetAlias(join.path, entityKey);
+    const column = config.columns?.[parsed.column] ?? parsed.column;
+    branches.push(
+      `WHEN ${parentRef}.${quoteIdent(poly.typeColumn)} = ${sqlStringLiteral(disc)}` +
+        ` THEN ${alias}.${column}`,
+    );
+  }
+  if (branches.length === 0) {
+    return "NULL";
+  }
+  return `CASE ${branches.join(" ")} END`;
+}
+
+/** SELECT expression that maps the parent type column to a MeshQL entity key. */
+export function polymorphicEntitySelectExpr(
+  join: ResolvedJoin,
+  plan: JoinPlan,
+  rootTable: string,
+): string {
+  const poly = join.polymorphic!;
+  const parentRef = parentSqlRefForJoin(
+    join,
+    buildPathToSqlAlias(plan),
+    rootTable,
+  );
+  const branches: string[] = [];
+  for (const [disc, entityKey] of Object.entries(poly.map)) {
+    branches.push(
+      `WHEN ${parentRef}.${quoteIdent(poly.typeColumn)} = ${sqlStringLiteral(disc)}` +
+        ` THEN ${sqlStringLiteral(entityKey)}`,
+    );
+  }
+  return `CASE ${branches.join(" ")} END`;
 }
 
 /** Resolve entity key and SQL column for a qualified plan field. */
@@ -194,6 +308,20 @@ export function resolvePlanField(
       sqlTableRef: parsed.joinPath,
       sqlColumn: parsed.column,
       entityKey: parsed.joinPath,
+    };
+  }
+
+  if (join.polymorphic) {
+    const entityKey =
+      join.polymorphic.entities.find((key) =>
+        schema.entities[key]?.fields.includes(parsed.column),
+      ) ?? join.entity;
+    const entityConfig = schema.entities[entityKey];
+    const column = entityConfig?.columns?.[parsed.column] ?? parsed.column;
+    return {
+      sqlTableRef: polymorphicTargetAlias(join.path, entityKey),
+      sqlColumn: column,
+      entityKey,
     };
   }
 

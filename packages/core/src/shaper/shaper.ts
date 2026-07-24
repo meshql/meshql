@@ -188,6 +188,37 @@ function shapeRefMany(
   );
 }
 
+function shapePolymorphicOne(
+  rows: Record<string, unknown>[],
+  ref: ASTNode,
+  join: ResolvedJoin,
+  parentJoinPath: string,
+): Record<string, unknown> | null {
+  for (const row of rows) {
+    const entityKey = readField(row, ref.name, "$entity", parentJoinPath);
+    const idValue = readField(row, ref.name, join.idField, parentJoinPath);
+    if (
+      (entityKey === null || entityKey === undefined) &&
+      (idValue === null || idValue === undefined)
+    ) {
+      continue;
+    }
+    if (entityKey === null || entityKey === undefined) {
+      continue;
+    }
+
+    const result: Record<string, unknown> = { $entity: entityKey };
+    for (const field of ref.fields) {
+      const value = readField(row, ref.name, field, parentJoinPath);
+      if (value !== null && value !== undefined) {
+        result[field] = value;
+      }
+    }
+    return result;
+  }
+  return null;
+}
+
 function shapeRefOne(
   rows: Record<string, unknown>[],
   ref: ASTNode,
@@ -195,6 +226,10 @@ function shapeRefOne(
   joins: ResolvedJoin[],
   parentJoinPath: string,
 ): Record<string, unknown> | null {
+  if (join.polymorphic) {
+    return shapePolymorphicOne(rows, ref, join, parentJoinPath);
+  }
+
   const idColumnPresent = hasField(rows, ref.name, join.idField, parentJoinPath);
 
   for (const row of rows) {

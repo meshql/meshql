@@ -3,6 +3,8 @@ import type { AST, ASTNode } from "../parser/ast.js";
 import type { MeshSchema } from "../schema/schema.js";
 import {
   entityQueryableFields,
+  hasPolymorphicJoin,
+  joinTargetEntity,
   resolveEntityKey,
 } from "../schema/schema.js";
 
@@ -10,10 +12,10 @@ import {
  * Validate a parsed AST against the MeshQL schema.
  *
  * Entity resolution uses {@link resolveEntityKey} for the root, and each
- * ref's declared join config (`join.entity`) for nested nodes. There is no
- * naive singularization anywhere along the ref path — so irregular
- * plurals like `addresses` → `address` work as long as the entity is
- * reachable via a declared join (which every ref must have).
+ * ref's declared join config (`join.entity` / polymorphic `entities`) for
+ * nested nodes. There is no naive singularization anywhere along the ref
+ * path — so irregular plurals like `addresses` → `address` work as long as
+ * the entity is reachable via a declared join (which every ref must have).
  *
  * Read controls (filtering, ordering, pagination, aggregates) are validated
  * during normalization; this pass only checks selection fields and joins.
@@ -42,17 +44,40 @@ function validateNode(node: ASTNode, entityKey: string, schema: MeshSchema): voi
   }
 
   for (const ref of node.refs) {
-    const joinKey = `${node.name}.${ref.name}`;
+    const joinKey = `${entityKey}.${ref.name}`;
     const join = schema.joins[joinKey];
 
     if (!join) {
       throw new ValidationError(`No join defined for '${joinKey}'`);
     }
 
-    const refEntity = schema.entities[join.entity];
+    if (hasPolymorphicJoin(join)) {
+      if (ref.refs.length > 0) {
+        throw new ValidationError(
+          `Nested selections under polymorphic join '${joinKey}' are not supported`,
+        );
+      }
+      const unionFields = new Set<string>();
+      for (const target of join.entities) {
+        for (const name of entityQueryableFields(schema.entities[target])) {
+          unionFields.add(name);
+        }
+      }
+      for (const field of ref.fields) {
+        if (!unionFields.has(field)) {
+          throw new ValidationError(
+            `Field '${field}' not found on any polymorphic target of '${joinKey}'`,
+          );
+        }
+      }
+      continue;
+    }
+
+    const target = joinTargetEntity(join);
+    const refEntity = schema.entities[target];
     if (!refEntity) {
       throw new ValidationError(
-        `Unknown entity '${join.entity}' (referenced by join '${joinKey}')`,
+        `Unknown entity '${target}' (referenced by join '${joinKey}')`,
       );
     }
 
@@ -63,6 +88,6 @@ function validateNode(node: ASTNode, entityKey: string, schema: MeshSchema): voi
       }
     }
 
-    validateNode(ref, join.entity, schema);
+    validateNode(ref, target, schema);
   }
 }

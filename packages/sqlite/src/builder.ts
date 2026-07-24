@@ -13,9 +13,12 @@ import {
   emitJoinSql,
   entityTable,
   joinsInDependencyOrder,
+  polymorphicEntitySelectExpr,
+  polymorphicSelectExpr,
   renderReadWhereSql,
   resolvePlanField,
   rowAliasForPlanField,
+  sqlAliasForJoinPath,
 } from "@meshql/core";
 
 /** Parameterized SQL query generated from a join plan. */
@@ -260,14 +263,27 @@ export function buildSelectSql(
   const selectParts: string[] = [];
 
   for (const qualified of plan.fields) {
+    const alias = rowAliasForPlanField(qualified, plan);
+    const polyExpr = polymorphicSelectExpr(qualified, plan, schema, rootTable);
+    if (polyExpr) {
+      selectParts.push(`${polyExpr} AS "${alias}"`);
+      continue;
+    }
     const { sqlTableRef, sqlColumn: column } = resolvePlanField(
       qualified,
       plan,
       schema,
       rootTable,
     );
-    const alias = rowAliasForPlanField(qualified, plan);
     selectParts.push(`${sqlTableRef}.${column} AS "${alias}"`);
+  }
+
+  for (const join of plan.joins) {
+    if (!join.polymorphic) continue;
+    const entityAlias = `${sqlAliasForJoinPath(join.path)}_$entity`;
+    selectParts.push(
+      `${polymorphicEntitySelectExpr(join, plan, rootTable)} AS "${entityAlias}"`,
+    );
   }
 
   let sql = `SELECT ${selectParts.join(", ")} FROM ${rootTable}`;
