@@ -78,6 +78,12 @@ function validateComputedDep(
           `'${entityKey}.${refName}'`,
       );
     }
+    if (!join.entity) {
+      throw new ValidationError(
+        `Computed field '${entityKey}.${computedName}' cannot depend on polymorphic join ` +
+          `'${entityKey}.${refName}'`,
+      );
+    }
     const target = schema.entities[join.entity];
     if (!target) {
       throw new ValidationError(

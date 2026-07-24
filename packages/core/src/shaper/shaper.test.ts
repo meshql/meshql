@@ -62,7 +62,7 @@ function commentsJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin {
 function commentAuthorJoin(overrides: Partial<ResolvedJoin> = {}): ResolvedJoin {
   return {
     path: "comments.author",
-    joinKey: "comments.author",
+    joinKey: "comment.author",
     entity: "user",
     on: "users.id = comments.author_id",
     fields: ["comments.author.name"],

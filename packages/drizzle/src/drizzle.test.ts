@@ -29,7 +29,7 @@ const schema: MeshSchema = {
       on: "comments.post_id = posts.id",
       type: "many",
     },
-    "comments.author": {
+    "comment.author": {
       entity: "user",
       on: "users.id = comments.author_id",
       type: "one",

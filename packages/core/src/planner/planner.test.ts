@@ -178,7 +178,7 @@ describe("buildJoinPlan", () => {
           on: "comments.post_id = posts.id",
           type: "many",
         },
-        "comments.author": {
+        "comment.author": {
           entity: "user",
           on: "users.id = comments.author_id",
           type: "one",
@@ -203,7 +203,7 @@ describe("buildJoinPlan", () => {
     });
     expect(plan.joins[1]).toMatchObject({
       path: "comments.author",
-      joinKey: "comments.author",
+      joinKey: "comment.author",
       refName: "author",
     });
     expect(plan.fields).toEqual([
@@ -213,6 +213,52 @@ describe("buildJoinPlan", () => {
       "comments.author.id",
       "comments.author.name",
     ]);
+  });
+
+  it("resolves nested joins via parent entity key (blog.tags, not blogs.tags)", () => {
+    const schema: MeshSchema = {
+      entities: {
+        user: { fields: ["id", "name"], table: "users" },
+        blog: { fields: ["id", "title"], table: "blogs" },
+        tag: { fields: ["id", "name"], table: "tags" },
+      },
+      joins: {
+        "user.blogs": {
+          entity: "blog",
+          on: "blogs.author_id = users.id",
+          type: "many",
+        },
+        "blog.tags": {
+          entity: "tag",
+          on: "blog_tags.blog_id = blogs.id",
+          type: "many",
+          through: {
+            table: "blog_tags",
+            from: "blog_id",
+            to: "tag_id",
+          },
+        },
+      },
+    };
+
+    const ast = parseQl("{ user { id blogs { title tags { name } } } }");
+    const plan = buildJoinPlan(
+      ast,
+      schema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+    );
+
+    expect(plan.joins).toHaveLength(2);
+    expect(plan.joins[0]).toMatchObject({
+      path: "blogs",
+      joinKey: "user.blogs",
+      entity: "blog",
+    });
+    expect(plan.joins[1]).toMatchObject({
+      path: "blogs.tags",
+      joinKey: "blog.tags",
+      entity: "tag",
+    });
   });
 
   it("rejects a missing join definition", () => {
