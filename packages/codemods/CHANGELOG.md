@@ -1,5 +1,12 @@
 # @meshql/codemods
 
+## 0.2.5
+
+### Patch Changes
+
+- Updated dependencies [1443c3e]
+  - @meshql/core@0.11.0
+
 ## 0.2.4
 
 ### Patch Changes
