@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.12
+
+### Patch Changes
+
+- Updated dependencies [1443c3e]
+  - @meshql/core@0.11.0
+
 ## 0.2.11
 
 ### Patch Changes

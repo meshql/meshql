@@ -1,5 +1,12 @@
 # @meshql/prisma
 
+## 0.8.1
+
+### Patch Changes
+
+- Updated dependencies [1443c3e]
+  - @meshql/core@0.11.0
+
 ## 0.8.0
 
 ### Minor Changes
