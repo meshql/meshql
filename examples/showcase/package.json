@@ -27,7 +27,7 @@
     "express": "^5.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.0"
+    "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
     "@meshql/typescript-config": "workspace:*",
