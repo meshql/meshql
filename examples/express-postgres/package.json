@@ -17,13 +17,13 @@
     "@meshql/postgres": "workspace:*",
     "@meshql/upload": "workspace:*",
     "express": "^5.1.0",
-    "pg": "^8.16.0"
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "@meshql/typescript-config": "workspace:*",
     "@types/express": "^5.0.0",
     "@types/node": "^22.15.3",
-    "@types/pg": "^8.15.2",
+    "@types/pg": "^8.21.0",
     "tsx": "^4.19.4",
     "typescript": "5.9.2"
   }
