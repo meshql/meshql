@@ -199,7 +199,7 @@ pnpm publish:dry-run
 pnpm publish:npm:pack   # writes artifacts/*.tgz for all publishable packages
 ```
 
-`scripts/prepare-npm-publish.mjs` rewrites `package.json` for publish (`@meshql-js/*` names, `workspace:*` → semver, strip devDeps). Build already rewrites `@meshql/*` imports in `dist/` to `@meshql-js/*`. CI restores manifests after each package.
+`scripts/prepare-npm-publish.mjs` rewrites `package.json` for publish (`@meshql-js/*` names, `workspace:*` → semver, strip devDeps) and rewrites `@meshql/*` imports in `dist/` to `@meshql-js/*`. Workspace `pnpm build` keeps `@meshql/*` so tests resolve. CI restores manifests and dist after each package.
 
 ## Pull requests
 

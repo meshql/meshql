@@ -4,6 +4,11 @@ import {
   npmName,
   PUBLISH_ORDER,
 } from "./publish/config.mjs";
+import {
+  restoreNpmImports,
+  rewriteDistDir,
+  rewriteNpmImports,
+} from "./publish/npm-import-rewrite.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 
@@ -59,9 +64,14 @@ function versionOf(packageDir) {
   return manifest.version;
 }
 
+function distDirOf(packageDir) {
+  return path.join(repoRoot, "packages", packageDir, "dist");
+}
+
 /**
- * Rewrite package.json for npm publish: @meshql-js/* names, dist-only, semver deps.
- * Dist import rewriting happens at build time via scripts/publish/tsup-package.mjs.
+ * Rewrite package.json and dist imports for npm publish: @meshql-js/* names,
+ * dist-only, semver deps. Workspace `pnpm build` keeps `@meshql/*` in dist
+ * so tests resolve; rewrite happens only here.
  */
 export function prepareNpmPublish(packageDir) {
   const { manifestPath, manifest } = readManifest(packageDir);
@@ -96,6 +106,7 @@ export function prepareNpmPublish(packageDir) {
   delete manifest.scripts?.["publish:jsr"];
 
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  rewriteDistDir(distDirOf(packageDir), rewriteNpmImports);
   return { manifest, backupPath, npmName: manifest.name };
 }
 
@@ -106,6 +117,7 @@ export function restoreNpmPublish(packageDir) {
     fs.copyFileSync(backupPath, manifestPath);
     fs.unlinkSync(backupPath);
   }
+  rewriteDistDir(distDirOf(packageDir), restoreNpmImports);
 }
 
 const packageDir = process.argv[2];
