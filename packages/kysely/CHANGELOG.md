@@ -1,5 +1,15 @@
 # @meshql/kysely
 
+## 0.6.8
+
+### Patch Changes
+
+- f6e96a6: First npm publish under `@meshql-js/*` and a unified `publish.yml` for npm + JSR.
+- Updated dependencies [f6e96a6]
+  - @meshql/core@0.11.1
+  - @meshql/postgres@0.6.5
+  - @meshql/sqlite@0.6.5
+
 ## 0.6.7
 
 ### Patch Changes

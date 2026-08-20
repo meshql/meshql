@@ -1,5 +1,21 @@
 # showcase
 
+## 0.5.13
+
+### Patch Changes
+
+- Updated dependencies [f6e96a6]
+  - @meshql/core@0.11.1
+  - @meshql/sqlite@0.6.5
+  - @meshql/http@0.8.4
+  - @meshql/upload@0.5.11
+  - @meshql/client@0.8.4
+  - @meshql/integrity@0.5.13
+  - @meshql/access@0.2.13
+  - @meshql/pubsub@0.2.1
+  - @meshql/sse@0.2.7
+  - @meshql/docs@0.2.5
+
 ## 0.5.12
 
 ### Patch Changes
