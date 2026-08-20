@@ -4,11 +4,14 @@ import path from "node:path";
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const packagesDir = path.join(repoRoot, "packages");
 
-const packages = process.argv.slice(2);
+const packages = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const tagVersion = process.env.TAG_VERSION ?? "";
+const localOnly =
+  process.argv.includes("--local-only") ||
+  process.env.JSR_VERIFY_LOCAL_ONLY === "1";
 
 if (packages.length === 0) {
-  console.error("Usage: node scripts/verify-jsr-publish.mjs <package>...");
+  console.error("Usage: node scripts/verify-jsr-publish.mjs [--local-only] <package>...");
   process.exit(1);
 }
 
@@ -102,7 +105,7 @@ for (const pkg of packages) {
     continue;
   }
 
-  const exists = await jsrPackageExists(shortName);
+  const exists = localOnly ? true : await jsrPackageExists(shortName);
   if (!exists) {
     console.error(
       `::error::JSR package @meshql/${shortName} is not registered. Create it at https://jsr.io/new?scope=meshql&package=${shortName} then link meshql/meshql in package Settings → GitHub repository.`,
@@ -111,7 +114,11 @@ for (const pkg of packages) {
     continue;
   }
 
-  console.log(`Verified @meshql/${shortName}@${result.manifest.version}`);
+  console.log(
+    localOnly
+      ? `Verified @meshql/${shortName}@${result.manifest.version} (local only)`
+      : `Verified @meshql/${shortName}@${result.manifest.version}`,
+  );
 }
 
 if (failed) {

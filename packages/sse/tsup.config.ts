@@ -1,6 +1,6 @@
-import { defineConfig } from "tsup";
+import { definePackageConfig } from "../../scripts/publish/tsup-package.mjs";
 
-export default defineConfig({
+export default definePackageConfig({
   entry: {
     index: "src/index.ts",
     "adapters/express": "src/adapters/express.ts",
@@ -8,8 +8,4 @@ export default defineConfig({
     "adapters/hono": "src/adapters/hono.ts",
   },
   external: ["express", "fastify", "hono"],
-  format: ["esm"],
-  dts: true,
-  clean: true,
-  sourcemap: true,
 });

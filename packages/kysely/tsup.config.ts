@@ -1,10 +1,6 @@
-import { defineConfig } from "tsup";
+import { definePackageConfig } from "../../scripts/publish/tsup-package.mjs";
 
-export default defineConfig({
+export default definePackageConfig({
   entry: ["src/index.ts"],
-  format: ["esm"],
-  dts: true,
-  clean: true,
-  sourcemap: true,
   external: ["@meshql/core", "@meshql/postgres", "@meshql/sqlite", "kysely"],
 });
