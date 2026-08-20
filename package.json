@@ -31,7 +31,9 @@
     "version-packages": "changeset version && node scripts/sync-jsr-versions.mjs",
     "release": "node scripts/create-release-tags.mjs",
     "publish:jsr": "pnpm -r --filter '@meshql/*' --filter '!@meshql/typescript-config' run publish:jsr",
-    "publish:npm:pack": "node scripts/publish-npm-pack.mjs"
+    "publish:npm:pack": "node scripts/publish-npm-pack.mjs",
+    "publish:dry-run": "node scripts/publish/dry-run.mjs --all",
+    "publish:local": "node scripts/publish/local.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",

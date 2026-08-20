@@ -5,19 +5,19 @@ Postgres helper for MeshQL. Builds parameterised `SELECT` statements from a join
 ## Install
 
 ```bash
-npm install meshql-postgres meshql-core pg
+npm install @meshql-js/postgres @meshql-js/core pg
 # or
 npx jsr add @meshql/postgres @meshql/core
 npm i pg
 ```
 
-Published on [npm](https://www.npmjs.com/package/meshql-postgres) as `meshql-postgres` and [JSR](https://jsr.io/@meshql/postgres) as `@meshql/postgres`.
+Published on [npm](https://www.npmjs.com/package/@meshql-js/postgres) as `@meshql-js/postgres` and [JSR](https://jsr.io/@meshql/postgres) as `@meshql/postgres`.
 
 ## Example
 
 ```ts
-import { createMesh, type MeshSchema } from "meshql-core";
-import { buildSelectSql } from "meshql-postgres";
+import { createMesh, type MeshSchema } from "@meshql-js/core";
+import { buildSelectSql } from "@meshql-js/postgres";
 import { Pool } from "pg";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });

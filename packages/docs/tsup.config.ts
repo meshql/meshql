@@ -1,13 +1,9 @@
 import { copyFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { defineConfig } from "tsup";
+import { definePackageConfig } from "../../scripts/publish/tsup-package.mjs";
 
-export default defineConfig({
+export default definePackageConfig({
   entry: ["src/index.ts", "src/adapters/express.ts"],
-  format: ["esm"],
-  dts: true,
-  clean: true,
-  sourcemap: true,
   onSuccess() {
     const uiDir = join("dist", "ui");
     mkdirSync(uiDir, { recursive: true });

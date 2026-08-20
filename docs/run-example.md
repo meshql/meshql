@@ -2,7 +2,7 @@
 
 Get a working MeshQL stack — reads, signed auth, list queries, and uploads — with **no Docker**.
 
-MeshQL is published on **[JSR](https://jsr.io/@meshql)** (`@meshql/*`) and **[npm](https://www.npmjs.com/package/meshql-core)** (`meshql-*`). Current release line: **0.7.x**.
+MeshQL is published on **[JSR](https://jsr.io/@meshql)** (`@meshql/*`) and **[npm](https://www.npmjs.com/package/@meshql-js/core)** (`@meshql-js/*`). Current release line: **0.7.x**.
 
 ---
 
@@ -63,14 +63,14 @@ npx jsr add @meshql/core @meshql/sqlite @meshql/http @meshql/client @meshql/inte
 **npm:**
 
 ```bash
-npm install meshql-core meshql-sqlite meshql-http meshql-client meshql-integrity
+npm install @meshql-js/core @meshql-js/sqlite @meshql-js/http @meshql-js/client @meshql-js/integrity
 ```
 
 Add Express:
 
 ```bash
 npm i express
-npm i -D @types/express   # Node only
+npm i -D @types/express # Node only
 ```
 
 ---
