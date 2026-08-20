@@ -145,7 +145,7 @@ The planner only includes fields the client asked for. If your resolver doesn't 
 
 ### Does the client work in the browser?
 
-Yes. `@meshql/client` encodes queries, signs them (when integrity is enabled), and works in Node or the browser. See [meshql-client](/packages/client).
+Yes. `@meshql/client` encodes queries, signs them (when integrity is enabled), and works in Node or the browser. See [@meshql-js/client](/packages/client).
 
 ### JSR vs npm — which do I use?
 
@@ -154,7 +154,7 @@ Same packages, two registries:
 | Registry | Scope / prefix | Example |
 |----------|----------------|---------|
 | [JSR](https://jsr.io/@meshql) | `@meshql/*` | `@meshql/core` |
-| [npm](https://www.npmjs.com/search?q=meshql-) | `meshql-*` | `meshql-core` |
+| [npm](https://www.npmjs.com/search?q=meshql-) | `@meshql-js/*` | `@meshql-js/core` |
 
 Pick what your runtime prefers. Bun and Deno often use JSR; Node projects often use npm. Both are first-class.
 

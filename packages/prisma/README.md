@@ -7,13 +7,13 @@ Prisma catch-all resolver for MeshQL. Maps `JoinPlan` to nested Prisma `select`,
 ## Install
 
 ```bash
-npm install meshql-prisma meshql-core @prisma/client
+npm install @meshql-js/prisma @meshql-js/core @prisma/client
 # or
 npx jsr add @meshql/prisma @meshql/core
 npm i @prisma/client
 ```
 
-Published on npm as `meshql-prisma` and [JSR](https://jsr.io/@meshql/prisma) as `@meshql/prisma`.
+Published on npm as `@meshql-js/prisma` and [JSR](https://jsr.io/@meshql/prisma) as `@meshql/prisma`.
 
 Requires `@meshql/core` **0.7.0+** (`extendSchema` + schema inference support).
 

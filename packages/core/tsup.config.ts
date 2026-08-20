@@ -1,12 +1,5 @@
-import { defineConfig } from "tsup";
+import { definePackageConfig } from "../../scripts/publish/tsup-package.mjs";
 
-export default defineConfig({
-  entry: [
-    "src/index.ts",
-    "src/builtins/index.ts",
-  ],
-  format: ["esm"],
-  dts: true,
-  clean: true,
-  sourcemap: true,
+export default definePackageConfig({
+  entry: ["src/index.ts", "src/builtins/index.ts"],
 });

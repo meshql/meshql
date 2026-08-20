@@ -20,7 +20,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_PAT }}
+          # PRs: GITHUB_TOKEN (RELEASE_PAT cannot fetch pull/*/merge refs).
+          # Pushes to main: RELEASE_PAT so Changesets can open the version PR.
+          token: ${{ github.event_name == 'pull_request' && github.token || secrets.RELEASE_PAT }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -41,14 +43,11 @@ jobs:
           commit: "Version packages"
           title: "Version Packages"
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
+          GITHUB_TOKEN: ${{ github.event_name == 'pull_request' && github.token || secrets.RELEASE_PAT }}
 
   tag:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    outputs:
-      tags_pushed: ${{ steps.tags.outputs.tags_pushed }}
-      publish_matrix: ${{ steps.tags.outputs.publish_matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,58 +67,4 @@ jobs:
           RELEASE_PAT: ${{ secrets.RELEASE_PAT }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node scripts/create-release-tags.mjs
-
-  trigger-publish:
-    needs: tag
-    if: needs.tag.outputs.tags_pushed == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.tag.outputs.publish_matrix) }}
-    steps:
-      # `gh workflow run` needs a git repo to resolve the remote; without
-      # checkout it fails with "fatal: not a git repository".
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Dispatch publish workflow
-        env:
-          # npm: GITHUB_TOKEN is enough (publish uses NPM_TOKEN).
-          # jsr: dispatch as RELEASE_PAT owner (a @meshql scope member).
-          # github-actions[bot] hits JSR actorNotScopeMember when the scope
-          # requires the triggering user to be a member (default).
-          WORKFLOW: ${{ matrix.workflow }}
-          PACKAGE: ${{ matrix.package }}
-          REF_TAG: ${{ matrix.ref }}
-          RELEASE_PAT: ${{ secrets.RELEASE_PAT }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          # Dispatch against main (workflow_dispatch needs a branch ref that
-          # contains the workflow file). Package versions already live on
-          # main after the Version Packages merge; tag refs are for audit.
-          if [ "${WORKFLOW}" = "publish-jsr.yml" ]; then
-            if [ -z "${RELEASE_PAT}" ]; then
-              echo "::error::RELEASE_PAT is required to dispatch Publish JSR (must be a @meshql JSR scope member)."
-              exit 1
-            fi
-            export GH_TOKEN="${RELEASE_PAT}"
-          else
-            export GH_TOKEN="${GITHUB_TOKEN}"
-          fi
-
-          echo "Dispatching ${WORKFLOW} for package=${PACKAGE} (tag ${REF_TAG}) as $(gh api user --jq .login)"
-          if [ "${WORKFLOW}" = "publish-npm.yml" ]; then
-            gh workflow run "${WORKFLOW}" \
-              --ref main \
-              -f package="${PACKAGE}" \
-              -f publish_registry=true
-          else
-            gh workflow run "${WORKFLOW}" \
-              --ref main \
-              -f package="${PACKAGE}"
-          fi
+        # Tag push alone triggers .github/workflows/publish.yml (npm/* and pkg/v* tags).

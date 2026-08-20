@@ -5,12 +5,12 @@ Request signing and integrity token lifecycle for MeshQL HTTP servers.
 ## Install
 
 ```bash
-npm install meshql-integrity meshql-core meshql-http
+npm install @meshql-js/integrity @meshql-js/core @meshql-js/http
 # or
 npx jsr add @meshql/integrity @meshql/core @meshql/http
 ```
 
-Published on [npm](https://www.npmjs.com/package/meshql-integrity) as `meshql-integrity` and [JSR](https://jsr.io/@meshql/integrity) as `@meshql/integrity`.
+Published on [npm](https://www.npmjs.com/package/@meshql-js/integrity) as `@meshql-js/integrity` and [JSR](https://jsr.io/@meshql/integrity) as `@meshql/integrity`.
 
 ## Example
 

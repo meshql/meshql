@@ -5,18 +5,18 @@ Optional file upload extension for MeshQL servers.
 ## Install
 
 ```bash
-npm install meshql-upload meshql-core
+npm install @meshql-js/upload @meshql-js/core
 # or
 npx jsr add @meshql/upload @meshql/core
 ```
 
-Published on [npm](https://www.npmjs.com/package/meshql-upload) as `meshql-upload` and [JSR](https://jsr.io/@meshql/upload) as `@meshql/upload`.
+Published on [npm](https://www.npmjs.com/package/@meshql-js/upload) as `@meshql-js/upload` and [JSR](https://jsr.io/@meshql/upload) as `@meshql/upload`.
 
 ## Example
 
 ```ts
-import { createMesh } from "meshql-core";
-import { withUpload } from "meshql-upload";
+import { createMesh } from "@meshql-js/core";
+import { withUpload } from "@meshql-js/upload";
 
 const mesh = withUpload(createMesh({ entities: {} }), {
   storage: "local",

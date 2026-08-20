@@ -89,30 +89,6 @@ function getBumpedPackages() {
   return [...bumped.entries()].map(([pkg, version]) => ({ pkg, version }));
 }
 
-function buildPublishMatrix(tags) {
-  return tags.flatMap((tag) => {
-    if (tag.startsWith("npm/")) {
-      const pkg = tag.split("/")[1];
-      return [
-        {
-          workflow: "publish-npm.yml",
-          package: pkg,
-          ref: tag,
-        },
-      ];
-    }
-
-    const pkg = tag.split("/")[0];
-    return [
-      {
-        workflow: "publish-jsr.yml",
-        package: pkg,
-        ref: tag,
-      },
-    ];
-  });
-}
-
 configureGitRemote();
 
 const bumped = getBumpedPackages();
@@ -120,7 +96,6 @@ const bumped = getBumpedPackages();
 if (bumped.length === 0) {
   console.log("No package version bumps in latest commit — skipping tag creation");
   setOutput("tags_pushed", "false");
-  setOutput("publish_matrix", "[]");
   process.exit(0);
 }
 
@@ -142,7 +117,6 @@ for (const { pkg, version } of bumped) {
 if (tagsToPush.length === 0) {
   console.log("All release tags already exist");
   setOutput("tags_pushed", "false");
-  setOutput("publish_matrix", "[]");
   process.exit(0);
 }
 
@@ -150,6 +124,6 @@ run(`git push origin ${tagsToPush.map((tag) => `"${tag}"`).join(" ")}`, {
   stdio: "inherit",
 });
 console.log(`Pushed ${tagsToPush.length} tag(s)`);
+console.log("Tag push triggers .github/workflows/publish.yml");
 
 setOutput("tags_pushed", "true");
-setOutput("publish_matrix", JSON.stringify(buildPublishMatrix(tagsToPush)));
