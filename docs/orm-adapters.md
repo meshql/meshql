@@ -52,7 +52,7 @@ withDrizzle(mesh, db, { schema });
 ### Install
 
 ```bash
-npm install meshql-prisma meshql-core @prisma/client
+npm install @meshql-js/prisma @meshql-js/core @prisma/client
 # or
 npx jsr add @meshql/prisma @meshql/core
 ```
@@ -101,7 +101,7 @@ Package reference: [packages/prisma/README.md](../packages/prisma/README.md).
 ### Install
 
 ```bash
-npm install meshql-drizzle meshql-core drizzle-orm
+npm install @meshql-js/drizzle @meshql-js/core drizzle-orm
 # or
 npx jsr add @meshql/drizzle @meshql/core
 ```
@@ -125,8 +125,8 @@ Package reference: [packages/drizzle/README.md](../packages/drizzle/README.md).
 ### Install
 
 ```bash
-npm install meshql-kysely meshql-core meshql-postgres kysely
-# SQLite: meshql-sqlite instead of meshql-postgres
+npm install @meshql-js/kysely @meshql-js/core @meshql-js/postgres kysely
+# SQLite: @meshql-js/sqlite instead of @meshql-js/postgres
 # or
 npx jsr add @meshql/kysely @meshql/core @meshql/postgres
 ```

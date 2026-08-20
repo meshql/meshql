@@ -6,16 +6,16 @@ Kysely catch-all resolver for MeshQL. Executes join plans as parameterized SQL v
 
 ```bash
 # Postgres
-npm install meshql-kysely meshql-core meshql-postgres kysely
+npm install @meshql-js/kysely @meshql-js/core @meshql-js/postgres kysely
 
 # SQLite
-npm install meshql-kysely meshql-core meshql-sqlite kysely
+npm install @meshql-js/kysely @meshql-js/core @meshql-js/sqlite kysely
 
 # or JSR
 npx jsr add @meshql/kysely @meshql/core @meshql/postgres
 ```
 
-Published on npm as `meshql-kysely` and [JSR](https://jsr.io/@meshql/kysely) as `@meshql/kysely`.
+Published on npm as `@meshql-js/kysely` and [JSR](https://jsr.io/@meshql/kysely) as `@meshql/kysely`.
 
 Requires `@meshql/core` **0.6.0+**.
 

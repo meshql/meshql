@@ -51,24 +51,24 @@ MeshQL is a **pnpm + Turbo monorepo** with **independent per-package versions**.
 
 | Package | npm name | JSR name |
 | --- | --- | --- |
-| `@meshql/core` | `meshql-core` | `@meshql/core` |
-| `@meshql/postgres` | `meshql-postgres` | `@meshql/postgres` |
-| `@meshql/sqlite` | `meshql-sqlite` | `@meshql/sqlite` |
-| `@meshql/http` | `meshql-http` | `@meshql/http` |
-| `@meshql/client` | `meshql-client` | `@meshql/client` |
-| `@meshql/upload` | `meshql-upload` | `@meshql/upload` |
-| `@meshql/integrity` | `meshql-integrity` | `@meshql/integrity` |
-| `@meshql/access` | `meshql-access` | `@meshql/access` |
-| `@meshql/prisma` | `meshql-prisma` | `@meshql/prisma` |
-| `@meshql/drizzle` | `meshql-drizzle` | `@meshql/drizzle` |
-| `@meshql/kysely` | `meshql-kysely` | `@meshql/kysely` |
-| `@meshql/persisted-queries` | `meshql-persisted-queries` | `@meshql/persisted-queries` |
-| `@meshql/access-cache` | `meshql-access-cache` | `@meshql/access-cache` |
-| `@meshql/pubsub` | `meshql-pubsub` | `@meshql/pubsub` |
-| `@meshql/sse` | `meshql-sse` | `@meshql/sse` |
-| `@meshql/codemods` | `meshql-codemods` | `@meshql/codemods` |
-| `@meshql/gateway` | `meshql-gateway` | `@meshql/gateway` |
-| `@meshql/docs` | `meshql-docs` | `@meshql/docs` |
+| `@meshql/core` | `@meshql-js/core` | `@meshql/core` |
+| `@meshql/postgres` | `@meshql-js/postgres` | `@meshql/postgres` |
+| `@meshql/sqlite` | `@meshql-js/sqlite` | `@meshql/sqlite` |
+| `@meshql/http` | `@meshql-js/http` | `@meshql/http` |
+| `@meshql/client` | `@meshql-js/client` | `@meshql/client` |
+| `@meshql/upload` | `@meshql-js/upload` | `@meshql/upload` |
+| `@meshql/integrity` | `@meshql-js/integrity` | `@meshql/integrity` |
+| `@meshql/access` | `@meshql-js/access` | `@meshql/access` |
+| `@meshql/prisma` | `@meshql-js/prisma` | `@meshql/prisma` |
+| `@meshql/drizzle` | `@meshql-js/drizzle` | `@meshql/drizzle` |
+| `@meshql/kysely` | `@meshql-js/kysely` | `@meshql/kysely` |
+| `@meshql/persisted-queries` | `@meshql-js/persisted-queries` | `@meshql/persisted-queries` |
+| `@meshql/access-cache` | `@meshql-js/access-cache` | `@meshql/access-cache` |
+| `@meshql/pubsub` | `@meshql-js/pubsub` | `@meshql/pubsub` |
+| `@meshql/sse` | `@meshql-js/sse` | `@meshql/sse` |
+| `@meshql/codemods` | `@meshql-js/codemods` | `@meshql/codemods` |
+| `@meshql/gateway` | `@meshql-js/gateway` | `@meshql/gateway` |
+| `@meshql/docs` | `@meshql-js/docs` | `@meshql/docs` |
 
 `@meshql/typescript-config` is private and never published.
 
@@ -90,9 +90,9 @@ Choose the affected package(s) and semver bump (patch / minor / major). This cre
 
 3. **Merge the Version Packages PR.** It bumps `package.json`, syncs `jsr.json`, and updates per-package `CHANGELOG.md` files.
 
-4. **CI creates per-package tags** on `main` and existing publish workflows run:
-   - npm: `npm/{pkg}/v{version}` → [publish-npm.yml](./.github/workflows/publish-npm.yml)
-   - JSR: `{pkg}/v{version}` → [publish-jsr.yml](./.github/workflows/publish-jsr.yml)
+4. **CI creates per-package tags** on `main`. Tag push triggers [publish.yml](./.github/workflows/publish.yml):
+   - npm: `npm/{pkg}/v{version}` → publishes `@meshql-js/{pkg}`
+   - JSR: `{pkg}/v{version}` → publishes `@meshql/{pkg}`
 
 Example: releasing only `@meshql/core` at `0.1.4` pushes `npm/core/v0.1.4` and `core/v0.1.4` — no umbrella tag required.
 
@@ -106,7 +106,7 @@ git tag core/v0.1.4
 git push origin npm/core/v0.1.4 core/v0.1.4
 ```
 
-Or use **Actions → Publish npm / Publish JSR → Run workflow** to retry a single package without retagging.
+Or use **Actions → Publish → Run workflow** to retry a package (choose registry: npm, jsr, or both) without retagging.
 
 ### Optional umbrella tags (legacy)
 
@@ -147,57 +147,59 @@ For **each** publishable package:
 
 Without linking, CI fails with `actorNotAuthorized` or `Following packages don't exist`. See [docs/jsr-settings.md](./docs/jsr-settings.md) for descriptions and runtime compatibility.
 
-**CI dispatch:** Release dispatches Publish JSR with `RELEASE_PAT` (must be a `@meshql` scope member such as `rp01`) so OIDC is not attributed to `github-actions[bot]` (`actorNotScopeMember`). The PAT needs permission to trigger workflows. npm still dispatches with `GITHUB_TOKEN`.
+Tag-push publishes use GitHub OIDC (`id-token: write`) — no dispatch workaround. Keep `RELEASE_PAT` for the Changesets version PR only.
 
 ### Local JSR publish
 
 ```bash
 pnpm build
-pnpm publish:jsr   # all publishable packages, in workspace order
+pnpm publish:dry-run              # npm pack + jsr --dry-run for all packages
+pnpm publish:local -- --registry jsr --package core --dry-run
+pnpm publish:jsr                  # all publishable packages, in workspace order
 ```
-
-Dry run: `cd packages/core && npx jsr publish --dry-run`.
 
 Already-published versions are skipped automatically by `jsr publish`.
 
-## Publishing to npm (interim)
+## Publishing to npm
 
-Until the `@meshql` org is available on [npmjs.com](https://www.npmjs.com), packages publish as **unscoped** `meshql-*` names with compiled `dist/` (ESM). JSR remains the source for `@meshql/*` TypeScript packages.
+Packages publish under the **`@meshql-js`** npm org as compiled ESM (`dist/`). Workspace and JSR names stay `@meshql/*`.
+
+| Registry | Name | Example |
+| --- | --- | --- |
+| npm | `@meshql-js/<pkg>` | `npm i @meshql-js/core` |
+| JSR | `@meshql/<pkg>` | `npx jsr add @meshql/core` |
 
 ### One-time npm setup
 
-1. Create an [npm access token](https://www.npmjs.com/settings/~/tokens) with **Automation** or **Publish** scope.
+1. Create an [npm access token](https://www.npmjs.com/settings/~/tokens) with **Automation** or **Publish** scope (member of `@meshql-js`).
 2. Add it to the GitHub repo:
 
 ```bash
 gh secret set NPM_TOKEN --repo meshql/meshql
 ```
 
-3. Ensure each `meshql-*` package name is available on npm (first publish claims the name).
+3. First publish of each package claims `@meshql-js/<pkg>` on npm.
 
 ### npm tag reference
 
 | Trigger | Example | Publishes |
 | --- | --- | --- |
-| Per-package tag | `npm/core/v0.1.3` | `meshql-core` only |
-| Per-package tag | `npm/http/v0.1.3` | `meshql-http` only |
-| Umbrella tag | `npm/all/v0.1.3` | core → http → upload → client |
-| Manual dispatch | Actions → Publish npm | selected package(s) |
+| Per-package tag | `npm/core/v0.1.3` | `@meshql-js/core` only |
+| Per-package tag | `npm/http/v0.1.3` | `@meshql-js/http` only |
+| Umbrella tag | `npm/all/v0.1.3` | core → … → client (see tag list) |
+| Manual dispatch | Actions → Publish | selected package(s) / registry |
 
-Each tag push creates a **GitHub Release** with `.tgz` assets:
-
-```bash
-npm install https://github.com/meshql/meshql/releases/download/npm/core/v0.1.3/meshql-core-0.1.3.tgz
-```
+Each npm tag push creates a **GitHub Release** with `.tgz` assets.
 
 ### Local pack (dry run)
 
 ```bash
 pnpm build
-pnpm publish:npm:pack   # writes artifacts/*.tgz for all seven packages
+pnpm publish:dry-run
+pnpm publish:npm:pack   # writes artifacts/*.tgz for all publishable packages
 ```
 
-`scripts/prepare-npm-publish.mjs` rewrites `package.json` for publish (rename, `workspace:*` → semver, strip devDeps). CI restores manifests after each package.
+`scripts/prepare-npm-publish.mjs` rewrites `package.json` for publish (`@meshql-js/*` names, `workspace:*` → semver, strip devDeps). Build already rewrites `@meshql/*` imports in `dist/` to `@meshql-js/*`. CI restores manifests after each package.
 
 ## Pull requests
 

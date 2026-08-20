@@ -26,7 +26,7 @@
   <a href="https://jsr.io/@meshql/core"><img src="https://jsr.io/badges/@meshql/core" alt="JSR" /></a>
   <img src="https://img.shields.io/github/actions/workflow/status/meshql/meshql/ci.yml?branch=main&logo=github&label=CI" alt="CI" />
   <img src="https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white" alt="Node 22+" />
-  <img src="https://img.shields.io/npm/v/meshql-core?label=npm" alt="npm meshql-core" />
+  <img src="https://img.shields.io/npm/v/@meshql-js/core?label=npm" alt="npm @meshql-js/core" />
   <img src="https://img.shields.io/github/license/meshql/meshql" alt="MIT" />
 </p>
 
@@ -90,50 +90,50 @@ npx jsr add @meshql/core @meshql/http @meshql/integrity @meshql/access
 
 ### npm (compiled ESM)
 
-Until the `@meshql` npm org is available, packages publish as unscoped **`meshql-*`** with compiled `dist/`. Requires `"type": "module"` (or `.mjs`).
+Packages publish on **npm** as **`@meshql-js/*`** (compiled `dist/`) and on **JSR** as **`@meshql/*`** (TypeScript source). Requires `"type": "module"` (or `.mjs`).
 
 **Core stack:**
 
 ```bash
-npm install meshql-core meshql-http meshql-client
+npm install @meshql-js/core @meshql-js/http @meshql-js/client
 ```
 
 **Full stack** (uploads + security):
 
 ```bash
-npm install meshql-core meshql-http meshql-client meshql-upload meshql-integrity meshql-access
+npm install @meshql-js/core @meshql-js/http @meshql-js/client @meshql-js/upload @meshql-js/integrity @meshql-js/access
 ```
 
 | Package | npm | Purpose |
 |---------|-----|---------|
-| `meshql-core` | [npmjs.com/package/meshql-core](https://www.npmjs.com/package/meshql-core) | Parser, planner, shaper, `createMesh()` |
-| `meshql-postgres` | [npmjs.com/package/meshql-postgres](https://www.npmjs.com/package/meshql-postgres) | Postgres `buildSelectSql` |
-| `meshql-sqlite` | [npmjs.com/package/meshql-sqlite](https://www.npmjs.com/package/meshql-sqlite) | SQLite `buildSelectSql` for `node:sqlite` / Bun / D1 |
-| `meshql-http` | [npmjs.com/package/meshql-http](https://www.npmjs.com/package/meshql-http) | Express, Fastify, Hono adapters |
-| `meshql-client` | [npmjs.com/package/meshql-client](https://www.npmjs.com/package/meshql-client) | Typed client SDK |
-| `meshql-upload` | [npmjs.com/package/meshql-upload](https://www.npmjs.com/package/meshql-upload) | File uploads (optional) |
-| `meshql-integrity` | [npmjs.com/package/meshql-integrity](https://www.npmjs.com/package/meshql-integrity) | Request signing and integrity tokens |
-| `meshql-access` | [npmjs.com/package/meshql-access](https://www.npmjs.com/package/meshql-access) | Entity, row, and field access control |
-| `meshql-persisted-queries` | [npmjs.com/package/meshql-persisted-queries](https://www.npmjs.com/package/meshql-persisted-queries) | Persisted query IDs, `X-Mesh-Query-Id` (v0.8.0) |
-| `meshql-access-cache` | [npmjs.com/package/meshql-access-cache](https://www.npmjs.com/package/meshql-access-cache) | Cache permission results per user (v0.8.0) |
-| `meshql-prisma` | [npmjs.com/package/meshql-prisma](https://www.npmjs.com/package/meshql-prisma) | Prisma catch-all resolver |
-| `meshql-drizzle` | [npmjs.com/package/meshql-drizzle](https://www.npmjs.com/package/meshql-drizzle) | Drizzle relational query resolver |
-| `meshql-kysely` | [npmjs.com/package/meshql-kysely](https://www.npmjs.com/package/meshql-kysely) | Kysely + SQL builder resolver |
+| `@meshql-js/core` | [npmjs.com/package/@meshql-js/core](https://www.npmjs.com/package/@meshql-js/core) | Parser, planner, shaper, `createMesh()` |
+| `@meshql-js/postgres` | [npmjs.com/package/@meshql-js/postgres](https://www.npmjs.com/package/@meshql-js/postgres) | Postgres `buildSelectSql` |
+| `@meshql-js/sqlite` | [npmjs.com/package/@meshql-js/sqlite](https://www.npmjs.com/package/@meshql-js/sqlite) | SQLite `buildSelectSql` for `node:sqlite` / Bun / D1 |
+| `@meshql-js/http` | [npmjs.com/package/@meshql-js/http](https://www.npmjs.com/package/@meshql-js/http) | Express, Fastify, Hono adapters |
+| `@meshql-js/client` | [npmjs.com/package/@meshql-js/client](https://www.npmjs.com/package/@meshql-js/client) | Typed client SDK |
+| `@meshql-js/upload` | [npmjs.com/package/@meshql-js/upload](https://www.npmjs.com/package/@meshql-js/upload) | File uploads (optional) |
+| `@meshql-js/integrity` | [npmjs.com/package/@meshql-js/integrity](https://www.npmjs.com/package/@meshql-js/integrity) | Request signing and integrity tokens |
+| `@meshql-js/access` | [npmjs.com/package/@meshql-js/access](https://www.npmjs.com/package/@meshql-js/access) | Entity, row, and field access control |
+| `@meshql-js/persisted-queries` | [npmjs.com/package/@meshql-js/persisted-queries](https://www.npmjs.com/package/@meshql-js/persisted-queries) | Persisted query IDs, `X-Mesh-Query-Id` (v0.8.0) |
+| `@meshql-js/access-cache` | [npmjs.com/package/@meshql-js/access-cache](https://www.npmjs.com/package/@meshql-js/access-cache) | Cache permission results per user (v0.8.0) |
+| `@meshql-js/prisma` | [npmjs.com/package/@meshql-js/prisma](https://www.npmjs.com/package/@meshql-js/prisma) | Prisma catch-all resolver |
+| `@meshql-js/drizzle` | [npmjs.com/package/@meshql-js/drizzle](https://www.npmjs.com/package/@meshql-js/drizzle) | Drizzle relational query resolver |
+| `@meshql-js/kysely` | [npmjs.com/package/@meshql-js/kysely](https://www.npmjs.com/package/@meshql-js/kysely) | Kysely + SQL builder resolver |
 
 Imports use the npm package names:
 
 ```typescript
-import { createMesh } from "meshql-core";
-import { meshExpressRouter } from "meshql-http/express";
-import { createClient } from "meshql-client";
-import { integrityPlugin } from "meshql-integrity";
-import { accessPlugin } from "meshql-access";
+import { createMesh } from "@meshql-js/core";
+import { meshExpressRouter } from "@meshql-js/http/express";
+import { createClient } from "@meshql-js/client";
+import { integrityPlugin } from "@meshql-js/integrity";
+import { accessPlugin } from "@meshql-js/access";
 ```
 
 Or install from a [GitHub Release tarball](https://github.com/meshql/meshql/releases) (per-package tags like `npm/core/v*`):
 
 ```bash
-npm install https://github.com/meshql/meshql/releases/download/npm/core/v0.1.4/meshql-core-0.1.4.tgz
+npm install https://github.com/meshql/meshql/releases/download/npm/core/v0.1.4/meshql-js-core-0.1.4.tgz
 ```
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md#releasing-packages) for the release workflow (Changesets → per-package tags).
@@ -361,17 +361,17 @@ express()
 
 | Package | npm | Purpose |
 |---------|-----|---------|
-| `@meshql/core` | `meshql-core` | Parser, join planner, response shaper, `createMesh()` |
-| `@meshql/postgres` | `meshql-postgres` | `buildSelectSql` for Postgres |
-| `@meshql/sqlite` | `meshql-sqlite` | `buildSelectSql` for `node:sqlite` / Bun / D1 |
-| `@meshql/http` | `meshql-http` | Header transport + Express, Fastify, Hono adapters |
-| `@meshql/client` | `meshql-client` | Typed client, sets query headers for you |
-| `@meshql/upload` | `meshql-upload` | File uploads (optional) |
-| `@meshql/integrity` | `meshql-integrity` | Signing token lifecycle and request integrity |
-| `@meshql/access` | `meshql-access` | Entity, row, and dynamic field access |
-| `@meshql/prisma` | `meshql-prisma` | Prisma catch-all resolver |
-| `@meshql/drizzle` | `meshql-drizzle` | Drizzle relational query resolver |
-| `@meshql/kysely` | `meshql-kysely` | Kysely + SQL builder resolver |
+| `@meshql/core` | `@meshql-js/core` | Parser, join planner, response shaper, `createMesh()` |
+| `@meshql/postgres` | `@meshql-js/postgres` | `buildSelectSql` for Postgres |
+| `@meshql/sqlite` | `@meshql-js/sqlite` | `buildSelectSql` for `node:sqlite` / Bun / D1 |
+| `@meshql/http` | `@meshql-js/http` | Header transport + Express, Fastify, Hono adapters |
+| `@meshql/client` | `@meshql-js/client` | Typed client, sets query headers for you |
+| `@meshql/upload` | `@meshql-js/upload` | File uploads (optional) |
+| `@meshql/integrity` | `@meshql-js/integrity` | Signing token lifecycle and request integrity |
+| `@meshql/access` | `@meshql-js/access` | Entity, row, and dynamic field access |
+| `@meshql/prisma` | `@meshql-js/prisma` | Prisma catch-all resolver |
+| `@meshql/drizzle` | `@meshql-js/drizzle` | Drizzle relational query resolver |
+| `@meshql/kysely` | `@meshql-js/kysely` | Kysely + SQL builder resolver |
 
 HTTP adapter docs (routes, headers, curl): [docs/http-adapters.md](./docs/http-adapters.md)
 
@@ -387,7 +387,7 @@ Built-in limits (depth, complexity, rate) live in `@meshql/core/builtins`. Custo
 
 ```bash
 # npm
-npm install meshql-integrity meshql-access
+npm install @meshql-js/integrity @meshql-js/access
 
 # JSR
 npx jsr add @meshql/integrity @meshql/access

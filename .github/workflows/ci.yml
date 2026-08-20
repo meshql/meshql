@@ -41,3 +41,6 @@ jobs:
 
       - name: Check npm and JSR version parity
         run: node scripts/sync-jsr-versions.mjs --check
+
+      - name: Publish dry-run
+        run: node scripts/publish/dry-run.mjs --all

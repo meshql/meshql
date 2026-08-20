@@ -141,7 +141,7 @@ Docs: [Database connections](https://docs.meshql.dev/guide/database-connections)
 
 ## What's in the box
 
-Published on **[JSR](https://jsr.io/@meshql)** (`@meshql/*`) and **npm** (`meshql-*`):
+Published on **[JSR](https://jsr.io/@meshql)** (`@meshql/*`) and **npm** (`@meshql-js/*`):
 
 - `@meshql/core` - parser, planner, shaper
 - `@meshql/postgres` / `@meshql/sqlite` - parameterized SQL builders
@@ -157,7 +157,7 @@ Install the core stack:
 npx jsr add @meshql/core @meshql/http @meshql/client
 
 # npm
-npm install meshql-core meshql-http meshql-client
+npm install @meshql-js/core @meshql-js/http @meshql-js/client
 ```
 
 Prisma path:

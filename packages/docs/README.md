@@ -7,7 +7,7 @@ Interactive API docs and query playground for MeshQL — like Swagger UI or Grap
 ```bash
 npx jsr add @meshql/docs
 # or
-npm install meshql-docs
+npm install @meshql-js/docs
 ```
 
 ## Quick start (Express)

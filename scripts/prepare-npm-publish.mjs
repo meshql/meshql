@@ -1,115 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
+import {
+  npmName,
+  PUBLISH_ORDER,
+} from "./publish/config.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 
-/** Monorepo directory → npm package name (unscoped; @meshql org unavailable on npm). */
-const NPM_NAME_BY_DIR = {
-  core: "meshql-core",
-  postgres: "meshql-postgres",
-  sqlite: "meshql-sqlite",
-  prisma: "meshql-prisma",
-  drizzle: "meshql-drizzle",
-  kysely: "meshql-kysely",
-  http: "meshql-http",
-  client: "meshql-client",
-  upload: "meshql-upload",
-  integrity: "meshql-integrity",
-  access: "meshql-access",
-  "access-cache": "meshql-access-cache",
-  "persisted-queries": "meshql-persisted-queries",
-  pubsub: "meshql-pubsub",
-  sse: "meshql-sse",
-  codemods: "meshql-codemods",
-  gateway: "meshql-gateway",
-  docs: "meshql-docs",
-};
-
 const DIR_BY_SCOPE = Object.fromEntries(
-  Object.keys(NPM_NAME_BY_DIR).map((dir) => [`@meshql/${dir}`, dir]),
+  PUBLISH_ORDER.map((dir) => [`@meshql/${dir}`, dir]),
 );
-
-const PUBLISH_ORDER = [
-  "core",
-  "postgres",
-  "sqlite",
-  "prisma",
-  "drizzle",
-  "kysely",
-  "http",
-  "upload",
-  "client",
-  "integrity",
-  "access",
-  "access-cache",
-  "persisted-queries",
-  "pubsub",
-  "sse",
-  "codemods",
-  "gateway",
-  "docs",
-];
-
-/** Longest paths first so @meshql/core/builtins is rewritten before @meshql/core. */
-const IMPORT_REWRITES = [
-  ["@meshql/core/builtins", "meshql-core/builtins"],
-  ["@meshql/core", "meshql-core"],
-  ["@meshql/postgres", "meshql-postgres"],
-  ["@meshql/sqlite", "meshql-sqlite"],
-  ["@meshql/prisma", "meshql-prisma"],
-  ["@meshql/drizzle", "meshql-drizzle"],
-  ["@meshql/kysely", "meshql-kysely"],
-  ["@meshql/http", "meshql-http"],
-  ["@meshql/client", "meshql-client"],
-  ["@meshql/upload", "meshql-upload"],
-  ["@meshql/integrity", "meshql-integrity"],
-  ["@meshql/access", "meshql-access"],
-  ["@meshql/access-cache", "meshql-access-cache"],
-  ["@meshql/persisted-queries", "meshql-persisted-queries"],
-  ["@meshql/pubsub", "meshql-pubsub"],
-  ["@meshql/sse", "meshql-sse"],
-  ["@meshql/codemods", "meshql-codemods"],
-  ["@meshql/gateway", "meshql-gateway"],
-  ["@meshql/docs", "meshql-docs"],
-];
-
-function rewriteDistImports(packageDir) {
-  const distDir = path.join(repoRoot, "packages", packageDir, "dist");
-  if (!fs.existsSync(distDir)) {
-    return;
-  }
-
-  function walk(dir) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        walk(full);
-        continue;
-      }
-
-      if (!/\.(js|d\.ts)$/.test(entry.name)) {
-        continue;
-      }
-
-      let content = fs.readFileSync(full, "utf8");
-      let changed = false;
-
-      for (const [from, to] of IMPORT_REWRITES) {
-        if (!content.includes(from)) {
-          continue;
-        }
-        content = content.split(from).join(to);
-        changed = true;
-      }
-
-      if (changed) {
-        fs.writeFileSync(full, content);
-      }
-    }
-  }
-
-  walk(distDir);
-}
 
 function rewriteManifestDeps(manifest, section) {
   if (!manifest[section]) {
@@ -130,7 +30,7 @@ function rewriteManifestDeps(manifest, section) {
 
     if (dep.startsWith("@meshql/")) {
       const depDir = dep.slice("@meshql/".length);
-      if (NPM_NAME_BY_DIR[depDir]) {
+      if (PUBLISH_ORDER.includes(depDir)) {
         next[npmName(depDir)] = `^${versionOf(depDir)}`;
         continue;
       }
@@ -154,21 +54,14 @@ function readManifest(packageDir) {
   };
 }
 
-function npmName(packageDir) {
-  const name = NPM_NAME_BY_DIR[packageDir];
-  if (!name) {
-    throw new Error(`Unknown package directory: ${packageDir}`);
-  }
-  return name;
-}
-
 function versionOf(packageDir) {
   const { manifest } = readManifest(packageDir);
   return manifest.version;
 }
 
 /**
- * Rewrite package.json for npm publish: meshql-* names, dist-only, semver deps.
+ * Rewrite package.json for npm publish: @meshql-js/* names, dist-only, semver deps.
+ * Dist import rewriting happens at build time via scripts/publish/tsup-package.mjs.
  */
 export function prepareNpmPublish(packageDir) {
   const { manifestPath, manifest } = readManifest(packageDir);
@@ -203,7 +96,6 @@ export function prepareNpmPublish(packageDir) {
   delete manifest.scripts?.["publish:jsr"];
 
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  rewriteDistImports(packageDir);
   return { manifest, backupPath, npmName: manifest.name };
 }
 
@@ -219,19 +111,21 @@ export function restoreNpmPublish(packageDir) {
 const packageDir = process.argv[2];
 const command = process.argv[3] ?? "prepare";
 
-if (!packageDir) {
-  console.error("Usage: node scripts/prepare-npm-publish.mjs <package-dir> [prepare|restore]");
-  console.error(`Package dirs: ${PUBLISH_ORDER.join(", ")}`);
-  process.exit(1);
-}
+if (process.argv[1]?.endsWith("prepare-npm-publish.mjs")) {
+  if (!packageDir) {
+    console.error("Usage: node scripts/prepare-npm-publish.mjs <package-dir> [prepare|restore]");
+    console.error(`Package dirs: ${PUBLISH_ORDER.join(", ")}`);
+    process.exit(1);
+  }
 
-if (command === "restore") {
-  restoreNpmPublish(packageDir);
-  console.log(`Restored packages/${packageDir}/package.json`);
-} else if (command === "prepare") {
-  const { npmName: name, manifest } = prepareNpmPublish(packageDir);
-  console.log(`Prepared ${name}@${manifest.version} for npm publish`);
-} else {
-  console.error(`Unknown command: ${command}`);
-  process.exit(1);
+  if (command === "restore") {
+    restoreNpmPublish(packageDir);
+    console.log(`Restored packages/${packageDir}/package.json`);
+  } else if (command === "prepare") {
+    const { npmName: name, manifest } = prepareNpmPublish(packageDir);
+    console.log(`Prepared ${name}@${manifest.version} for npm publish`);
+  } else {
+    console.error(`Unknown command: ${command}`);
+    process.exit(1);
+  }
 }

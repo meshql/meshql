@@ -4,7 +4,7 @@ MeshQL ships framework adapters on top of `@meshql/http`. Each adapter wires the
 
 ## Install
 
-MeshQL is on **[JSR](https://jsr.io/@meshql)** (`@meshql` scope) and **[npm](https://www.npmjs.com/package/meshql-http)** (`meshql-*`).
+MeshQL is on **[JSR](https://jsr.io/@meshql)** (`@meshql` scope) and **[npm](https://www.npmjs.com/package/@meshql-js/http)** (`@meshql-js/*`).
 
 ```bash
 # Node

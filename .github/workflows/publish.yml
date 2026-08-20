@@ -1,0 +1,278 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - "npm/**"
+      - "core/v*"
+      - "postgres/v*"
+      - "sqlite/v*"
+      - "prisma/v*"
+      - "drizzle/v*"
+      - "kysely/v*"
+      - "http/v*"
+      - "upload/v*"
+      - "client/v*"
+      - "integrity/v*"
+      - "access/v*"
+      - "access-cache/v*"
+      - "persisted-queries/v*"
+      - "pubsub/v*"
+      - "sse/v*"
+      - "codemods/v*"
+      - "gateway/v*"
+      - "docs/v*"
+      - "security/v*"
+      - "all/v*"
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package to publish
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - core
+          - postgres
+          - sqlite
+          - prisma
+          - drizzle
+          - kysely
+          - http
+          - upload
+          - client
+          - integrity
+          - access
+          - access-cache
+          - persisted-queries
+          - pubsub
+          - sse
+          - codemods
+          - gateway
+          - docs
+          - security
+      registry:
+        description: Registry target
+        required: true
+        type: choice
+        default: both
+        options:
+          - both
+          - npm
+          - jsr
+      publish:
+        description: Publish to registries (false = pack/dry-run only)
+        required: true
+        type: boolean
+        default: true
+
+# JSR: packages must be linked to meshql/meshql (OIDC). See CONTRIBUTING.md.
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.plan.outputs.packages }}
+      tag_version: ${{ steps.plan.outputs.tag_version }}
+      release_tag: ${{ steps.plan.outputs.release_tag }}
+      publish: ${{ steps.plan.outputs.publish }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      registries: ${{ steps.plan.outputs.registries }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve packages to publish
+        id: plan
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            node scripts/publish/resolve.mjs \
+              --event workflow_dispatch \
+              --package "${{ inputs.package }}" \
+              --registry "${{ inputs.registry }}" \
+              --publish "${{ inputs.publish }}"
+          else
+            node scripts/publish/resolve.mjs \
+              --event tag \
+              --ref "${{ github.ref }}" \
+              --publish true
+          fi
+
+  publish:
+    needs: resolve
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.resolve.outputs.matrix) }}
+    env:
+      TAG_VERSION: ${{ needs.resolve.outputs.tag_version }}
+      PUBLISH: ${{ needs.resolve.outputs.publish }}
+      PACKAGE: ${{ matrix.package }}
+      REGISTRY: ${{ matrix.registry }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Verify tag version (npm)
+        if: env.REGISTRY == 'npm' && env.TAG_VERSION != ''
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./packages/${PACKAGE}/package.json').version")
+          if [ "$version" != "$TAG_VERSION" ]; then
+            echo "::error::Tag version ${TAG_VERSION} does not match packages/${PACKAGE}/package.json version ${version}"
+            exit 1
+          fi
+
+      - name: Verify JSR manifests
+        if: env.REGISTRY == 'jsr'
+        env:
+          TAG_VERSION: ${{ needs.resolve.outputs.tag_version }}
+        run: node scripts/verify-jsr-publish.mjs "${PACKAGE}"
+
+      - name: Pack and publish npm
+        if: env.REGISTRY == 'npm'
+        id: npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          node scripts/prepare-npm-publish.mjs "${PACKAGE}"
+          cd "packages/${PACKAGE}"
+          npm pack --pack-destination "../../artifacts"
+          tarball=$(ls -1 "../../artifacts"/meshql-js-${PACKAGE}-*.tgz 2>/dev/null | tail -1 || true)
+          if [ -z "${tarball}" ]; then
+            # scoped packs: meshql-js-core-0.1.0.tgz OR @meshql-js/core style name in filename
+            tarball=$(ls -1 ../../artifacts/*.tgz | tail -1)
+          fi
+          echo "Packed $(basename "$tarball")"
+          echo "tarball=$(basename "$tarball")" >> "$GITHUB_OUTPUT"
+
+          if [ "$PUBLISH" = "true" ]; then
+            if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+              echo "::warning::NPM_TOKEN secret not set — skipping registry publish for ${PACKAGE}"
+            else
+              version=$(node -p "require('./package.json').version")
+              name=$(node -p "require('./package.json').name")
+              published_version=$(npm view "${name}@${version}" version 2>/dev/null || true)
+              if [ "$published_version" = "$version" ]; then
+                echo "::notice::${name}@${version} is already published — skipping"
+              else
+                echo "Publishing ${name}@${version} to registry.npmjs.org"
+                npm publish "$tarball" --access public
+              fi
+            fi
+          fi
+
+          cd ../..
+          node scripts/prepare-npm-publish.mjs "${PACKAGE}" restore
+
+      - name: Restore npm manifest on failure
+        if: failure() && env.REGISTRY == 'npm'
+        run: node scripts/prepare-npm-publish.mjs "${PACKAGE}" restore
+
+      - name: Publish JSR
+        if: env.REGISTRY == 'jsr'
+        run: |
+          set -euo pipefail
+          node scripts/prepare-jsr-publish.mjs "${PACKAGE}"
+          log="/tmp/jsr-publish-${PACKAGE}.log"
+          set +e
+          if [ "$PUBLISH" = "true" ]; then
+            (cd "packages/${PACKAGE}" && npx jsr publish --allow-dirty 2>&1 | tee "${log}")
+          else
+            (cd "packages/${PACKAGE}" && npx jsr publish --dry-run --allow-dirty 2>&1 | tee "${log}")
+          fi
+          status=$?
+          set -e
+          node scripts/prepare-jsr-publish.mjs "${PACKAGE}" restore
+          if [ "$status" -ne 0 ]; then
+            echo "::group::JSR publish output for ${PACKAGE}"
+            cat "${log}"
+            echo "::endgroup::"
+            if grep -q "don't exist" "${log}"; then
+              echo "::error::JSR package @meshql/${PACKAGE} is not registered. Create it at https://jsr.io/new?scope=meshql&package=${PACKAGE} and link meshql/meshql in Settings."
+            fi
+            exit 1
+          fi
+
+      - name: Restore JSR manifest on failure
+        if: failure() && env.REGISTRY == 'jsr'
+        run: node scripts/prepare-jsr-publish.mjs "${PACKAGE}" restore
+
+      - name: Upload npm tarball
+        if: env.REGISTRY == 'npm'
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-${{ matrix.package }}
+          path: artifacts/*.tgz
+          if-no-files-found: warn
+
+  release:
+    needs: [resolve, publish]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/npm/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download npm artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: npm-*
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/ || true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.resolve.outputs.release_tag }}
+          name: npm ${{ needs.resolve.outputs.release_tag }}
+          generate_release_notes: true
+          files: artifacts/*.tgz
+
+  upload-dispatch-artifacts:
+    needs: [resolve, publish]
+    if: github.event_name == 'workflow_dispatch' && contains(needs.resolve.outputs.registries, 'npm')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download npm artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: npm-*
+          merge-multiple: true
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-tarballs
+          path: artifacts/*.tgz
+          if-no-files-found: warn
