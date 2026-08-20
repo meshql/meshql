@@ -1,5 +1,13 @@
 # @meshql/drizzle
 
+## 0.7.7
+
+### Patch Changes
+
+- f6e96a6: First npm publish under `@meshql-js/*` and a unified `publish.yml` for npm + JSR.
+- Updated dependencies [f6e96a6]
+  - @meshql/core@0.11.1
+
 ## 0.7.6
 
 ### Patch Changes
