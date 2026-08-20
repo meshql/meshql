@@ -1,4 +1,4 @@
-# meshql-access-cache
+# @meshql-js/access-cache / @meshql/access-cache
 
 Cache MeshQL access permission results per user (memory, Upstash Redis, or any Redis REST API).
 
