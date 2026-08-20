@@ -14,15 +14,14 @@ permissions:
 
 jobs:
   version:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # PRs: GITHUB_TOKEN (RELEASE_PAT cannot fetch pull/*/merge refs).
-          # Pushes to main: RELEASE_PAT so Changesets can open the version PR.
-          token: ${{ github.event_name == 'pull_request' && github.token || secrets.RELEASE_PAT }}
+          token: ${{ secrets.RELEASE_PAT }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -43,7 +42,7 @@ jobs:
           commit: "Version packages"
           title: "Version Packages"
         env:
-          GITHUB_TOKEN: ${{ github.event_name == 'pull_request' && github.token || secrets.RELEASE_PAT }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
 
   tag:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
