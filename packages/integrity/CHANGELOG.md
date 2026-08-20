@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.13
+
+### Patch Changes
+
+- f6e96a6: First npm publish under `@meshql-js/*` and a unified `publish.yml` for npm + JSR.
+- Updated dependencies [f6e96a6]
+  - @meshql/core@0.11.1
+  - @meshql/http@0.8.4
+
 ## 0.5.12
 
 ### Patch Changes
