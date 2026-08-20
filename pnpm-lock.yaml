@@ -27,6 +27,34 @@ importers:
         specifier: ^3.0.0
         version: 3.2.6(@types/node@22.15.3)(jiti@2.7.0)(tsx@4.22.4)
 
+  examples/bun-sqlite:
+    dependencies:
+      '@meshql/client':
+        specifier: workspace:*
+        version: link:../../packages/client
+      '@meshql/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@meshql/http':
+        specifier: workspace:*
+        version: link:../../packages/http
+      '@meshql/sqlite':
+        specifier: workspace:*
+        version: link:../../packages/sqlite
+      hono:
+        specifier: ^4.7.10
+        version: 4.12.25
+    devDependencies:
+      '@meshql/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@types/bun':
+        specifier: latest
+        version: 1.3.14
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
   examples/express-postgres:
     dependencies:
       '@meshql/client':
@@ -377,7 +405,7 @@ importers:
         version: 22.15.3
       drizzle-orm:
         specifier: ^0.44.7
-        version: 0.44.7(@prisma/client@6.19.3(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.20.0)(kysely@0.29.2)(pg@8.21.0)(prisma@6.19.3(typescript@5.9.2))
+        version: 0.44.7(@prisma/client@6.19.3(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.20.0)(bun-types@1.3.14)(kysely@0.29.2)(pg@8.21.0)(prisma@6.19.3(typescript@5.9.2))
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.2)
@@ -1771,6 +1799,9 @@ packages:
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
 
+  '@types/bun@1.3.14':
+    resolution: {integrity: sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw==}
+
   '@types/busboy@1.5.4':
     resolution: {integrity: sha512-kG7WrUuAKK0NoyxfQHsVE6j1m01s6kMma64E+OZenQABMQyTJop1DumUWcLwAQ2JzpefU7PDYoRDKl8uZosFjw==}
 
@@ -1941,6 +1972,9 @@ packages:
     resolution: {integrity: sha512-MTc8i/x9jBQd1iMw2CFGS+rwMa07eYjLR0CCTLDACl9xhxy+nIs3KeML/biicXtk9JrZ6dnnTatmc7ErPXIxqw==}
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
+
+  bun-types@1.3.14:
+    resolution: {integrity: sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ==}
 
   bundle-require@5.1.0:
     resolution: {integrity: sha512-3WrrOuZiyaaZPWiEt4G3+IffISVC9HYlWueJEBWED4ZH4aIAC2PnkdnuRrR94M+w6yGWn4AglWtJtBI8YqvgoA==}
@@ -4282,6 +4316,10 @@ snapshots:
       '@types/connect': 3.4.38
       '@types/node': 22.15.3
 
+  '@types/bun@1.3.14':
+    dependencies:
+      bun-types: 1.3.14
+
   '@types/busboy@1.5.4':
     dependencies:
       '@types/node': 22.15.3
@@ -4480,6 +4518,10 @@ snapshots:
       node-releases: 2.0.50
       update-browserslist-db: 1.2.3(browserslist@4.28.4)
 
+  bun-types@1.3.14:
+    dependencies:
+      '@types/node': 22.15.3
+
   bundle-require@5.1.0(esbuild@0.27.7):
     dependencies:
       esbuild: 0.27.7
@@ -4606,10 +4648,11 @@ snapshots:
 
   dotenv@16.6.1: {}
 
-  drizzle-orm@0.44.7(@prisma/client@6.19.3(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.20.0)(kysely@0.29.2)(pg@8.21.0)(prisma@6.19.3(typescript@5.9.2)):
+  drizzle-orm@0.44.7(@prisma/client@6.19.3(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.20.0)(bun-types@1.3.14)(kysely@0.29.2)(pg@8.21.0)(prisma@6.19.3(typescript@5.9.2)):
     optionalDependencies:
       '@prisma/client': 6.19.3(prisma@6.19.3(typescript@5.9.2))(typescript@5.9.2)
       '@types/pg': 8.20.0
+      bun-types: 1.3.14
       kysely: 0.29.2
       pg: 8.21.0
       prisma: 6.19.3(typescript@5.9.2)

@@ -241,7 +241,7 @@ export function buildAggregateSql(
  *   default configuration).
  *
  * Compatible with Node 22.5+'s built-in `node:sqlite`, Bun's built-in
- * SQLite, and Cloudflare D1 — all of which accept `?`-style placeholders.
+ * `bun:sqlite`, and Cloudflare D1 — all of which accept `?`-style placeholders.
  */
 export function buildSelectSql(
   plan: JoinPlan,

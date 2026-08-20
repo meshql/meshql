@@ -138,7 +138,7 @@ npm install https://github.com/meshql/meshql/releases/download/npm/core/v0.1.4/m
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md#releasing-packages) for the release workflow (Changesets → per-package tags).
 
-> **SQLite is first-class.** [`@meshql/sqlite`](./packages/sqlite) runs on Node 22.5+'s built-in [`node:sqlite`](https://nodejs.org/api/sqlite.html) — zero native deps, zero Docker. Try the [express-sqlite example](./examples/express-sqlite). Postgres works via [`@meshql/postgres`](./packages/postgres) and the [express-postgres example](./examples/express-postgres).
+> **SQLite is first-class.** [`@meshql/sqlite`](./packages/sqlite) builds `?`-parameter SQL for Node 22.5+ [`node:sqlite`](https://nodejs.org/api/sqlite.html), Bun [`bun:sqlite`](https://bun.com/docs/runtime/sqlite), and D1 — zero native deps. Try [express-sqlite](./examples/express-sqlite) or [bun-sqlite](./examples/bun-sqlite). Postgres works via [`@meshql/postgres`](./packages/postgres) and the [express-postgres example](./examples/express-postgres).
 
 ---
 
@@ -303,7 +303,7 @@ Open **http://localhost:3010/** — the browser app uses `@meshql/client` agains
 
 Optional CLI tour: `pnpm --filter showcase demo`
 
-See [examples/showcase/README.md](./examples/showcase/README.md). Examples: [express-sqlite](./examples/express-sqlite), [express-postgres](./examples/express-postgres), [express-prisma](./examples/express-prisma).
+See [examples/showcase/README.md](./examples/showcase/README.md). Examples: [express-sqlite](./examples/express-sqlite), [bun-sqlite](./examples/bun-sqlite), [express-postgres](./examples/express-postgres), [express-prisma](./examples/express-prisma).
 
 ---
 
@@ -404,7 +404,7 @@ Node 22+, pnpm 11. Monorepo uses Turborepo.
 ```
 packages/core       engine (DB-agnostic)
 packages/postgres   buildSelectSql for Postgres
-packages/sqlite     buildSelectSql for node:sqlite / Bun / D1
+packages/sqlite     buildSelectSql for node:sqlite / bun:sqlite / D1
 packages/http       adapters
 packages/client     SDK
 packages/upload     uploads
@@ -413,7 +413,7 @@ packages/access     access control
 packages/prisma     Prisma adapter
 packages/drizzle    Drizzle adapter
 packages/kysely     Kysely adapter
-examples/           runnable demos (express-sqlite, express-postgres, express-prisma)
+examples/           runnable demos (express-sqlite, bun-sqlite, express-postgres, express-prisma)
 ```
 
 ### Testing

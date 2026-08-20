@@ -241,7 +241,8 @@ curl -s "http://localhost:3001/mesh/user/1"
 | Example | Stack | Highlights |
 |---------|-------|------------|
 | [showcase](../examples/showcase) | React + SQLite + integrity + access + uploads | Full dashboard, browser client |
-| [express-sqlite](../examples/express-sqlite) | Express + SQLite | Minimal SQL adapter |
+| [express-sqlite](../examples/express-sqlite) | Express + `node:sqlite` | Minimal SQL adapter |
+| [bun-sqlite](../examples/bun-sqlite) | Bun + Hono + `bun:sqlite` | Same SQL builder on Bun |
 | [express-postgres](../examples/express-postgres) | Express + Postgres + uploads | Avatar upload demo |
 
 ---

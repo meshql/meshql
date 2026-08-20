@@ -1,6 +1,6 @@
 # Database connections
 
-MeshQL does **not** create, pool, or close database connections. Your app owns the client (`PrismaClient`, Drizzle `db`, Kysely, `pg.Pool`, `node:sqlite` `DatabaseSync`, etc.). You pass that instance into a resolver at startup; MeshQL calls it on every request.
+MeshQL does **not** create, pool, or close database connections. Your app owns the client (`PrismaClient`, Drizzle `db`, Kysely, `pg.Pool`, `node:sqlite` `DatabaseSync`, `bun:sqlite` `Database`, etc.). You pass that instance into a resolver at startup; MeshQL calls it on every request.
 
 ## Request flow
 
@@ -72,6 +72,24 @@ mesh.resolve("*", async (plan) => {
 ```
 
 One `DatabaseSync` instance is typical for the process. Plugins (auth, access) can share the same `db` export.
+
+### SQLite (`bun:sqlite`)
+
+Same `@meshql/sqlite` builder; Bun uses `Database` and `.query()`:
+
+```typescript
+import { Database } from "bun:sqlite";
+import { buildSelectSql } from "@meshql/sqlite";
+
+export const db = new Database("app.db");
+
+mesh.resolve("*", async (plan) => {
+  const { sql, params } = buildSelectSql(plan, schema);
+  return db.query(sql).all(...params);
+});
+```
+
+See [examples/bun-sqlite](../examples/bun-sqlite).
 
 ### Prisma
 

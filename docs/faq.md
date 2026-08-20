@@ -160,7 +160,7 @@ Pick what your runtime prefers. Bun and Deno often use JSR; Node projects often 
 
 ### Does MeshQL run on Bun, Deno, and edge?
 
-Yes for Bun and Deno — see [integrations](/integrations/bun). For edge, the SQLite path (`@meshql/sqlite`) targets Cloudflare D1 and similar. Postgres on edge depends on your host's driver support; MeshQL itself is runtime-agnostic TypeScript.
+Yes for Bun and Deno — see [integrations](/integrations/bun). On Bun, use `bun:sqlite` with `@meshql/sqlite` the same way Node uses `node:sqlite` (see [examples/bun-sqlite](https://github.com/meshql/meshql/tree/main/examples/bun-sqlite)). For edge, the SQLite path (`@meshql/sqlite`) targets Cloudflare D1 and similar. Postgres on edge depends on your host's driver support; MeshQL itself is runtime-agnostic TypeScript.
 
 ### How do mutations work?
 
