@@ -1,5 +1,15 @@
 # @meshql/sse
 
+## 0.2.8
+
+### Patch Changes
+
+- dd3f183: Publish npm packages as `@meshqljs/*`. The `@meshql-js` org is retired. JSR remains `@meshql/*`.
+- Updated dependencies [dd3f183]
+  - @meshql/core@0.11.2
+  - @meshql/http@0.8.5
+  - @meshql/pubsub@0.2.2
+
 ## 0.2.7
 
 ### Patch Changes

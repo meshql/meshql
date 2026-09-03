@@ -1,5 +1,15 @@
 # @meshql/kysely
 
+## 0.6.9
+
+### Patch Changes
+
+- dd3f183: Publish npm packages as `@meshqljs/*`. The `@meshql-js` org is retired. JSR remains `@meshql/*`.
+- Updated dependencies [dd3f183]
+  - @meshql/core@0.11.2
+  - @meshql/postgres@0.6.6
+  - @meshql/sqlite@0.6.6
+
 ## 0.6.8
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @meshql/codemods
 
+## 0.2.7
+
+### Patch Changes
+
+- dd3f183: Publish npm packages as `@meshqljs/*`. The `@meshql-js` org is retired. JSR remains `@meshql/*`.
+- Updated dependencies [dd3f183]
+  - @meshql/core@0.11.2
+
 ## 0.2.6
 
 ### Patch Changes
