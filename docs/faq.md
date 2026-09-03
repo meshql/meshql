@@ -145,7 +145,7 @@ The planner only includes fields the client asked for. If your resolver doesn't 
 
 ### Does the client work in the browser?
 
-Yes. `@meshql/client` encodes queries, signs them (when integrity is enabled), and works in Node or the browser. See [@meshql-js/client](/packages/client).
+Yes. `@meshql/client` encodes queries, signs them (when integrity is enabled), and works in Node or the browser. See [@meshqljs/client](/packages/client).
 
 ### JSR vs npm — which do I use?
 
@@ -154,7 +154,7 @@ Same packages, two registries:
 | Registry | Scope / prefix | Example |
 |----------|----------------|---------|
 | [JSR](https://jsr.io/@meshql) | `@meshql/*` | `@meshql/core` |
-| [npm](https://www.npmjs.com/search?q=meshql-) | `@meshql-js/*` | `@meshql-js/core` |
+| [npm](https://www.npmjs.com/search?q=meshql-) | `@meshqljs/*` | `@meshqljs/core` |
 
 Pick what your runtime prefers. Bun and Deno often use JSR; Node projects often use npm. Both are first-class.
 
@@ -208,7 +208,7 @@ They solve different problems:
 HTTPS protects:      data in transit — nobody can intercept
 Integrity protects:  data at origin  — request came from YOUR client
                      data shape      — query was not tampered with
-                     replay attacks  — captured requests can't be resent
+                     replay window   — captured requests die when the token expires or is revoked
 ```
 
 HTTPS alone:
@@ -222,8 +222,11 @@ HTTPS + Integrity:
 
 - Eve cannot read the request ✅
 - Eve cannot craft a trusted request ✅
-- Mallory cannot replay (token expiry) ✅
+- Mallory cannot replay **after** token expiry or logout revoke ✅
+- Mallory **can** replay a captured signed triple **until** then ❌
 - Rogue scripts have no signing token ✅
+
+There is no per-request nonce on the wire today. Short `tokenTTL` (default 15m), TLS, and persisted-query allowlists are the production controls. See the [threat model](./threat-model.md).
 
 ### Do I need the integrity package?
 
@@ -259,17 +262,18 @@ Yes — and the value is different per method:
 
 No — and this is by design. MeshQL never verifies passwords, implements OAuth/SAML/OIDC, or calls any auth provider's API. It sits **after** authentication, not instead of it.
 
-You plug in your existing auth via a single `identify()` function:
+You plug in your existing auth via `authenticate` on login (`POST /{base}/auth`). MeshQL does not parse cookies or JWTs itself:
 
 ```typescript
 withIntegrity(mesh, {
-  secret: process.env.MESH_SECRET,
-  identify: async (req) => {
-    const session = await auth0.getSession(req) // or Clerk, Firebase, your own JWT
-    if (!session) return null
-    return { userId: session.user.id, role: session.user.role }
+  secret: process.env.MESH_SECRET!,
+  tokenTTL: "15m",
+  authenticate: async (creds) => {
+    // verify password, exchange an IdP token, or look up a session
+    const user = await yourAuth.verify(creds);
+    return { userId: user.id, sessionId: user.sessionId, role: user.role };
   },
-})
+});
 ```
 
 Works with Auth0, Clerk, Firebase, Cognito, your own JWT, SSO, SAML — anything that produces a verified identity.

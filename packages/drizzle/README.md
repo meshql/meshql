@@ -7,12 +7,12 @@ Drizzle catch-all resolver for MeshQL. Maps `JoinPlan` to Drizzle's relational q
 ## Install
 
 ```bash
-npm install @meshql-js/drizzle @meshql-js/core drizzle-orm
+npm install @meshqljs/drizzle @meshqljs/core drizzle-orm
 # or
 npx jsr add @meshql/drizzle @meshql/core
 ```
 
-Published on npm as `@meshql-js/drizzle` and [JSR](https://jsr.io/@meshql/drizzle) as `@meshql/drizzle`.
+Published on npm as `@meshqljs/drizzle` and [JSR](https://jsr.io/@meshql/drizzle) as `@meshql/drizzle`.
 
 Requires `@meshql/core` **0.7.0+**.
 

@@ -1,11 +1,11 @@
-# @meshql-js/codemods / @meshql/codemods
+# @meshqljs/codemods / @meshql/codemods
 
 GraphQL SDL → MeshQL schema migration (v0.9.0 P1).
 
 ## Install
 
 ```bash
-npm install @meshql-js/codemods
+npm install @meshqljs/codemods
 # or
 npx jsr add @meshql/codemods
 ```

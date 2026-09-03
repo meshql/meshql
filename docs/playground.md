@@ -45,6 +45,8 @@ Pass role context to execute via headers (`X-Mesh-Role`, `X-Mesh-User-Id`) or th
 
 When `@meshql/integrity` is enabled, the signed `/mesh` wire still requires tokens. The docs `/docs/execute` path calls `mesh.executeDetailed` **in-process** (no `X-Mesh-*` headers); integrity skips signature checks when there is no HTTP transport. Use `auth` on the docs config to gate who can open the playground.
 
+Full trust-boundary notes: [threat model](./threat-model.md).
+
 ## SQL trace
 
 Enable `sql: "dev"` and record SQL from resolvers:

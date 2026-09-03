@@ -5,12 +5,12 @@ Typed client SDK for MeshQL APIs.
 ## Install
 
 ```bash
-npm install @meshql-js/client
+npm install @meshqljs/client
 # or
 npx jsr add @meshql/client
 ```
 
-Published on [npm](https://www.npmjs.com/package/@meshql-js/client) as `@meshql-js/client` and [JSR](https://jsr.io/@meshql/client) as `@meshql/client`.
+Published on [npm](https://www.npmjs.com/package/@meshqljs/client) as `@meshqljs/client` and [JSR](https://jsr.io/@meshql/client) as `@meshql/client`.
 
 ## Browser
 
@@ -18,7 +18,7 @@ The client runs in modern browsers — it uses `fetch`, `FormData`, `Blob`, and
 Web Crypto for signing and uploads. No Node `Buffer` or `node:crypto` required.
 
 ```ts
-import { createAuthClient } from "@meshql-js/client";
+import { createAuthClient } from "@meshqljs/client";
 
 const client = createAuthClient({ url: "/mesh", format: "json" });
 await client.login({ email: "ada@example.com", password: "demo" });
@@ -37,7 +37,7 @@ const posts = await client.query(
 ## Example
 
 ```ts
-import { createClient } from "@meshql-js/client";
+import { createClient } from "@meshqljs/client";
 
 const client = createClient({ url: "http://localhost:3000/mesh" });
 
