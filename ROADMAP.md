@@ -25,11 +25,11 @@ request integrity and native multipart uploads:
 
 ```ts
 import express from "express";
-import { createMesh } from "meshql-core";
-import { meshExpressRouter } from "meshql-http/express";
-import { withIntegrity } from "meshql-integrity";
-import { withUpload } from "meshql-upload";
-import { prismaResolver, schemaFromPrisma } from "meshql-prisma";
+import { createMesh } from "@meshqljs/core";
+import { meshExpressRouter } from "@meshqljs/http/express";
+import { withIntegrity } from "@meshqljs/integrity";
+import { withUpload } from "@meshqljs/upload";
+import { prismaResolver, schemaFromPrisma } from "@meshqljs/prisma";
 import { prisma } from "./db.js";
 
 const schema = await schemaFromPrisma("./prisma/schema.prisma");
@@ -161,7 +161,7 @@ POST /docs/execute      → run query (delegates to mesh.execute)
 **Security defaults:** warn when `auth: false` in production; never expose raw
 `columns` / table mappings unless `sql: "dev"`.
 
-**Package:** `@meshql/docs` (JSR) · `meshql-docs` (npm). See [Phase 6](#phase-6--meshqldocs-interactive-playground-4-weeks).
+**Package:** `@meshql/docs` (JSR) · `@meshqljs/docs` (npm). See [Phase 6](#phase-6--meshqldocs-interactive-playground-4-weeks).
 
 ### v0.11.0 — Computed fields (in `@meshql/core`)
 
