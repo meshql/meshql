@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.14
+
+### Patch Changes
+
+- dd3f183: Publish npm packages as `@meshqljs/*`. The `@meshql-js` org is retired. JSR remains `@meshql/*`.
+- Updated dependencies [dd3f183]
+  - @meshql/core@0.11.2
+  - @meshql/http@0.8.5
+
 ## 0.5.13
 
 ### Patch Changes

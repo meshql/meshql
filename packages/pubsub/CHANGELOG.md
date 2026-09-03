@@ -1,5 +1,11 @@
 # @meshql/pubsub
 
+## 0.2.2
+
+### Patch Changes
+
+- dd3f183: Publish npm packages as `@meshqljs/*`. The `@meshql-js` org is retired. JSR remains `@meshql/*`.
+
 ## 0.2.1
 
 ### Patch Changes

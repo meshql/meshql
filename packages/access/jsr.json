@@ -1,6 +1,6 @@
 {
   "name": "@meshql/access",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "license": "MIT",
   "exports": "./src/index.ts",
   "publish": {
