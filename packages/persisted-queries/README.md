@@ -1,4 +1,4 @@
-# @meshql-js/persisted-queries / @meshql/persisted-queries
+# @meshqljs/persisted-queries / @meshql/persisted-queries
 
 Register MeshQL queries and send `X-Mesh-Query-Id` instead of full base64 headers.
 

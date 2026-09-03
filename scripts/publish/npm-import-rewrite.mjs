@@ -1,5 +1,5 @@
 /**
- * Rewrite workspace `@meshql/*` imports to `@meshql-js/*` for npm dist output.
+ * Rewrite workspace `@meshql/*` imports to `@meshqljs/*` for npm dist output.
  */
 import fs from "node:fs";
 import path from "node:path";

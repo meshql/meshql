@@ -69,7 +69,7 @@ function distDirOf(packageDir) {
 }
 
 /**
- * Rewrite package.json and dist imports for npm publish: @meshql-js/* names,
+ * Rewrite package.json and dist imports for npm publish: @meshqljs/* names,
  * dist-only, semver deps. Workspace `pnpm build` keeps `@meshql/*` in dist
  * so tests resolve; rewrite happens only here.
  */

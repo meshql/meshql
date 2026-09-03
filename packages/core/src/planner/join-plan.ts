@@ -444,7 +444,7 @@ function flattenWhereToLegacyFilters(
   return [{ field: expr.field, op: expr.op, value: expr.value }];
 }
 
-/** Collect a node and all nested reference nodes from an AST subtree. */
+/** @internal Collect a node and all nested reference nodes from an AST subtree. */
 export function collectAstNodes(node: ASTNode): ASTNode[] {
   return [node, ...node.refs.flatMap(collectAstNodes)];
 }

@@ -1,11 +1,11 @@
-# @meshql-js/pubsub / @meshql/pubsub
+# @meshqljs/pubsub / @meshql/pubsub
 
 Pub/sub backends for MeshQL real-time subscriptions (v0.9.0).
 
 ## Install
 
 ```bash
-npm install @meshql-js/pubsub
+npm install @meshqljs/pubsub
 # or
 npx jsr add @meshql/pubsub
 ```

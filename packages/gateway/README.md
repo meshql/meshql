@@ -1,11 +1,11 @@
-# @meshql-js/gateway / @meshql/gateway
+# @meshqljs/gateway / @meshql/gateway
 
 Static multi-service MeshQL gateway (V1) — route queries by entity, parallel fetch, stitch cross-service joins.
 
 ## Install
 
 ```bash
-npm install @meshql-js/gateway @meshql-js/client @meshql-js/core
+npm install @meshqljs/gateway @meshqljs/client @meshqljs/core
 # or
 npx jsr add @meshql/gateway @meshql/client @meshql/core
 ```

@@ -7,7 +7,7 @@ Interactive API docs and query playground for MeshQL — like Swagger UI or Grap
 ```bash
 npx jsr add @meshql/docs
 # or
-npm install @meshql-js/docs
+npm install @meshqljs/docs
 ```
 
 ## Quick start (Express)
@@ -76,3 +76,7 @@ See `examples/showcase` for a full demo at `/docs`.
 `@meshql/integrity` verifies signed HTTP wire requests. Docs execute is in-process
 (no `transport`), so signature checks are skipped; gate access with `auth` instead.
 Signed client calls still go through your integrity HTTP adapter as usual.
+
+Do not leave `auth: false` or `sql: "dev"` on a public production URL. See
+[playground security](https://docs.meshql.dev/guide/playground) and the
+[threat model](https://docs.meshql.dev/community/threat-model).
