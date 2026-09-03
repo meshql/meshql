@@ -1,5 +1,13 @@
 # @meshql/drizzle
 
+## 0.7.8
+
+### Patch Changes
+
+- dd3f183: Publish npm packages as `@meshqljs/*`. The `@meshql-js` org is retired. JSR remains `@meshql/*`.
+- Updated dependencies [dd3f183]
+  - @meshql/core@0.11.2
+
 ## 0.7.7
 
 ### Patch Changes
