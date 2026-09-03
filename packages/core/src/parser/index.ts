@@ -70,4 +70,5 @@ export function parseQuery(raw: string): AST {
 }
 
 export type { AST, ASTNode } from "./ast.js";
+/** @internal QL lexer. Prefer {@link parseQl} / {@link parseQuery}. */
 export { tokenize } from "./tokenizer.js";

@@ -46,7 +46,7 @@ express()
 
 Every gap between this snippet and what the repo does today is a roadmap item.
 
-## Status (as of 0.9.x)
+## Status (as of 0.11.x)
 
 **Current sequence** — Phase 1 landed first (correctness took precedence over
 repositioning), then the chosen execution order is:
@@ -111,8 +111,8 @@ persisted queries land.
 | **P1** | **`@meshql/codemods`** | GraphQL SDL → MeshQL schema; migration report + CLI | ✅ shipped (0.1.0) |
 | **P1** | **Showcase SSE demo** | React live updates via pubsub + signed SSE | ✅ shipped |
 | **P1** | **SSE Fastify/Hono adapters** | Parity with `@meshql/http` | ✅ shipped (sse 0.2.x) |
-| **P2** | **API audit** | Mark internals, freeze public surface heading into 1.0 | 1 week |
-| **P2** | **Security pass** | Replay nonces/timestamps, threat-model doc (complements v1.0 integrity audit) | 1 week |
+| **P2** | **API audit** | Mark internals, freeze public surface heading into 1.0 (`docs/PUBLIC_API.md`) | ✅ |
+| **P2** | **Security pass** | Threat-model doc + integrity replay documented; per-request nonces deferred (additive wire) | ✅ |
 
 ### v0.10.0 — Developer experience (`@meshql/docs`)
 
@@ -222,9 +222,9 @@ Non-negotiables for the 1.0 cut:
 
 | Item | Notes |
 |---|---|
-| **Zero breaking changes** from 0.11 → 1.0 | Semver freeze starts here |
-| **`@meshql` npm org resolved** | Migrate `meshql-*` → `@meshql/*` cleanly |
-| **Security audit of `@meshql/integrity`** | External or structured self-audit with published findings |
+| **Zero breaking changes** from 0.11 → 1.0 | Semver freeze starts here (`docs/PUBLIC_API.md`) |
+| **`@meshql` npm org** | Packages publish as `@meshqljs/*` today; migrate to `@meshql/*` on npm if/when the org is available. JSR already uses `@meshql/*` |
+| **Security audit of `@meshql/integrity`** | Threat model + self-audit published (`docs/threat-model.md`); external review still optional for the 1.0 cut |
 | **Performance benchmarks published** | vs GraphQL + dataloaders — numbers, not claims (`measure-shaper.mjs` is the seed) |
 | **Auth adapters** | `@meshql/auth-clerk`, `@meshql/auth-auth0`, `@meshql/auth-jwt` |
 | **Go port planning started** | Spec already published ✅; find Go maintainer; placeholder repo |
@@ -280,7 +280,7 @@ gantt
 | 5b | Shaper perf: O(N) `shapeRefMany`, cached field readers | `0.7.1` | 2 evenings | ✅ done |
 | 6 | `@meshql/docs` — interactive playground + SQL trace | `0.10.0` | ~4 weeks | ✅ ready to release |
 | 7 | Computed fields in `@meshql/core` + planner deps | `0.11.0` | ~3.5 weeks | ✅ implemented |
-| _post_ | API audit, benchmarks, auth adapters, v1.0 cut | `0.9 → 1.0` | 8–12 weeks | 🔄 in progress |
+| _post_ | API audit + security pass (docs freeze); then benchmarks, auth adapters, v1.0 cut | `0.11 → 1.0` | remaining: 1.0 cut | 🔄 API/security prep done |
 
 Use Changesets (already configured) for every phase. Bump majors freely until 1.0.
 
@@ -1267,8 +1267,8 @@ track above is now the source of truth. Summary of what remains:
 | Real-time (SSE + pubsub) + gateway + codemods | ✅ done | 0.9.0 |
 | Interactive playground (`@meshql/docs`) | ✅ ready to release | 0.10.0 |
 | Computed fields (in `@meshql/core`) | ✅ implemented + documented | 0.11.0 |
-| Benchmarks, auth adapters, npm org, Go port, integrity audit | 📋 | 1.0.0 |
-| API audit + security pass | 📋 | 0.9.0 (prep) / 1.0.0 (freeze) |
+| API audit + security pass (freeze + threat model) | ✅ | 0.11.x prep |
+| Benchmarks, auth adapters, npm `@meshql` org, Go port, external integrity audit | 📋 | 1.0.0 |
 | Schema naming polish + stale README fixes | ✅ | this week |
 
 See **v0.10.0**, **v0.11.0**, and **v1.0.0** at the top of this doc
@@ -1315,6 +1315,8 @@ Pin Node to 22 LTS; add 24 to the matrix in Phase 6.
 | `docs/comparison.md` | post-Phase 5 | vs PostgREST, Hasura, hand-rolled |
 | `docs/playground.md` | Phase 6 | `@meshql/docs` setup + security |
 | `docs/computed-fields.md` | Phase 7 | virtual fields + access patterns |
+| `docs/PUBLIC_API.md` | 1.0 prep | export freeze tiers |
+| `docs/threat-model.md` | 1.0 prep | integrity replay, playground, uploads |
 | `specs/08-computed-fields.md` | Phase 7 | optional behavior contract |
 | `ROADMAP.md` | this doc | maintained as phases close |
 
@@ -1337,9 +1339,10 @@ Each phase ends with:
 | Multi-join correctness keeps surprising us | Property-based tests in Phase 1 (fast-check) over the shaper |
 | Prisma / Drizzle internals change | Pin to current major; release patch versions on adapter breakage |
 | Multipart integrity is subtle | Write tests *first* in Phase 3; treat the protocol as the spec |
-| Plugin API drift before 1.0 | Document and freeze in the v1.0 phase |
+| Plugin API drift before 1.0 | Document and freeze in `docs/PUBLIC_API.md` |
 | Schema inference doesn't cover edge cases | Ship explicit `extendSchema` from day one so users have an escape hatch |
 | Playground exposes schema in production | Default `auth` required in prod; warn on `auth: false` |
+| Integrity replay until token expiry | Documented in threat model; short TTL + revoke; nonces deferred |
 | Computed field dep explosion | Cap `from` array length; reject computed→computed at registration |
 
 ---

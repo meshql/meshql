@@ -1,11 +1,11 @@
-# @meshql-js/sse / @meshql/sse
+# @meshqljs/sse / @meshql/sse
 
 Field-aware MeshQL subscriptions over Server-Sent Events (v0.9.0).
 
 ## Install
 
 ```bash
-npm install @meshql-js/sse @meshql-js/pubsub @meshql-js/core @meshql-js/http
+npm install @meshqljs/sse @meshqljs/pubsub @meshqljs/core @meshqljs/http
 # or
 npx jsr add @meshql/sse @meshql/pubsub @meshql/core @meshql/http
 ```

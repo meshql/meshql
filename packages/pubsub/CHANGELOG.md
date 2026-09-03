@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- f6e96a6: First npm publish under `@meshql-js/*` and a unified `publish.yml` for npm + JSR.
+- f6e96a6: First npm publish under `@meshqljs/*` and a unified `publish.yml` for npm + JSR.
 
 ## 0.2.0
 

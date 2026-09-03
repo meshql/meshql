@@ -167,9 +167,9 @@ jobs:
           node scripts/prepare-npm-publish.mjs "${PACKAGE}"
           cd "packages/${PACKAGE}"
           npm pack --pack-destination "../../artifacts"
-          tarball=$(ls -1 "../../artifacts"/meshql-js-${PACKAGE}-*.tgz 2>/dev/null | tail -1 || true)
+          tarball=$(ls -1 "../../artifacts"/meshqljs-${PACKAGE}-*.tgz 2>/dev/null | tail -1 || true)
           if [ -z "${tarball}" ]; then
-            # scoped packs: meshql-js-core-0.1.0.tgz OR @meshql-js/core style name in filename
+            # scoped packs: meshqljs-core-0.1.0.tgz OR @meshqljs/core style name in filename
             tarball=$(ls -1 ../../artifacts/*.tgz | tail -1)
           fi
           echo "Packed $(basename "$tarball")"
