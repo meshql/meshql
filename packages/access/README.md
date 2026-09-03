@@ -5,12 +5,12 @@ Entity, row, and field access control for MeshQL.
 ## Install
 
 ```bash
-npm install @meshql-js/access @meshql-js/core
+npm install @meshqljs/access @meshqljs/core
 # or
 npx jsr add @meshql/access @meshql/core
 ```
 
-Published on [npm](https://www.npmjs.com/package/@meshql-js/access) as `@meshql-js/access` and [JSR](https://jsr.io/@meshql/access) as `@meshql/access`.
+Published on [npm](https://www.npmjs.com/package/@meshqljs/access) as `@meshqljs/access` and [JSR](https://jsr.io/@meshql/access) as `@meshql/access`.
 
 ## Example
 

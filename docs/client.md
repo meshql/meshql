@@ -13,7 +13,7 @@ Works in **Node**, **Bun**, **Deno**, and **modern browsers** — uses `fetch`,
 npx jsr add @meshql/client
 
 # npm
-npm install @meshql-js/client
+npm install @meshqljs/client
 ```
 
 Pair with `@meshql/http` on the server (or use the showcase / integrity router).

@@ -42,6 +42,19 @@ least:
 Invalid or missing signature when integrity is enabled → **401/403** with
 `IntegrityError` JSON body ([01](./01-http-wire.md)).
 
+## Replay
+
+The HMAC binds the signature to the **query header** and a session token with
+`expiresAt`. This profile does **not** include a per-request nonce or a signed
+request timestamp.
+
+A captured `(X-Mesh-Query, X-Mesh-Signature, X-Mesh-Token)` triple MAY be
+replayed until the token expires or the session is revoked.
+
+Servers SHOULD use short token TTLs, TLS, logout revocation, and (when the
+client set is known) persisted-query allowlists. Optional per-request replay
+windows are a future, additive wire extension.
+
 ## Non-goals here
 
 Row-level / field-level authorization policies (`@meshql/access`) are

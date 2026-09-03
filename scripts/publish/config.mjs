@@ -1,6 +1,6 @@
 /** Single source of truth for npm + JSR publish metadata. */
 
-export const NPM_SCOPE = "@meshql-js";
+export const NPM_SCOPE = "@meshqljs";
 export const JSR_SCOPE = "@meshql";
 
 /** Publish order when multiple packages release together. */
@@ -47,7 +47,7 @@ const PACKAGE_SET = new Set(PUBLISH_ORDER);
 
 /**
  * @param {string} packageDir
- * @returns {string} e.g. `@meshql-js/core`
+ * @returns {string} e.g. `@meshqljs/core`
  */
 export function npmName(packageDir) {
   if (!PACKAGE_SET.has(packageDir)) {

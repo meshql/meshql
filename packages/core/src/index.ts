@@ -1,4 +1,6 @@
-/** MeshQL core: define schemas, register resolvers, and execute shaped queries. */
+/** MeshQL core: define schemas, register resolvers, and execute shaped queries.
+ * Public vs adapter vs advanced exports: `docs/PUBLIC_API.md`.
+ */
 import { MeshError, ResolverError, ValidationError } from "./errors/index.js";
 import { parseQuery } from "./parser/index.js";
 import { validateAst } from "./planner/validator.js";

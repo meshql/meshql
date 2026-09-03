@@ -5,19 +5,19 @@ SQLite helper for MeshQL. Builds parameterised `SELECT` statements from a join p
 ## Install
 
 ```bash
-npm install @meshql-js/sqlite @meshql-js/core
+npm install @meshqljs/sqlite @meshqljs/core
 # or
 npx jsr add @meshql/sqlite @meshql/core
 ```
 
-Published on [npm](https://www.npmjs.com/package/@meshql-js/sqlite) as `@meshql-js/sqlite` and [JSR](https://jsr.io/@meshql/sqlite) as `@meshql/sqlite`.
+Published on [npm](https://www.npmjs.com/package/@meshqljs/sqlite) as `@meshqljs/sqlite` and [JSR](https://jsr.io/@meshql/sqlite) as `@meshql/sqlite`.
 
 ## Example
 
 ```ts
 import { DatabaseSync } from "node:sqlite";
-import { createMesh, type MeshSchema } from "@meshql-js/core";
-import { buildSelectSql } from "@meshql-js/sqlite";
+import { createMesh, type MeshSchema } from "@meshqljs/core";
+import { buildSelectSql } from "@meshqljs/sqlite";
 
 const db = new DatabaseSync(":memory:");
 const schema: MeshSchema = { /* … */ };
