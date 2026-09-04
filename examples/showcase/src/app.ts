@@ -15,6 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** Build the showcase Express app (no listen) for server + e2e tests. */
 export function createApp(): Express {
   const app = express();
+  app.set("trust proxy", 1);
 
   // JSON / form bodies for UI routes; leave multipart streams untouched.
   app.use((req, res, next) => {
@@ -35,7 +36,7 @@ export function createApp(): Express {
   // Interactive UI shells (browser uses @meshql/client → /mesh)
   mountUi(app);
 
-  // Signed writes (preview until core mutations)
+  // Signed REST writes (preview until core mutations)
   mountWriteRoute(app, mesh.integrity, pubsub);
 
   // Live updates (SSE + pub/sub)

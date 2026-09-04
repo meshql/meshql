@@ -24,10 +24,24 @@ export type StoredAuth = {
   name: string;
 };
 
+export type WireKind = "query" | "write" | "auth" | "upload" | "sse";
+
+export type WireStatus = "pending" | number | "sse";
+
 export type WireEntry = {
+  id: string;
   method: string;
   url: string;
+  kind: WireKind;
+  startedAt: number;
+  durationMs?: number;
+  status: WireStatus;
   payload?: unknown;
   response?: unknown;
   error?: string;
+  explain: string;
+  eventCount?: number;
+  live?: boolean;
+  /** Raw SSE response stream lines (DevTools-style), not a JSON body. */
+  streamText?: string;
 };

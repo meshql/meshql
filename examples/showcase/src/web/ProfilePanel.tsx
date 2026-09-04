@@ -61,6 +61,12 @@ export function ProfilePanel({
             email=
             {user?.email !== undefined ? user.email : <em>hidden</em>}
           </div>
+          {user?.email === undefined ? (
+            <p className="field-access-hint">
+              Field access: <code>user.email</code> is admin-only, not missing from the
+              schema. Sign in as admin to see it.
+            </p>
+          ) : null}
         </div>
       </div>
       {auth.role !== "guest" ? (

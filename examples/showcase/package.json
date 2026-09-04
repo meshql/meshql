@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "dev:web": "vite",
     "build:web": "vite build",
-    "prestart": "pnpm run build:web",
+    "prestart": "pnpm -w exec turbo run build --filter=showcase^... && pnpm run build:web",
     "start": "tsx src/server.ts",
     "demo": "tsx src/demo.ts",
     "test": "vitest run",

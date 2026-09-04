@@ -24,4 +24,8 @@ import { createMeshSseFastifyPlugin } from "@meshql/sse/fastify";
 import { meshSseHonoRoutes } from "@meshql/sse/hono";
 ```
 
-Signed requests (integrity/access plugins) use the same headers as GET — access control runs on each SSE refresh via `handleGet`.
+Signed requests (integrity/access plugins) use the same headers as GET — access
+control runs on each SSE refresh via `handleGet`.
+
+On connect the stream sends `event: initialize` (a lightweight ack). Record
+payloads are only pushed as `event: update` after pub/sub notifies a change.

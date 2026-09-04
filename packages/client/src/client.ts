@@ -91,10 +91,14 @@ export interface MeshClient {
    */
   upload<T = Record<string, unknown>>(options: UploadOptions): Promise<T>;
   /**
-   * Execute a signed write against `POST /write` (preview API).
+   * Execute a signed REST write (preview until core mutations land).
    *
-   * Payload is transported in the signed `X-Mesh-Query` header as
-   * `{ $write: { op, entity, id?, data? } }`.
+   * - create → `POST /:entity` with JSON body
+   * - update → `PATCH /:entity/:id` with JSON body
+   * - delete → `DELETE /:entity/:id`
+   *
+   * The JSON body (or `{}` for delete) is signed into `X-Mesh-Query` /
+   * `X-Mesh-Signature` like reads.
    */
   write<T = Record<string, unknown>>(options: WriteOptions): Promise<T>;
   /** Update signing credentials after login or refresh. */
@@ -280,22 +284,46 @@ export function createClient(options: MeshClientOptions): MeshClient {
   }
 
   async function executeWrite<T>(writeOptions: WriteOptions): Promise<T> {
-    const payload: WritePayload = {
-      op: writeOptions.op,
-      entity: writeOptions.entity,
-      id: writeOptions.id,
-      data: writeOptions.data,
+    const { op, entity, id, data } = writeOptions;
+    let method: string;
+    let path: string;
+    let bodyRaw: string;
+
+    if (op === "create") {
+      method = "POST";
+      path = `${options.url}/${entity}`;
+      bodyRaw = JSON.stringify(data ?? {});
+    } else if (op === "update") {
+      if (id === undefined) {
+        throw new Error("MeshQL write update requires id");
+      }
+      method = "PATCH";
+      path = `${options.url}/${entity}/${id}`;
+      bodyRaw = JSON.stringify(data ?? {});
+    } else if (op === "delete") {
+      if (id === undefined) {
+        throw new Error("MeshQL write delete requires id");
+      }
+      method = "DELETE";
+      path = `${options.url}/${entity}/${id}`;
+      bodyRaw = "{}";
+    } else {
+      throw new Error(`Unsupported write op: ${String(op)}`);
+    }
+
+    const signedHeaders = await resolveSignedHeaders(bodyRaw);
+    const headers: Record<string, string> = {
+      ...options.headers,
+      ...signedHeaders,
     };
-    const raw = JSON.stringify({ $write: payload });
+    if (op !== "delete") {
+      headers["Content-Type"] = "application/json";
+    }
 
-    const signedHeaders = await resolveSignedHeaders(raw);
-
-    const response = await fetchFn(`${options.url}/write`, {
-      method: "POST",
-      headers: {
-        ...options.headers,
-        ...signedHeaders,
-      },
+    const response = await fetchFn(path, {
+      method,
+      headers,
+      body: op === "delete" ? undefined : bodyRaw,
     });
 
     if (response.status === 401 && auth.onTokenExpired) {

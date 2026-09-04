@@ -1,12 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { CollectionResult } from "@meshql/core";
 import { useMesh } from "./MeshContext.js";
+import { NotificationBell } from "./NotificationBell.js";
+import {
+  describePostUpdate,
+  pushNotification,
+  type LiveNotification,
+} from "./notify.js";
 import { PostDetail } from "./PostDetail.js";
 import { PostsList } from "./PostsList.js";
 import { ProfilePanel } from "./ProfilePanel.js";
-import { WirePanel } from "./WirePanel.js";
 import type { PostRow, UserRow } from "./types.js";
+import { roleStory } from "./utils.js";
 
 const POST_DETAIL_SELECTION = {
   post: {
@@ -28,7 +34,7 @@ const POST_DETAIL_SELECTION = {
 } as const;
 
 export function DashboardPage() {
-  const { auth, wireLog, query, write, logout, subscribe } = useMesh();
+  const { auth, wireLog, selectedWireId, query, write, logout, subscribe } = useMesh();
   const navigate = useNavigate();
 
   const [posts, setPosts] = useState<PostRow[]>([]);
@@ -40,6 +46,12 @@ export function DashboardPage() {
   const [err, setErr] = useState<string>();
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState(false);
+  const [notifications, setNotifications] = useState<LiveNotification[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [toast, setToast] = useState<LiveNotification | null>(null);
+  const prevLivePost = useRef<PostRow | null>(null);
+  const selectedPostRef = useRef<PostRow | null>(null);
+  selectedPostRef.current = selectedPost;
 
   const loadPosts = useCallback(async () => {
     const data = await query<CollectionResult<PostRow>>(
@@ -140,16 +152,27 @@ export function DashboardPage() {
   useEffect(() => {
     if (!auth || selectedId === null) {
       setLive(false);
+      prevLivePost.current = null;
       return;
     }
 
     setLive(false);
+    prevLivePost.current =
+      selectedPostRef.current?.id === selectedId ? selectedPostRef.current : null;
+
     const unsubscribe = subscribe<PostRow>(
       POST_DETAIL_SELECTION,
-      { entity: "post", entityId: String(selectedId) },
+      {
+        entity: "post",
+        entityId: String(selectedId),
+        onOpen: () => setLive(true),
+      },
       (data) => {
         if (!data || typeof data !== "object" || Array.isArray(data)) return;
         if (Object.keys(data).length === 0) return;
+
+        const note = describePostUpdate(prevLivePost.current, data, selectedId);
+        prevLivePost.current = data;
         setSelectedPost(data);
         setLive(true);
         setPosts((prev) =>
@@ -164,11 +187,26 @@ export function DashboardPage() {
               : post,
           ),
         );
+
+        if (note) {
+          setNotifications((prev) => pushNotification(prev, note));
+          setUnread((n) => n + 1);
+          setToast(note);
+        }
       },
     );
 
     return unsubscribe;
   }, [auth, selectedId, subscribe]);
+
+  // Seed the SSE diff baseline once the selected post finishes loading.
+  useEffect(() => {
+    if (selectedId === null || selectedPost?.id !== selectedId) return;
+    if (prevLivePost.current?.id === selectedId) return;
+    prevLivePost.current = selectedPost;
+  }, [selectedId, selectedPost]);
+
+  const dismissToast = useCallback(() => setToast(null), []);
 
   async function withFlash(action: () => Promise<void>, success: string) {
     setFlash(undefined);
@@ -190,6 +228,9 @@ export function DashboardPage() {
 
   if (!auth) return null;
 
+  const selectedWire =
+    wireLog.find((entry) => entry.id === selectedWireId) ?? wireLog[0];
+
   return (
     <div className="wrap">
       <header className="dash-header">
@@ -199,18 +240,63 @@ export function DashboardPage() {
             Signed in as <strong>{auth.name}</strong>
             <span className="badge">{auth.role}</span>
           </p>
+          <p className="role-strip">{roleStory(auth.role)}</p>
+          <p className="demo-note">
+            Shared live demo — posts you create are visible to others.{" "}
+            <a href="/docs">Playground</a>
+            {" · "}
+            <a href="https://docs.meshql.dev" target="_blank" rel="noopener noreferrer">
+              Docs
+            </a>
+          </p>
         </div>
-        <button
-          type="button"
-          className="btn"
-          onClick={async () => {
-            await logout();
-            navigate("/login");
-          }}
-        >
-          Sign out
-        </button>
+        <div className="dash-actions">
+          <NotificationBell
+            items={notifications}
+            unread={unread}
+            listening={live && selectedId !== null}
+            selectedPostId={selectedId}
+            toast={toast}
+            onOpen={() => setUnread(0)}
+            onClear={() => {
+              setNotifications([]);
+              setUnread(0);
+              setToast(null);
+            }}
+            onSelectPost={(postId) => {
+              void handleSelect(postId);
+            }}
+            onDismissToast={dismissToast}
+          />
+          <a className="header-link" href="/docs">
+            /docs
+          </a>
+          <button
+            type="button"
+            className="btn"
+            onClick={async () => {
+              await logout();
+              navigate("/login");
+            }}
+          >
+            Sign out
+          </button>
+        </div>
       </header>
+
+      {selectedWire ? (
+        <p className="action-caption">
+          <span className="badge">{selectedWire.method}</span>
+          {selectedWire.url}
+          {" — "}
+          {selectedWire.explain}
+        </p>
+      ) : (
+        <p className="action-caption">
+          Interact with the dashboard. Every action is a signed <code>/mesh</code> call
+          — open the network sheet below.
+        </p>
+      )}
 
       {loading ? <p className="hint">Loading…</p> : null}
       {flash ? <div className="flash">{flash}</div> : null}
@@ -282,7 +368,6 @@ export function DashboardPage() {
             user={user}
             onUploaded={async () => setUser(await loadProfile())}
           />
-          <WirePanel entries={wireLog} />
         </div>
       </div>
     </div>

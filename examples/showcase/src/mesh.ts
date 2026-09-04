@@ -13,8 +13,9 @@ import { buildSelectSql } from "@meshql/sqlite";
 import { withUpload } from "@meshql/upload";
 import { db, ensureSchema, seed, type SqliteParam } from "./db.js";
 import { schema } from "./schema.js";
+import { DEFAULT_MESH_SECRET } from "./config.js";
 
-export const SECRET = process.env.MESH_SECRET ?? "showcase-secret";
+export const SECRET = process.env.MESH_SECRET ?? DEFAULT_MESH_SECRET;
 
 ensureSchema();
 seed();
