@@ -8,6 +8,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -20,10 +21,27 @@ import {
   parseWireToken,
   saveAuth,
 } from "./utils.js";
+import {
+  WIRE_CAP,
+  explainAuth,
+  explainQuery,
+  explainSse,
+  explainUpload,
+  explainWrite,
+  formatSseFrame,
+  newWireId,
+} from "./wire.js";
+
+type StartWireInit = Omit<WireEntry, "id" | "startedAt" | "status"> & {
+  status?: WireEntry["status"];
+};
 
 type MeshContextValue = {
   auth: StoredAuth | null;
   wireLog: WireEntry[];
+  selectedWireId: string | null;
+  selectWire: (id: string | null) => void;
+  clearWireLog: () => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   query: <T>(
@@ -38,7 +56,7 @@ type MeshContextValue = {
   uploadAvatar: (file: File) => Promise<void>;
   subscribe: <T>(
     query: MeshQuery,
-    options: { entity: string; entityId: string },
+    options: { entity: string; entityId: string; onOpen?: () => void },
     onUpdate: (data: T) => void,
   ) => () => void;
 };
@@ -54,12 +72,54 @@ function clientFromAuth(auth: StoredAuth): AuthMeshClient {
 export function MeshProvider({ children }: { children: ReactNode }) {
   const [auth, setAuth] = useState<StoredAuth | null>(() => loadAuth());
   const [wireLog, setWireLog] = useState<WireEntry[]>([]);
+  const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
   const [client, setClient] = useState<AuthMeshClient | null>(() =>
     auth ? clientFromAuth(auth) : null,
   );
+  const sseByPath = useRef(new Map<string, string>());
 
-  const logWire = useCallback((entry: WireEntry) => {
-    setWireLog((prev) => [entry, ...prev].slice(0, 8));
+  const selectWire = useCallback((id: string | null) => {
+    setSelectedWireId(id);
+  }, []);
+
+  const clearWireLog = useCallback(() => {
+    setWireLog([]);
+    setSelectedWireId(null);
+    sseByPath.current.clear();
+  }, []);
+
+  const startWire = useCallback((init: StartWireInit): string => {
+    const id = newWireId();
+    const entry: WireEntry = {
+      live: false,
+      eventCount: 0,
+      ...init,
+      id,
+      startedAt: Date.now(),
+      status: init.status ?? "pending",
+    };
+    // List only — never auto-select. Details appear when the user clicks a row.
+    setWireLog((prev) => [entry, ...prev].slice(0, WIRE_CAP));
+    return id;
+  }, []);
+
+  const patchWire = useCallback((id: string, patch: Partial<WireEntry>) => {
+    setWireLog((prev) =>
+      prev.map((entry) => {
+        if (entry.id !== id) return entry;
+        const next = { ...entry, ...patch };
+        const finishing =
+          patch.status !== undefined &&
+          patch.status !== "pending" &&
+          patch.durationMs === undefined &&
+          entry.durationMs === undefined &&
+          patch.status !== "sse";
+        if (finishing) {
+          next.durationMs = Date.now() - entry.startedAt;
+        }
+        return next;
+      }),
+    );
   }, []);
 
   const getClient = useCallback((): AuthMeshClient => {
@@ -71,42 +131,71 @@ export function MeshProvider({ children }: { children: ReactNode }) {
     return next;
   }, [client]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const authClient = createAuthClient({ url: MESH_URL, format: "json" });
-    const tokens = await authClient.login({ email, password });
-    authClient.setAuth(tokens);
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const authId = startWire({
+        method: "POST",
+        url: `${MESH_URL}/auth`,
+        kind: "auth",
+        payload: { email },
+        explain: explainAuth(),
+      });
 
-    const payload = parseWireToken(tokens.token);
-    let name = email;
-    try {
-      const profile = await authClient.query<UserRow>(
-        { user: { $select: { id: true, name: true, role: true } } },
-        { entityId: payload.userId },
-      );
-      if (profile?.name) name = profile.name;
-    } catch {
-      // optional at login
-    }
+      try {
+        const authClient = createAuthClient({ url: MESH_URL, format: "json" });
+        const tokens = await authClient.login({ email, password });
+        authClient.setAuth(tokens);
 
-    const stored: StoredAuth = {
-      signingToken: tokens.signingToken,
-      token: tokens.token,
-      expiresAt: tokens.expiresAt,
-      userId: payload.userId,
-      role: payload.role ?? "guest",
-      name,
-    };
+        const payload = parseWireToken(tokens.token);
+        patchWire(authId, {
+          status: 200,
+          response: { userId: payload.userId, role: payload.role },
+        });
 
-    saveAuth(stored);
-    setAuth(stored);
-    setClient(authClient);
-    logWire({
-      method: "POST",
-      url: `${MESH_URL}/auth`,
-      payload: { email },
-      response: { userId: payload.userId, role: payload.role },
-    });
-  }, [logWire]);
+        let name = email;
+        const profileQuery = {
+          user: { $select: { id: true, name: true, role: true } },
+        } as MeshQuery;
+        const profileId = startWire({
+          method: "GET",
+          url: `${MESH_URL}/user/${payload.userId}`,
+          kind: "query",
+          payload: profileQuery,
+          explain: explainQuery(profileQuery, payload.userId),
+        });
+        try {
+          const profile = await authClient.query<UserRow>(profileQuery, {
+            entityId: payload.userId,
+          });
+          patchWire(profileId, { status: 200, response: profile });
+          if (profile?.name) name = profile.name;
+        } catch {
+          patchWire(profileId, {
+            status: 400,
+            error: "Optional profile read failed",
+          });
+        }
+
+        const stored: StoredAuth = {
+          signingToken: tokens.signingToken,
+          token: tokens.token,
+          expiresAt: tokens.expiresAt,
+          userId: payload.userId,
+          role: payload.role ?? "guest",
+          name,
+        };
+
+        saveAuth(stored);
+        setAuth(stored);
+        setClient(authClient);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        patchWire(authId, { status: 401, error: message });
+        throw error;
+      }
+    },
+    [patchWire, startWire],
+  );
 
   const logout = useCallback(async () => {
     const token = auth?.token ?? loadAuth()?.token;
@@ -135,18 +224,25 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       const path = options.entityId
         ? `${MESH_URL}/${root}/${options.entityId}`
         : `${MESH_URL}/${root}`;
+      const id = startWire({
+        method: "GET",
+        url: path,
+        kind: "query",
+        payload: queryDocument,
+        explain: explainQuery(queryDocument, options.entityId),
+      });
 
       try {
         const data = await c.query<T>(queryDocument, options);
-        logWire({ method: "GET", url: path, payload: queryDocument, response: data });
+        patchWire(id, { status: 200, response: data });
         return data;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        logWire({ method: "GET", url: path, payload: queryDocument, error: message });
+        patchWire(id, { status: 400, error: message });
         throw error;
       }
     },
-    [getClient, logWire],
+    [getClient, patchWire, startWire],
   );
 
   const write = useCallback(
@@ -156,7 +252,20 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       options: { id?: number; data?: Record<string, unknown> } = {},
     ) => {
       const c = getClient();
-      const payload = { $write: { op, entity, id: options.id, data: options.data } };
+      const method =
+        op === "create" ? "POST" : op === "update" ? "PATCH" : "DELETE";
+      const url =
+        op === "create"
+          ? `${MESH_URL}/${entity}`
+          : `${MESH_URL}/${entity}/${options.id}`;
+      const payload = op === "delete" ? {} : (options.data ?? {});
+      const id = startWire({
+        method,
+        url,
+        kind: "write",
+        payload,
+        explain: explainWrite(op, entity, options.id),
+      });
 
       try {
         const data = await c.write({
@@ -165,15 +274,18 @@ export function MeshProvider({ children }: { children: ReactNode }) {
           id: options.id,
           data: options.data,
         });
-        logWire({ method: "POST", url: `${MESH_URL}/write`, payload, response: data });
+        patchWire(id, {
+          status: op === "create" ? 201 : 200,
+          response: data,
+        });
         return data;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        logWire({ method: "POST", url: `${MESH_URL}/write`, payload, error: message });
+        patchWire(id, { status: 400, error: message });
         throw error;
       }
     },
-    [getClient, logWire],
+    [getClient, patchWire, startWire],
   );
 
   const uploadAvatar = useCallback(
@@ -181,27 +293,35 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       const c = getClient();
       const userId = auth?.userId ?? loadAuth()?.userId;
       if (!userId) throw new Error("Not signed in");
-
-      await c.upload({
-        entity: "user",
-        field: "avatar",
-        id: userId,
-        file,
-      });
-      logWire({
+      const id = startWire({
         method: "POST",
         url: `${MESH_URL}/user/${userId}/avatar`,
+        kind: "upload",
         payload: { user: { avatar: { upload: true } } },
-        response: { ok: true },
+        explain: explainUpload(),
       });
+
+      try {
+        await c.upload({
+          entity: "user",
+          field: "avatar",
+          id: userId,
+          file,
+        });
+        patchWire(id, { status: 200, response: { ok: true } });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        patchWire(id, { status: 400, error: message });
+        throw error;
+      }
     },
-    [auth?.userId, getClient, logWire],
+    [auth?.userId, getClient, patchWire, startWire],
   );
 
   const subscribe = useCallback(
     <T,>(
       queryDocument: MeshQuery,
-      options: { entity: string; entityId: string },
+      options: { entity: string; entityId: string; onOpen?: () => void },
       onUpdate: (data: T) => void,
     ) => {
       const stored = auth ?? loadAuth();
@@ -210,32 +330,130 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       }
 
       const path = `${MESH_URL}/${options.entity}/${options.entityId}/events`;
-      logWire({
-        method: "SSE",
-        url: path,
-        payload: queryDocument,
-        response: { subscribed: true },
-      });
+      const existingId = sseByPath.current.get(path);
+      let id = existingId;
 
-      return subscribeMeshEvents(queryDocument, {
+      if (id) {
+        // Re-open the same eventsource row — never steal inspector focus.
+        patchWire(id, {
+          method: "SSE",
+          url: path,
+          kind: "sse",
+          status: "sse",
+          live: false,
+          payload: queryDocument,
+          response: undefined,
+          streamText: "",
+          eventCount: 0,
+          error: undefined,
+          durationMs: undefined,
+          explain: explainSse(options.entity, options.entityId),
+        });
+      } else {
+        id = startWire({
+          method: "SSE",
+          url: path,
+          kind: "sse",
+          status: "sse",
+          live: false,
+          eventCount: 0,
+          streamText: "",
+          payload: queryDocument,
+          explain: explainSse(options.entity, options.entityId),
+        });
+        sseByPath.current.set(path, id);
+      }
+
+      const wireId = id;
+
+      const unsubscribe = subscribeMeshEvents(queryDocument, {
         entity: options.entity,
         entityId: options.entityId,
         auth: stored,
+        onInitialize: (data) => {
+          setWireLog((prev) =>
+            prev.map((entry) =>
+              entry.id === wireId
+                ? {
+                    ...entry,
+                    streamText: `${entry.streamText ?? ""}${formatSseFrame(data, "initialize")}`,
+                    error: undefined,
+                    live: true,
+                  }
+                : entry,
+            ),
+          );
+          options.onOpen?.();
+        },
         onUpdate: (data) => {
-          logWire({ method: "SSE", url: path, payload: queryDocument, response: data });
+          setWireLog((prev) =>
+            prev.map((entry) =>
+              entry.id === wireId
+                ? {
+                    ...entry,
+                    response: data,
+                    streamText: `${entry.streamText ?? ""}${formatSseFrame(data, "update")}`,
+                    eventCount: (entry.eventCount ?? 0) + 1,
+                    error: undefined,
+                    live: true,
+                  }
+                : entry,
+            ),
+          );
           onUpdate(data as T);
         },
         onError: (message) => {
-          logWire({ method: "SSE", url: path, payload: queryDocument, error: message });
+          patchWire(wireId, { error: message, live: false });
         },
       });
+
+      return () => {
+        // Keep the wire row; mark the stream closed. Re-subscribe to the same
+        // path reuses this row instead of looking like another GET.
+        setWireLog((prev) =>
+          prev.map((entry) =>
+            entry.id === wireId
+              ? {
+                  ...entry,
+                  live: false,
+                  durationMs: Date.now() - entry.startedAt,
+                }
+              : entry,
+          ),
+        );
+        unsubscribe();
+      };
     },
-    [auth, logWire],
+    [auth, patchWire, startWire],
   );
 
   const value = useMemo(
-    () => ({ auth, wireLog, login, logout, query, write, uploadAvatar, subscribe }),
-    [auth, wireLog, login, logout, query, write, uploadAvatar, subscribe],
+    () => ({
+      auth,
+      wireLog,
+      selectedWireId,
+      selectWire,
+      clearWireLog,
+      login,
+      logout,
+      query,
+      write,
+      uploadAvatar,
+      subscribe,
+    }),
+    [
+      auth,
+      wireLog,
+      selectedWireId,
+      selectWire,
+      clearWireLog,
+      login,
+      logout,
+      query,
+      write,
+      uploadAvatar,
+      subscribe,
+    ],
   );
 
   return <MeshContext.Provider value={value}>{children}</MeshContext.Provider>;

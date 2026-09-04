@@ -10,6 +10,8 @@ export type SseSubscribeOptions = {
   entityId: string;
   auth: StoredAuth;
   onUpdate: (data: unknown) => void;
+  /** Fired when the stream acks with `event: initialize` (no record payload). */
+  onInitialize?: (data: unknown) => void;
   onError?: (message: string) => void;
 };
 
@@ -66,7 +68,13 @@ export function subscribeMeshEvents(
           }
         }
 
-        if (event === "update" && data) {
+        if (event === "initialize" && data) {
+          try {
+            options.onInitialize?.(JSON.parse(data));
+          } catch {
+            options.onInitialize?.({ ok: true });
+          }
+        } else if (event === "update" && data) {
           try {
             options.onUpdate(JSON.parse(data));
           } catch {
