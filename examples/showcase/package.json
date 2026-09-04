@@ -10,6 +10,7 @@
     "prestart": "pnpm -w exec turbo run build --filter=showcase^... && pnpm run build:web",
     "start": "tsx src/server.ts",
     "demo": "tsx src/demo.ts",
+    "pack:release": "node scripts/pack-release.mjs",
     "test": "vitest run",
     "check-types": "tsc --noEmit"
   },
@@ -36,6 +37,7 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.4.1",
+    "esbuild": "^0.25.12",
     "tsx": "^4.19.4",
     "typescript": "5.9.2",
     "vite": "^6.3.5",

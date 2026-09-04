@@ -1,9 +1,8 @@
 import type { Express } from "express";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { publicDir } from "./paths.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const indexHtml = path.join(__dirname, "../public/index.html");
+const indexHtml = path.join(publicDir(), "index.html");
 
 /** SPA fallback — React app handles /login and /dashboard client-side. */
 export function mountUi(app: Express): void {

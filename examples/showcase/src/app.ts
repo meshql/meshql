@@ -1,16 +1,13 @@
 import { meshDocsExpressRouter } from "@meshql/docs/express";
 import express, { type Express } from "express";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { meshIntegrityExpressRouter } from "@meshql/integrity/express";
 import type { IntegrityConfig } from "@meshql/integrity";
 import { mesh } from "./mesh.js";
 import { mountUi } from "./ui.js";
 import { pubsub } from "./pubsub.js";
+import { publicDir, uploadsDir } from "./paths.js";
 import { mountSseRoute } from "./sse-handler.js";
 import { mountWriteRoute } from "./write-handler.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** Build the showcase Express app (no listen) for server + e2e tests. */
 export function createApp(): Express {
@@ -30,8 +27,8 @@ export function createApp(): Express {
     });
   });
 
-  app.use(express.static(path.join(__dirname, "../public")));
-  app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+  app.use(express.static(publicDir()));
+  app.use("/uploads", express.static(uploadsDir()));
 
   // Interactive UI shells (browser uses @meshql/client → /mesh)
   mountUi(app);

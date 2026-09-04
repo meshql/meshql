@@ -95,3 +95,26 @@ public/                 # Vite build output + styles.css
 
 See [`.env.example`](./.env.example). The process trusts `X-Forwarded-*` so HTTPS
 behind Caddy/nginx is correct. Client calls stay on relative `/mesh`.
+
+## Standalone zip (linux-x64)
+
+Build a self-contained deployable archive (bundled Node 22 + `server.mjs` +
+static assets — no `pnpm` / `node_modules` on the host):
+
+```bash
+pnpm --filter showcase pack:release
+```
+
+Produces `examples/showcase/release/meshql-showcase-linux-x64-<version>.zip`.
+
+On the server:
+
+```bash
+unzip meshql-showcase-linux-x64-*.zip
+cd meshql-showcase-linux-x64-*
+cp .env.example .env   # set MESH_SECRET; optionally SQLITE_FILE outside this dir
+./run.sh
+```
+
+Point `SQLITE_FILE` (and keep `uploads/`) outside the unzip folder if you want
+data to survive replacing the zip on redeploy.
