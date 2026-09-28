@@ -9,7 +9,13 @@ import {
 } from "./wire.js";
 
 type Filter = "all" | "GET" | "POST" | "PATCH" | "DELETE" | "SSE";
-type Tab = "query" | "response" | "explain";
+type Tab = "query" | "response" | "sql" | "explain";
+
+function tabsFor(kind: WireEntry["kind"]): Tab[] {
+  return kind === "query"
+    ? ["query", "response", "sql", "explain"]
+    : ["query", "response", "explain"];
+}
 
 const COLLAPSED = 41;
 const MIN_HEIGHT = 160;
@@ -198,7 +204,7 @@ export function NetworkSheet() {
               {selected ? (
                 <>
                   <div className="network-tabs">
-                    {(["query", "response", "explain"] as const).map((item) => (
+                    {tabsFor(selected.kind).map((item) => (
                       <button
                         key={item}
                         type="button"
@@ -209,7 +215,10 @@ export function NetworkSheet() {
                       </button>
                     ))}
                   </div>
-                  <InspectorTab tab={tab} entry={selected} />
+                  <InspectorTab
+                    tab={tabsFor(selected.kind).includes(tab) ? tab : "query"}
+                    entry={selected}
+                  />
                 </>
               ) : (
                 <p className="hint network-empty">
@@ -237,6 +246,48 @@ function InspectorTab({ tab, entry }: { tab: Tab; entry: WireEntry }) {
           </p>
         ) : null}
         {entry.error ? <p className="network-explain-error">{entry.error}</p> : null}
+      </div>
+    );
+  }
+
+  if (tab === "sql") {
+    if (entry.sql === undefined) {
+      return <p className="hint network-empty">Waiting for SQL trace…</p>;
+    }
+    if (entry.sql === null) {
+      return (
+        <p className="hint network-empty">
+          SQL trace is off. Start the server without <code>SHOWCASE_SQL_TRACE=0</code> to
+          see the statements each read runs.
+        </p>
+      );
+    }
+    if (entry.sql.length === 0) {
+      return (
+        <p className="hint network-empty">
+          No SQL ran — the request was rejected before reaching the resolver.
+        </p>
+      );
+    }
+    return (
+      <div className="network-sql">
+        <p className="hint">
+          {entry.sql.length === 1
+            ? "One statement for the whole nested selection."
+            : `${entry.sql.length} statements ran for this read.`}
+        </p>
+        {entry.sql.map((statement, index) => (
+          <div key={index} className="network-sql-statement">
+            <pre className="net-json net-sql">{formatSql(statement.sql)}</pre>
+            {statement.params.length > 0 ? (
+              <pre className="net-json net-sql-params">
+                {statement.params
+                  .map((value, i) => `?${i + 1} = ${JSON.stringify(value)}`)
+                  .join("\n")}
+              </pre>
+            ) : null}
+          </div>
+        ))}
       </div>
     );
   }
@@ -298,6 +349,13 @@ function InspectorTab({ tab, entry }: { tab: Tab; entry: WireEntry }) {
   );
 }
 
+/** Line-break major clauses for reading; values are bound params, never inlined. */
+function formatSql(sql: string): string {
+  return sql
+    .replace(/\s+(FROM|(?:LEFT |INNER )?JOIN|WHERE|GROUP BY|ORDER BY|LIMIT|OFFSET)\s/g, "\n$1 ")
+    .replace(/,\s+(?=\w+\.\w+ AS )/g, ",\n  ");
+}
+
 function formatSseHeaders(entry: WireEntry): string {
   return [
     `GET ${displayPath(entry.url)} HTTP/1.1`,
@@ -317,6 +375,7 @@ function tabLabel(tab: Tab, kind: WireEntry["kind"]): string {
   }
   if (tab === "query") return "Query";
   if (tab === "response") return "Response";
+  if (tab === "sql") return "SQL";
   return "Explain";
 }
 

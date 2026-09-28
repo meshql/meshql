@@ -1,0 +1,43 @@
+{
+  "rows": [
+    {
+      "id": 1,
+      "name": "Ada",
+      "posts": "[{\"id\":7,\"score\":70,\"userId\":1,\"comments\":[{\"date\":\"2026-09-28\",\"count\":2,\"items\":[{\"id\":12,\"createdAt\":\"2026-09-28T13:00:00Z\"},{\"id\":11,\"createdAt\":\"2026-09-28T12:00:00Z\"}]},{\"date\":\"2026-09-27\",\"count\":1,\"items\":[{\"id\":8,\"createdAt\":\"2026-09-27T13:00:00Z\"}]}]},{\"id\":6,\"score\":60,\"comments\":[]}]"
+    },
+    {
+      "id": 3,
+      "name": "Linus",
+      "posts": []
+    }
+  ],
+  "shaped": [
+    {
+      "id": 1,
+      "name": "Ada",
+      "posts": [
+        {
+          "id": 7,
+          "score": 70,
+          "comments": [
+            {
+              "date": "2026-09-28",
+              "count": 2,
+              "items": [
+                { "id": 12, "createdAt": "2026-09-28T13:00:00Z" },
+                { "id": 11, "createdAt": "2026-09-28T12:00:00Z" }
+              ]
+            },
+            {
+              "date": "2026-09-27",
+              "count": 1,
+              "items": [{ "id": 8, "createdAt": "2026-09-27T13:00:00Z" }]
+            }
+          ]
+        },
+        { "id": 6, "score": 60, "comments": [] }
+      ]
+    },
+    { "id": 3, "name": "Linus", "posts": [] }
+  ]
+}

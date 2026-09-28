@@ -30,6 +30,9 @@ export function explainQuery(query: MeshQuery, entityId?: string): string {
   const hasPage = Boolean(node && "$page" in node);
   const hasOrder = Boolean(node && "$orderBy" in node);
 
+  if (!entityId && hasPerParentControls(node)) {
+    return "Nested read: `$orderBy` / `$page` / `$groupBy` on relations apply per parent row — still one SQL statement (see the SQL tab).";
+  }
   if (root === "post" && !entityId && (hasPage || hasOrder)) {
     return "Collection read with `$page` + `$orderBy` and nested `author` / `comments`.";
   }
@@ -48,6 +51,19 @@ export function explainQuery(query: MeshQuery, entityId?: string): string {
   return extras
     ? `Collection read of \`${root}\` with ${extras}.`
     : `Collection read of \`${root}\`.`;
+}
+
+const PER_PARENT_KEYS = ["$where", "$orderBy", "$page", "$groupBy", "$aggregate"];
+
+function hasPerParentControls(node: unknown): boolean {
+  const select = (node as { $select?: Record<string, unknown> } | undefined)?.$select;
+  if (!select) return false;
+  return Object.values(select).some(
+    (child) =>
+      typeof child === "object" &&
+      child !== null &&
+      (PER_PARENT_KEYS.some((key) => key in child) || hasPerParentControls(child)),
+  );
 }
 
 export function explainWrite(

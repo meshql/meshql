@@ -6,6 +6,7 @@ import { mesh } from "./mesh.js";
 import { mountUi } from "./ui.js";
 import { pubsub } from "./pubsub.js";
 import { publicDir, uploadsDir } from "./paths.js";
+import { mountSqlTrace } from "./sql-trace.js";
 import { mountSseRoute } from "./sse-handler.js";
 import { mountWriteRoute } from "./write-handler.js";
 
@@ -41,6 +42,9 @@ export function createApp(): Express {
 
   // Interactive API playground (schema browser + query runner + SQL trace)
   app.use(meshDocsExpressRouter(mesh, mesh.docs, "/docs"));
+
+  // Demo-only: executed SQL for the network sheet (SHOWCASE_SQL_TRACE=0 disables)
+  mountSqlTrace(app, "/mesh");
 
   // MeshQL API (signed header transport)
   app.use(

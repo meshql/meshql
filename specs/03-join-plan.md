@@ -17,6 +17,7 @@ consume this plan to fetch only requested data.
 | `joins` | `ResolvedJoin[]` | Nested relations requested by the client |
 | `read` | object? | Normalized selection and collection controls — see [05](./05-read-controls.md) |
 | `context` | object | At least: request correlation, HTTP method, optional `entityId` for point reads |
+| `strategy` | `"flat"` \| `"nested"` | How relations are fetched — see [Fetch strategy](#fetch-strategy) |
 
 ## ResolvedJoin
 
@@ -75,6 +76,29 @@ cardinality, paths, and join keys MUST remain consistent with the query tree.
 - Point read: `context.entityId` is set.
 - Collection read: `context.entityId` is absent and `read` carries the
   normalized controls, including the effective page and deterministic order.
+
+## Fetch strategy
+
+The planner chooses one strategy per query:
+
+- **`flat`** — every relation is LEFT JOINed into one row set and the shaper
+  re-nests it. Used when no relation carries per-parent controls, and for
+  root aggregate reads.
+- **`nested`** — used when any `many` relation (at any depth) has an explicit
+  `$where`, `$orderBy`, `$page`, `$groupBy` or `$aggregate`. Each relation is
+  fetched per parent row (the TS SQL builders render correlated subqueries
+  that return JSON, still in one statement), so its controls apply to each
+  parent independently and the root page counts root rows. The whole tree
+  switches, because mixing flat `many` joins with per-parent relations would
+  multiply rows again.
+
+Implementations SHOULD reject `nested` plans they cannot honor rather than
+silently dropping per-parent controls (the TS ORM adapters do not yet honor
+them). Polymorphic relations MAY be rejected in `nested` plans.
+
+A SQL builder that renders the `nested` strategy marks its rows as nested
+(TS: `plan.rowFormat = "nested"`) so the executor parses JSON relation columns
+instead of running the flat shaper.
 
 ## Preshaped resolvers
 

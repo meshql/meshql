@@ -227,7 +227,7 @@ Non-negotiables for the 1.0 cut:
 | **Security audit of `@meshql/integrity`** | Threat model + self-audit published (`docs/threat-model.md`); external review still optional for the 1.0 cut |
 | **Performance benchmarks published** | vs GraphQL + dataloaders — numbers, not claims (`measure-shaper.mjs` is the seed) |
 | **Auth adapters** | `@meshql/auth-clerk`, `@meshql/auth-auth0`, `@meshql/auth-jwt` |
-| **Go port planning started** | Spec already published ✅; find Go maintainer; placeholder repo |
+| **Go port** | ✅ [meshql-go](https://github.com/meshql/meshql-go) server at **Level 2** (net/http handler; Postgres, SQLite, MySQL builders; spec fixtures + `@meshqljs/client` cross-check in CI). Next: GORM/ent/bun adapters, computed fields, L3 integrity, L4 uploads |
 
 ## Goals (v1.0 scope)
 
@@ -1268,7 +1268,8 @@ track above is now the source of truth. Summary of what remains:
 | Interactive playground (`@meshql/docs`) | ✅ ready to release | 0.10.0 |
 | Computed fields (in `@meshql/core`) | ✅ implemented + documented | 0.11.0 |
 | API audit + security pass (freeze + threat model) | ✅ | 0.11.x prep |
-| Benchmarks, auth adapters, npm `@meshql` org, Go port, external integrity audit | 📋 | 1.0.0 |
+| Go server (meshql-go, Level 2) | ✅ | — |
+| Benchmarks, auth adapters, npm `@meshql` org, Go ORM adapters + L3/L4, external integrity audit | 📋 | 1.0.0 |
 | Schema naming polish + stale README fixes | ✅ | this week |
 
 See **v0.10.0**, **v0.11.0**, and **v1.0.0** at the top of this doc

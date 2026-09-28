@@ -36,6 +36,7 @@ describe("buildSchemaDoc", () => {
       controls: expect.arrayContaining(["$select", "$where", "$orderBy", "$page"]),
       filterOperators: expect.arrayContaining(["eq", "in", "ilike"]),
       aggregateFunctions: ["count", "sum", "avg", "min", "max"],
+      dateBuckets: ["hour", "day", "week", "month", "year"],
       pagination: { style: "keyset", defaultFirst: 50, maxFirst: 200 },
     });
     expect(doc.entities.map((e) => e.name)).toEqual(["post", "user"]);

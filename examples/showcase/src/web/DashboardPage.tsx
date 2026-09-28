@@ -11,7 +11,8 @@ import {
 import { PostDetail } from "./PostDetail.js";
 import { PostsList } from "./PostsList.js";
 import { ProfilePanel } from "./ProfilePanel.js";
-import type { PostRow, UserRow } from "./types.js";
+import { AUTHORS_QUERY, AuthorsPanel } from "./AuthorsPanel.js";
+import type { AuthorActivity, PostRow, UserRow } from "./types.js";
 import { roleStory } from "./utils.js";
 
 const POST_DETAIL_SELECTION = {
@@ -38,6 +39,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
 
   const [posts, setPosts] = useState<PostRow[]>([]);
+  const [authors, setAuthors] = useState<AuthorActivity[]>([]);
   const [user, setUser] = useState<UserRow | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedPost, setSelectedPost] = useState<PostRow | null>(null);
@@ -70,6 +72,15 @@ export function DashboardPage() {
       },
     );
     return data.items ?? [];
+  }, [query]);
+
+  const loadAuthors = useCallback(async () => {
+    try {
+      const data = await query<CollectionResult<AuthorActivity>>(AUTHORS_QUERY);
+      return data.items ?? [];
+    } catch {
+      return [];
+    }
   }, [query]);
 
   const loadPost = useCallback(
@@ -111,13 +122,18 @@ export function DashboardPage() {
   }, [auth?.userId, query]);
 
   const refresh = useCallback(async () => {
-    const [nextPosts, nextUser] = await Promise.all([loadPosts(), loadProfile()]);
+    const [nextPosts, nextUser, nextAuthors] = await Promise.all([
+      loadPosts(),
+      loadProfile(),
+      loadAuthors(),
+    ]);
     setPosts(nextPosts);
     setUser(nextUser);
+    setAuthors(nextAuthors);
     if (selectedId !== null) {
       setSelectedPost(await loadPost(selectedId));
     }
-  }, [loadPosts, loadProfile, loadPost, selectedId]);
+  }, [loadPosts, loadProfile, loadAuthors, loadPost, selectedId]);
 
   useEffect(() => {
     if (!auth) {
@@ -130,10 +146,15 @@ export function DashboardPage() {
 
     (async () => {
       try {
-        const [nextPosts, nextUser] = await Promise.all([loadPosts(), loadProfile()]);
+        const [nextPosts, nextUser, nextAuthors] = await Promise.all([
+          loadPosts(),
+          loadProfile(),
+          loadAuthors(),
+        ]);
         if (!cancelled) {
           setPosts(nextPosts);
           setUser(nextUser);
+          setAuthors(nextAuthors);
         }
       } catch (error) {
         if (!cancelled) {
@@ -147,7 +168,7 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [auth, navigate, loadPosts, loadProfile]);
+  }, [auth, navigate, loadPosts, loadProfile, loadAuthors]);
 
   useEffect(() => {
     if (!auth || selectedId === null) {
@@ -370,6 +391,8 @@ export function DashboardPage() {
           />
         </div>
       </div>
+
+      <AuthorsPanel authors={authors} selectedId={selectedId} onSelect={handleSelect} />
     </div>
   );
 }

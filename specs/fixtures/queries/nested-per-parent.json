@@ -1,0 +1,24 @@
+{
+  "user": {
+    "$select": {
+      "id": true,
+      "name": true,
+      "posts": {
+        "$select": {
+          "id": true,
+          "score": true,
+          "comments": {
+            "$select": { "id": true, "createdAt": true },
+            "$orderBy": [{ "field": "createdAt", "direction": "desc" }],
+            "$page": { "first": 10 },
+            "$groupBy": [{ "field": "createdAt", "bucket": "day", "as": "date" }],
+            "$aggregate": { "count": { "fn": "count", "field": "*" } }
+          }
+        },
+        "$orderBy": [{ "field": "score", "direction": "desc" }],
+        "$page": { "first": 5 }
+      }
+    },
+    "$page": { "first": 20 }
+  }
+}

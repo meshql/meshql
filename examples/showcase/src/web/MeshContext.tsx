@@ -13,6 +13,7 @@ import {
   type ReactNode,
 } from "react";
 import type { StoredAuth, UserRow, WireEntry } from "./types.js";
+import { loadSqlTrace, tracedClient } from "./sql-trace.js";
 import { subscribeMeshEvents } from "./subscribe.js";
 import {
   clearAuth,
@@ -163,10 +164,11 @@ export function MeshProvider({ children }: { children: ReactNode }) {
           payload: profileQuery,
           explain: explainQuery(profileQuery, payload.userId),
         });
+        let profileTrace: string | undefined;
         try {
-          const profile = await authClient.query<UserRow>(profileQuery, {
-            entityId: payload.userId,
-          });
+          const profile = await tracedClient(tokens, (traceId) => {
+            profileTrace = traceId;
+          }).query<UserRow>(profileQuery, { entityId: payload.userId });
           patchWire(profileId, { status: 200, response: profile });
           if (profile?.name) name = profile.name;
         } catch {
@@ -175,6 +177,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
             error: "Optional profile read failed",
           });
         }
+        void loadSqlTrace(profileTrace).then((sql) => patchWire(profileId, { sql }));
 
         const stored: StoredAuth = {
           signingToken: tokens.signingToken,
@@ -219,7 +222,12 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       queryDocument: MeshQuery,
       options: { entityId?: string } = {},
     ): Promise<T> => {
-      const c = getClient();
+      const stored = auth ?? loadAuth();
+      if (!stored) throw new Error("Not signed in");
+      let traceId: string | undefined;
+      const c = tracedClient(stored, (id) => {
+        traceId = id;
+      });
       const root = Object.keys(queryDocument)[0] ?? "unknown";
       const path = options.entityId
         ? `${MESH_URL}/${root}/${options.entityId}`
@@ -240,9 +248,11 @@ export function MeshProvider({ children }: { children: ReactNode }) {
         const message = error instanceof Error ? error.message : String(error);
         patchWire(id, { status: 400, error: message });
         throw error;
+      } finally {
+        void loadSqlTrace(traceId).then((sql) => patchWire(id, { sql }));
       }
     },
-    [getClient, patchWire, startWire],
+    [auth, patchWire, startWire],
   );
 
   const write = useCallback(

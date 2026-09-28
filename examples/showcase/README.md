@@ -9,6 +9,7 @@ traffic goes to **`/mesh/*`** — login, reads, writes, and uploads.
 | `GET /mesh/post` | Collection read with signed `$where` / `$orderBy` / `$page` controls |
 | `GET /mesh/post/:id` | Post detail |
 | `GET /mesh/user/:id` | Profile (field access demo) |
+| `GET /mesh/user` | Authors panel: each author's latest posts and their comments grouped by day, in one SQL statement |
 | `POST /mesh/post` | Create post (REST preview) |
 | `PATCH /mesh/post/:id` | Update post (REST preview) |
 | `DELETE /mesh/post/:id` | Delete post (REST preview) |
@@ -20,6 +21,12 @@ The dashboard **MeshQL network** sheet (bottom of the page) streams recent
 client calls like a browser DevTools network panel. Selecting a post opens a
 signed SSE subscription; live updates show in the detail view, a header
 activity bell, and as events on the same SSE row in the network sheet.
+
+Read rows in the sheet also have an **SQL** tab with the statement the server
+ran and its bound parameters — sign in as guest vs admin to see the access
+filter appear in the `WHERE` clause. This is a demo-only side channel
+(`X-Showcase-Trace` header + `GET /showcase/sql/:id`); don't expose executed
+SQL from a real API.
 
 Hosted demo: **https://showcase.meshql.dev** — a shared sandbox; posts are not
 private.
@@ -83,6 +90,47 @@ public/                 # Vite build output + styles.css
 2. In another tab (or as another user), comment or edit that post.
 3. Watch the header bell, toast, post detail, and network sheet update together.
 
+### Authors panel (nested per-parent reads)
+
+The **Authors** panel under the dashboard is one query with three layers:
+every author, their 3 latest posts, and each post's 5 latest comments grouped
+by day. `$orderBy`, `$page` and `$groupBy` on `posts` and `comments` apply per
+parent row, so every author gets their own 3 posts and every post its own 5
+comments.
+
+```ts
+user: {
+  $select: {
+    name: true,
+    posts: {
+      $select: {
+        title: true,
+        comments: {
+          $select: { body: true, author: { $select: { name: true } } },
+          $orderBy: [{ field: "createdAt", direction: "desc" }],
+          $page: { first: 5 },
+          $groupBy: [{ field: "createdAt", bucket: "day", as: "date" }],
+          $aggregate: { count: { fn: "count", field: "*" } },
+        },
+      },
+      $orderBy: [{ field: "createdAt", direction: "desc" }],
+      $page: { first: 3 },
+    },
+  },
+  $where: { field: "role", op: "eq", value: "author" },
+}
+```
+
+Open the `GET /mesh/user` row's **SQL** tab: the whole tree is a single
+statement. Sign in as guest and the drafts disappear from each author's list,
+because `guest-post-filter` in `src/mesh.ts` adds a `status = ?` filter (bound to
+`"published"`) to the nested `posts` as well as the top-level post list. The full query is in
+`src/web/AuthorsPanel.tsx`.
+
+The seed data only loads into an empty database. A `SQLITE_FILE` created
+before this panel existed won't have the extra posts and comments, so delete
+it (or point at a new file) to see several day buckets per post.
+
 ## Env
 
 | Variable | Default | Purpose |
@@ -92,6 +140,7 @@ public/                 # Vite build output + styles.css
 | `MESH_SECRET` | `showcase-secret` | Integrity HMAC secret. **Set this in production.** |
 | `SQLITE_FILE` | `:memory:` | Persist the DB to a file so data survives restarts |
 | `PUBLIC_ORIGIN` | `https://showcase.meshql.dev` | Public URL used in server logs |
+| `SHOWCASE_SQL_TRACE` | on | Set to `0` to hide the network sheet's **SQL** tab and `GET /showcase/sql/:id` |
 
 See [`.env.example`](./.env.example). The process trusts `X-Forwarded-*` so HTTPS
 behind Caddy/nginx is correct. Client calls stay on relative `/mesh`.

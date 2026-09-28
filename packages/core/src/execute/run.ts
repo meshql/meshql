@@ -25,6 +25,7 @@ import type { MeshConfig } from "../schema/schema.js";
 import { createQueryContext } from "../resolver/context.js";
 import type { ResolverRegistry } from "../resolver/registry.js";
 import { shape, shapeAggregateRows, shapeMany } from "../shaper/shaper.js";
+import { shapeNested } from "../shaper/nested.js";
 import {
   summarizeJoinPlan,
   type JoinPlanSummary,
@@ -93,6 +94,10 @@ async function shapeResponse(
       plan,
       schema,
     );
+  } else if (plan.rowFormat === "nested") {
+    const rows = Array.isArray(raw) ? raw : raw == null ? [] : [raw as Record<string, unknown>];
+    const nested = shapeNested(rows, ast.root, plan, schema);
+    shaped = listMode ? nested : (nested[0] ?? null);
   } else if (plan.read?.mode === "aggregate") {
     const rows = Array.isArray(raw) ? raw : [raw as Record<string, unknown>];
     shaped = shapeAggregateRows(rows, plan.read);

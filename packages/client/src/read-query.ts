@@ -1,5 +1,6 @@
 import type {
   AggregateSpec,
+  GroupByKey,
   HavingExpr,
   PageInput,
   SortExpr,
@@ -13,7 +14,7 @@ export interface ReadNode {
   $where?: WhereExpr;
   $orderBy?: SortExpr[];
   $page?: PageInput;
-  $groupBy?: string[];
+  $groupBy?: GroupByKey[];
   $aggregate?: Record<string, AggregateSpec>;
   $having?: HavingExpr;
   $distinct?: string[];
