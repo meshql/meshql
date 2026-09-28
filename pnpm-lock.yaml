@@ -183,14 +183,14 @@ importers:
         specifier: ^5.1.0
         version: 5.2.1
       react:
-        specifier: ^19.1.0
-        version: 19.2.7
+        specifier: ^19.3.0
+        version: 19.3.0
       react-dom:
         specifier: ^19.1.0
-        version: 19.2.7(react@19.2.7)
+        version: 19.2.7(react@19.3.0)
       react-router-dom:
         specifier: ^7.6.0
-        version: 7.18.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 7.18.1(react-dom@19.2.7(react@19.3.0))(react@19.3.0)
     devDependencies:
       '@meshql/typescript-config':
         specifier: workspace:*
@@ -202,11 +202,11 @@ importers:
         specifier: ^22.15.3
         version: 22.15.3
       '@types/react':
-        specifier: ^19.1.0
-        version: 19.2.17
+        specifier: ^19.3.0
+        version: 19.3.0
       '@types/react-dom':
         specifier: ^19.1.0
-        version: 19.2.3(@types/react@19.2.17)
+        version: 19.2.3(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^4.4.1
         version: 4.7.0(vite@6.4.3(@types/node@22.15.3)(jiti@2.7.0)(tsx@4.22.4))
@@ -1821,8 +1821,8 @@ packages:
     peerDependencies:
       '@types/react': ^19.2.0
 
-  '@types/react@19.2.17':
-    resolution: {integrity: sha512-MXfmqaVPEVgkBT/aY0aGCkRWWtByiYQXo3xdQ8r5RzuFrPiRn8Gar2tQdXSUQ2GKV3bkXckek89V8wQBY2Q/Aw==}
+  '@types/react@19.3.0':
+    resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
 
   '@types/send@1.2.1':
     resolution: {integrity: sha512-arsCikDvlU99zl1g69TcAB3mzZPpxgw0UQnaHeC1Nwb015xp8bknZv5rIfri9xTOcMuaVgvabfIRA7PSZVuZIQ==}
@@ -2871,8 +2871,8 @@ packages:
       react-dom:
         optional: true
 
-  react@19.2.7:
-    resolution: {integrity: sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ==}
+  react@19.3.0:
+    resolution: {integrity: sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog==}
     engines: {node: '>=0.10.0'}
 
   read-yaml-file@1.1.0:
@@ -4335,11 +4335,11 @@ snapshots:
 
   '@types/range-parser@1.2.7': {}
 
-  '@types/react-dom@19.2.3(@types/react@19.2.17)':
+  '@types/react-dom@19.2.3(@types/react@19.3.0)':
     dependencies:
-      '@types/react': 19.2.17
+      '@types/react': 19.3.0
 
-  '@types/react@19.2.17':
+  '@types/react@19.3.0':
     dependencies:
       csstype: 3.2.3
 
@@ -5311,28 +5311,28 @@ snapshots:
       defu: 6.1.7
       destr: 2.0.5
 
-  react-dom@19.2.7(react@19.2.7):
+  react-dom@19.2.7(react@19.3.0):
     dependencies:
-      react: 19.2.7
+      react: 19.3.0
       scheduler: 0.27.0
 
   react-refresh@0.17.0: {}
 
-  react-router-dom@7.18.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  react-router-dom@7.18.1(react-dom@19.2.7(react@19.3.0))(react@19.3.0):
     dependencies:
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
-      react-router: 7.18.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react: 19.3.0
+      react-dom: 19.2.7(react@19.3.0)
+      react-router: 7.18.1(react-dom@19.2.7(react@19.3.0))(react@19.3.0)
 
-  react-router@7.18.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  react-router@7.18.1(react-dom@19.2.7(react@19.3.0))(react@19.3.0):
     dependencies:
       cookie: 1.1.1
-      react: 19.2.7
+      react: 19.3.0
       set-cookie-parser: 2.7.2
     optionalDependencies:
-      react-dom: 19.2.7(react@19.2.7)
+      react-dom: 19.2.7(react@19.3.0)
 
-  react@19.2.7: {}
+  react@19.3.0: {}
 
   read-yaml-file@1.1.0:
     dependencies:
