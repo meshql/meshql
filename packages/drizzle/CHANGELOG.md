@@ -1,5 +1,12 @@
 # @meshql/drizzle
 
+## 0.7.9
+
+### Patch Changes
+
+- Updated dependencies [8a829cb]
+  - @meshql/core@0.12.0
+
 ## 0.7.8
 
 ### Patch Changes
