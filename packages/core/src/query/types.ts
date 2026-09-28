@@ -50,6 +50,17 @@ export interface AggregateSpec {
   distinct?: boolean;
 }
 
+/** Truncation unit for a date/time group key. */
+export type DateBucket = "hour" | "day" | "week" | "month" | "year";
+
+/**
+ * A `$groupBy` key: a plain field name, or a field truncated to a date
+ * bucket. `as` names the key in the response (defaults to `field`).
+ */
+export type GroupByKey =
+  | string
+  | { field: string; bucket?: DateBucket; as?: string };
+
 /** Parsed read node before schema normalization. */
 export interface ReadNodeWire {
   name: string;
@@ -58,7 +69,7 @@ export interface ReadNodeWire {
   orderBy?: SortExpr[];
   page?: PageInput;
   distinct?: string[];
-  groupBy?: string[];
+  groupBy?: GroupByKey[];
   aggregates?: Record<string, AggregateSpec>;
   having?: HavingExpr;
 }
@@ -75,10 +86,16 @@ export interface NormalizedReadNode {
   orderBy: SortExpr[];
   page?: { first: number; after?: string };
   distinct?: string[];
-  groupBy?: string[];
+  groupBy?: GroupByKey[];
   aggregates?: Record<string, AggregateSpec>;
   having?: HavingExpr;
   mode: "record" | "aggregate";
+  /**
+   * True on a `many` relation whose client sent explicit `$where`,
+   * `$orderBy`, `$page`, `$groupBy` or `$aggregate`. These controls apply
+   * per parent row, which the flat join strategy cannot express.
+   */
+  perParent?: boolean;
 }
 
 export interface PageInfo {
@@ -125,6 +142,17 @@ export const AGGREGATE_FNS: readonly AggregateFn[] = [
   "min",
   "max",
 ] as const;
+
+export const DATE_BUCKETS: readonly DateBucket[] = [
+  "hour",
+  "day",
+  "week",
+  "month",
+  "year",
+] as const;
+
+/** Key under which a bucketed relation nests the records of each group. */
+export const GROUP_ITEMS_KEY = "items";
 
 export const DEFAULT_PAGE_FIRST = 50;
 export const MAX_PAGE_FIRST = 200;

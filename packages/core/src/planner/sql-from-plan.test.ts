@@ -147,7 +147,7 @@ describe("emitJoinSql — through (M2M)", () => {
     expect(
       emitJoinSql(tagsJoin, plan, m2mSchema, pathToAlias, "posts"),
     ).toBe(
-      ' LEFT JOIN _PostToTag AS tags__junc ON tags__junc."A" = posts.id' +
+      ' LEFT JOIN "_PostToTag" AS tags__junc ON tags__junc."A" = posts.id' +
         ' LEFT JOIN tags AS tags ON tags.id = tags__junc."B"',
     );
   });

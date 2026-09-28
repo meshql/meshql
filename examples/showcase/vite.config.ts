@@ -18,6 +18,7 @@ export default defineConfig({
     proxy: {
       "/mesh": "http://localhost:3010",
       "/uploads": "http://localhost:3010",
+      "/showcase": "http://localhost:3010",
     },
   },
 });

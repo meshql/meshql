@@ -1,13 +1,26 @@
 import { createApp } from "./app.js";
+import {
+  DEFAULT_MESH_SECRET,
+  HOST,
+  PORT,
+  PUBLIC_ORIGIN,
+} from "./config.js";
+import { SECRET } from "./mesh.js";
 
 const app = createApp();
-const port = Number(process.env.PORT ?? 3010);
 
-app.listen(port, () => {
-  console.log(`MeshQL showcase  http://localhost:${port}`);
-  console.log(`  Login     → http://localhost:${port}/login`);
-  console.log(`  Dashboard → http://localhost:${port}/dashboard`);
-  console.log(`  Playground → http://localhost:${port}/docs`);
-  console.log(`  API       → http://localhost:${port}/mesh`);
-  console.log(`  Demo      → pnpm --filter showcase demo`);
+if (process.env.NODE_ENV === "production" && SECRET === DEFAULT_MESH_SECRET) {
+  console.warn(
+    "[showcase] MESH_SECRET is still the default. Set MESH_SECRET in production.",
+  );
+}
+
+app.listen(PORT, HOST, () => {
+  console.log(`MeshQL showcase  ${PUBLIC_ORIGIN}`);
+  console.log(`  listening  ${HOST}:${PORT}`);
+  console.log(`  Login      → ${PUBLIC_ORIGIN}/login`);
+  console.log(`  Dashboard  → ${PUBLIC_ORIGIN}/dashboard`);
+  console.log(`  Playground → ${PUBLIC_ORIGIN}/docs`);
+  console.log(`  API        → ${PUBLIC_ORIGIN}/mesh`);
+  console.log(`  Demo       → pnpm --filter showcase demo`);
 });

@@ -41,7 +41,8 @@ export function formatSseEvent(input: {
 
 /**
  * Stream field-shaped updates for one entity record over Server-Sent Events.
- * Re-runs the same MeshQL selection as a GET when pub/sub notifications arrive.
+ * Sends a lightweight `initialize` ack on connect, then re-runs the same MeshQL
+ * selection as a GET when pub/sub notifications arrive (`update` events).
  */
 export async function handleMeshSse(
   mesh: MeshInstance,
@@ -73,7 +74,13 @@ export async function handleMeshSse(
     }
   };
 
-  await pushSnapshot();
+  // Handshake only — clients already have data from GET; don't spam an update.
+  writable.write(
+    formatSseEvent({
+      event: "initialize",
+      data: { ok: true, entity, id: entityId },
+    }),
+  );
 
   const subscription = options.pubsub.subscribe(channel, () => {
     void pushSnapshot();

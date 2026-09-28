@@ -10,14 +10,18 @@ import {
   type MeshSchema,
 } from "../schema/schema.js";
 import type { ReadNodeWire } from "./types.js";
+import { groupKeyAlias, groupKeyField } from "./group-keys.js";
 import {
   DEFAULT_PAGE_FIRST,
+  GROUP_ITEMS_KEY,
   MAX_AGGREGATES,
   MAX_FILTER_DEPTH,
   MAX_FILTER_NODES,
   MAX_GROUP_KEYS,
   MAX_IN_SIZE,
   MAX_PAGE_FIRST,
+  type AggregateSpec,
+  type GroupByKey,
   type NormalizedReadNode,
   type SortExpr,
   type WhereExpr,
@@ -103,16 +107,59 @@ function appendIdTiebreaker(
 /** Stable ORDER BY for grouped queries — group keys, not the row id. */
 function appendGroupByTiebreaker(
   orderBy: SortExpr[],
-  groupBy: string[],
+  groupBy: GroupByKey[],
 ): SortExpr[] {
   const result = [...orderBy];
-  for (const field of groupBy) {
-    if (result.some((entry) => "field" in entry && entry.field === field)) {
+  for (const key of groupBy) {
+    const alias = groupKeyAlias(key);
+    const field = groupKeyField(key);
+    if (
+      result.some(
+        (entry) => "field" in entry && (entry.field === alias || entry.field === field),
+      )
+    ) {
       continue;
     }
-    result.push({ field, direction: "asc", nulls: "last" });
+    result.push({ field: alias, direction: "asc", nulls: "last" });
   }
   return result;
+}
+
+function validateGrouping(
+  groupBy: GroupByKey[] | undefined,
+  aggregates: Record<string, AggregateSpec> | undefined,
+  entityKey: string,
+  schema: MeshSchema,
+  nested: boolean,
+): void {
+  const config = schema.entities[entityKey];
+  const physical = new Set(config?.fields ?? []);
+  const outputNames = new Set<string>();
+  const claim = (name: string): void => {
+    if (outputNames.has(name)) {
+      throw new ValidationError(`Duplicate group/aggregate name '${name}' on '${entityKey}'`);
+    }
+    if (nested && name === GROUP_ITEMS_KEY) {
+      throw new ValidationError(
+        `'${GROUP_ITEMS_KEY}' is reserved for grouped records on '${entityKey}'`,
+      );
+    }
+    outputNames.add(name);
+  };
+
+  for (const key of groupBy ?? []) {
+    const field = groupKeyField(key);
+    if (!physical.has(field)) {
+      throw new ValidationError(`Unknown group field '${field}' on '${entityKey}'`);
+    }
+    claim(groupKeyAlias(key));
+  }
+  for (const [alias, spec] of Object.entries(aggregates ?? {})) {
+    if (spec.field !== undefined && spec.field !== "*" && !physical.has(spec.field)) {
+      throw new ValidationError(`Unknown aggregate field '${spec.field}' on '${entityKey}'`);
+    }
+    claim(alias);
+  }
 }
 
 function wireToAstNode(wire: ReadNodeWire): ASTNode {
@@ -157,8 +204,28 @@ export function normalizeReadTree(
     ? schema.joins[`${options.parentEntity}.${options.parentRef}`]?.type
     : undefined;
 
-  if (joinType === "one" && (wire.where || wire.orderBy || wire.page)) {
+  if (
+    joinType === "one" &&
+    (wire.where || wire.orderBy || wire.page || wire.groupBy || wire.aggregates)
+  ) {
     throw new ValidationError(`Controls are not allowed on one-relation '${wire.name}'`);
+  }
+
+  const nested = options.parentRef !== undefined;
+  if (nested) {
+    if (wire.page?.after) {
+      throw new ValidationError(
+        `'$page.after' is only supported on the root collection, not on '${path}'`,
+      );
+    }
+    if (wire.having) {
+      throw new ValidationError(`'$having' is not supported on nested relation '${path}'`);
+    }
+    if (wire.aggregates && !wire.groupBy?.length) {
+      throw new ValidationError(
+        `'$aggregate' on nested relation '${path}' requires '$groupBy'`,
+      );
+    }
   }
 
   const knownFields = new Set(entityQueryableFields(entityConfig));
@@ -176,16 +243,22 @@ export function normalizeReadTree(
   if (wire.aggregates && Object.keys(wire.aggregates).length > MAX_AGGREGATES) {
     throw new ValidationError(`aggregate exceeds maximum of ${MAX_AGGREGATES}`);
   }
+  validateGrouping(wire.groupBy, wire.aggregates, entityKey, schema, nested);
 
   const mode =
     wire.groupBy?.length || wire.aggregates
       ? "aggregate"
       : "record";
 
+  // Nested grouping buckets a window of records, so the window keeps record order.
   const orderBy =
-    mode === "aggregate"
+    mode === "aggregate" && !nested
       ? appendGroupByTiebreaker(wire.orderBy ?? [], wire.groupBy ?? [])
       : appendIdTiebreaker(wire.orderBy ?? [], entityKey, schema);
+
+  const perParent =
+    joinType === "many" &&
+    Boolean(wire.where || wire.orderBy || wire.page || wire.groupBy || wire.aggregates);
 
   const pageFirst = wire.page?.first ?? DEFAULT_PAGE_FIRST;
   if (pageFirst > MAX_PAGE_FIRST) {
@@ -228,6 +301,7 @@ export function normalizeReadTree(
     ...(wire.aggregates ? { aggregates: wire.aggregates } : {}),
     ...(wire.having ? { having: wire.having } : {}),
     mode,
+    ...(perParent ? { perParent } : {}),
   };
 
   const ast: AST = { root: wireToAstNode(wire) };

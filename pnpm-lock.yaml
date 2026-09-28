@@ -210,6 +210,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.4.1
         version: 4.7.0(vite@6.4.3(@types/node@22.15.3)(jiti@2.7.0)(tsx@4.22.4))
+      esbuild:
+        specifier: ^0.25.12
+        version: 0.25.12
       tsx:
         specifier: ^4.19.4
         version: 4.22.4

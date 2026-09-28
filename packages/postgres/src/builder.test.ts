@@ -136,7 +136,7 @@ describe("buildSelectSql — point read", () => {
 
     expect(sql).toBe(
       'SELECT posts.id AS "post_id", posts.title AS "post_title", tags.id AS "tags_id", tags.name AS "tags_name" FROM posts' +
-        ' LEFT JOIN _PostToTag AS tags__junc ON tags__junc."A" = posts.id' +
+        ' LEFT JOIN "_PostToTag" AS tags__junc ON tags__junc."A" = posts.id' +
         ' LEFT JOIN tags AS tags ON tags.id = tags__junc."B"' +
         " WHERE posts.id = $1",
     );
@@ -379,5 +379,77 @@ describe("cursor helpers", () => {
   it("throws on payloads missing 'id'", () => {
     const bogus = Buffer.from(JSON.stringify({ x: 1 }), "utf8").toString("base64url");
     expect(() => decodeCursor(bogus)).toThrow("Invalid cursor: missing 'id' field");
+  });
+});
+
+describe("nested fetch strategy (Postgres)", () => {
+  function nestedPlan(wire: ReadNodeWire) {
+    const { ast, read } = normalizeReadTree(wire, schema);
+    return buildJoinPlan(
+      ast,
+      schema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+      { read },
+    );
+  }
+
+  it("renders per-parent relation controls as a correlated JSON subquery", () => {
+    const plan = nestedPlan({
+      name: "user",
+      select: {
+        name: true,
+        tokens: {
+          name: "tokens",
+          select: { accessToken: true },
+          where: { field: "expiresAt", op: "gt", value: "2026-01-01" },
+          orderBy: [{ field: "expiresAt", direction: "desc" }],
+          page: { first: 2 },
+        },
+      },
+      where: { field: "role", op: "eq", value: "admin" },
+    });
+
+    const { sql, params } = buildSelectSql(plan, schema);
+    expect(plan.rowFormat).toBe("nested");
+    expect(sql).toBe(
+      'SELECT users.name AS "name", users.id AS "id", ' +
+        "(SELECT coalesce(json_agg(json_build_object('id', tokens.id, 'accessToken', tokens.access_token)" +
+        " ORDER BY tokens.expires_at DESC NULLS LAST, tokens.id ASC NULLS LAST), '[]'::json)" +
+        " FROM (SELECT tokens.* FROM tokens AS tokens WHERE tokens.user_id = users.id AND tokens.expires_at > $1" +
+        " ORDER BY tokens.expires_at DESC NULLS LAST, tokens.id ASC NULLS LAST LIMIT $2) AS tokens) AS \"tokens\"" +
+        " FROM users WHERE users.role = $3 ORDER BY users.id ASC NULLS LAST LIMIT $4",
+    );
+    expect(params).toEqual(["2026-01-01", 2, "admin", 51]);
+  });
+
+  it("renders bucketed nested groups with to_char(date_trunc(...))", () => {
+    const plan = nestedPlan({
+      name: "user",
+      select: {
+        id: true,
+        tokens: {
+          name: "tokens",
+          select: { accessToken: true },
+          groupBy: [{ field: "expiresAt", bucket: "day", as: "day" }],
+          aggregates: { n: { fn: "count", field: "*" } },
+        },
+      },
+    });
+    const { sql } = buildSelectSql(plan, schema);
+    const day = "to_char(date_trunc('day', tokens.expires_at), 'YYYY-MM-DD')";
+    expect(sql).toContain(`${day} AS "day", COUNT(*) AS "n"`);
+    expect(sql).toContain(`GROUP BY ${day}`);
+    expect(sql).toContain(`'items', tokens__g."items"`);
+  });
+
+  it("keeps the flat LEFT JOIN SQL when no relation has per-parent controls", () => {
+    const plan = nestedPlan({
+      name: "user",
+      select: { id: true, tokens: { name: "tokens", select: { accessToken: true } } },
+    });
+    expect(plan.strategy).toBe("flat");
+    const { sql } = buildSelectSql(plan, schema);
+    expect(plan.rowFormat).toBeUndefined();
+    expect(sql).toContain("LEFT JOIN tokens AS tokens ON tokens.user_id = users.id");
   });
 });

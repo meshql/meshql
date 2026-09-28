@@ -2,9 +2,12 @@ import { ParseError } from "../errors/index.js";
 import {
   AGGREGATE_FNS,
   COMPARISON_OPS,
+  DATE_BUCKETS,
   type AggregateFn,
   type AggregateSpec,
   type ComparisonOp,
+  type DateBucket,
+  type GroupByKey,
   type HavingExpr,
   type PageInput,
   type QueryDocument,
@@ -31,6 +34,13 @@ function isComparisonOp(value: string): value is ComparisonOp {
 function isAggregateFn(value: string): value is AggregateFn {
   return (AGGREGATE_FNS as readonly string[]).includes(value);
 }
+
+function isDateBucket(value: unknown): value is DateBucket {
+  return typeof value === "string" && (DATE_BUCKETS as readonly string[]).includes(value);
+}
+
+/** Output names are emitted as quoted SQL aliases, so keep them identifier-shaped. */
+const OUTPUT_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 /** Parse a JSON query document using the current MeshQL read protocol. */
 export function parseJsonQuery(raw: string): QueryDocument {
@@ -101,7 +111,7 @@ function parseReadNode(name: string, value: unknown): ReadNodeWire {
   if ("$orderBy" in obj) node.orderBy = parseOrderBy(obj.$orderBy, name);
   if ("$page" in obj) node.page = parsePage(obj.$page, name);
   if ("$distinct" in obj) node.distinct = parseStringArray(obj.$distinct, `$distinct on '${name}'`);
-  if ("$groupBy" in obj) node.groupBy = parseStringArray(obj.$groupBy, `$groupBy on '${name}'`);
+  if ("$groupBy" in obj) node.groupBy = parseGroupBy(obj.$groupBy, name);
   if ("$aggregate" in obj) node.aggregates = parseAggregates(obj.$aggregate, name);
   if ("$having" in obj) node.having = parseHaving(obj.$having, `$having on '${name}'`);
 
@@ -290,6 +300,43 @@ function parseStringArray(raw: unknown, label: string): string[] {
   });
 }
 
+function parseGroupBy(raw: unknown, entityName: string): GroupByKey[] {
+  const label = `$groupBy on '${entityName}'`;
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new ParseError(`${label} must be a non-empty array`);
+  }
+  return raw.map((entry, index): GroupByKey => {
+    if (typeof entry === "string" && entry.length > 0) {
+      return entry;
+    }
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new ParseError(`${label}[${index}] must be a field name or an object`);
+    }
+    const obj = entry as Record<string, unknown>;
+    for (const key of Object.keys(obj)) {
+      if (key !== "field" && key !== "bucket" && key !== "as") {
+        throw new ParseError(`${label}[${index}] has unknown key '${key}'`);
+      }
+    }
+    if (typeof obj.field !== "string" || obj.field.length === 0) {
+      throw new ParseError(`${label}[${index}].field must be a non-empty string`);
+    }
+    if (obj.bucket !== undefined && !isDateBucket(obj.bucket)) {
+      throw new ParseError(
+        `${label}[${index}].bucket must be one of ${DATE_BUCKETS.join(", ")}`,
+      );
+    }
+    if (obj.as !== undefined && (typeof obj.as !== "string" || !OUTPUT_NAME.test(obj.as))) {
+      throw new ParseError(`${label}[${index}].as must be an identifier`);
+    }
+    return {
+      field: obj.field,
+      ...(obj.bucket !== undefined ? { bucket: obj.bucket as DateBucket } : {}),
+      ...(obj.as !== undefined ? { as: obj.as as string } : {}),
+    };
+  });
+}
+
 function parseAggregates(
   raw: unknown,
   entityName: string,
@@ -299,6 +346,9 @@ function parseAggregates(
   }
   const out: Record<string, AggregateSpec> = {};
   for (const [alias, specRaw] of Object.entries(raw as Record<string, unknown>)) {
+    if (!OUTPUT_NAME.test(alias)) {
+      throw new ParseError(`'$aggregate' alias '${alias}' on '${entityName}' must be an identifier`);
+    }
     if (!specRaw || typeof specRaw !== "object" || Array.isArray(specRaw)) {
       throw new ParseError(`'$aggregate.${alias}' on '${entityName}' must be an object`);
     }

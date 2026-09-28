@@ -74,6 +74,18 @@ function quoteIdent(ident: string): string {
   return `"${ident.replace(/"/g, '""')}"`;
 }
 
+/**
+ * Table reference for SQL. Mixed-case names such as Prisma's implicit
+ * `_PostToTag` must be quoted or Postgres folds them to lowercase; plain
+ * lowercase and schema-qualified names are emitted as written.
+ */
+export function sqlTableRef(name: string): string {
+  if (/^[a-z_][a-z0-9_$]*$/.test(name) || name.includes(".") || name.includes('"')) {
+    return name;
+  }
+  return quoteIdent(name);
+}
+
 function sqlStringLiteral(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
@@ -210,7 +222,7 @@ export function emitJoinSql(
     const childIdCol = entityPhysicalIdColumn(schema.entities[join.entity]);
 
     return (
-      ` LEFT JOIN ${through.table} AS ${juncAlias}` +
+      ` LEFT JOIN ${sqlTableRef(through.table)} AS ${juncAlias}` +
       ` ON ${juncAlias}.${quoteIdent(through.from)} = ${parentRef}.${parentIdCol}` +
       ` LEFT JOIN ${physicalTable} AS ${sqlAlias}` +
       ` ON ${sqlAlias}.${childIdCol} = ${juncAlias}.${quoteIdent(through.to)}`

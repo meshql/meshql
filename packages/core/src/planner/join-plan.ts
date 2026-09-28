@@ -54,7 +54,24 @@ export interface JoinPlan {
    * should call {@link recordPlanSql} after building SQL.
    */
   sqlTrace?: SqlTraceCollector;
+  /**
+   * How SQL builders should fetch nested relations. `"flat"` (the default
+   * when absent) LEFT JOINs every relation into one row set. `"nested"`
+   * renders each relation as a correlated subquery that returns JSON, so
+   * per-parent `$where` / `$orderBy` / `$page` / `$groupBy` apply to each
+   * parent row. Chosen by {@link chooseFetchStrategy}.
+   */
+  strategy?: FetchStrategy;
+  /**
+   * Set by a SQL builder that rendered the nested strategy: resolver rows
+   * then carry one JSON column per relation instead of flat join aliases.
+   * Resolvers that ignore {@link strategy} leave this unset and keep the
+   * flat shaper.
+   */
+  rowFormat?: "flat" | "nested";
 }
+
+export type FetchStrategy = "flat" | "nested";
 
 /** A resolved join from the query AST to a schema join definition. */
 export interface ResolvedJoin {
@@ -413,6 +430,8 @@ export function buildJoinPlan(
     plan.read = options.read;
   }
 
+  plan.strategy = chooseFetchStrategy(options.read, joins);
+
   if (options.read?.page && plan.context.entityId === undefined) {
     plan.list = {
       limit: options.read.page.first,
@@ -427,6 +446,32 @@ export function buildJoinPlan(
   }
 
   return plan;
+}
+
+function hasPerParentNode(node: NormalizedReadNode): boolean {
+  return node.refs.some((ref) => ref.perParent === true || hasPerParentNode(ref));
+}
+
+/**
+ * Pick how nested relations are fetched. Plain selections keep the flat
+ * LEFT JOIN plan; any `many` relation with explicit per-parent controls
+ * switches the whole tree to correlated JSON subqueries (still one SQL
+ * statement). Root aggregate reads stay flat.
+ */
+export function chooseFetchStrategy(
+  read: NormalizedReadNode | undefined,
+  joins: ResolvedJoin[],
+): FetchStrategy {
+  if (!read || read.mode === "aggregate" || !hasPerParentNode(read)) {
+    return "flat";
+  }
+  const polymorphic = joins.find((join) => join.polymorphic);
+  if (polymorphic) {
+    throw new ValidationError(
+      `Per-parent relation controls cannot be combined with polymorphic relation '${polymorphic.path}'`,
+    );
+  }
+  return "nested";
 }
 
 function flattenWhereToLegacyFilters(

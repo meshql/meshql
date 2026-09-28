@@ -400,6 +400,91 @@ describe("buildSelectSql (SQLite) — collection reads", () => {
   });
 });
 
+describe("nested fetch strategy (SQLite)", () => {
+  function nestedPlan(wire: ReadNodeWire) {
+    const { ast, read } = normalizeReadTree(wire, schema);
+    return buildJoinPlan(
+      ast,
+      schema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+      { read },
+    );
+  }
+
+  it("renders per-parent relation controls as a correlated JSON subquery", () => {
+    const plan = nestedPlan({
+      name: "user",
+      select: {
+        name: true,
+        tokens: {
+          name: "tokens",
+          select: { accessToken: true },
+          orderBy: [{ field: "expiresAt", direction: "desc" }],
+          page: { first: 2 },
+        },
+      },
+      where: { field: "role", op: "eq", value: "admin" },
+    });
+    expect(plan.strategy).toBe("nested");
+
+    const { sql, params } = buildSelectSql(plan, schema);
+    expect(plan.rowFormat).toBe("nested");
+    expect(sql).toBe(
+      'SELECT users.name AS "name", users.id AS "id", ' +
+        "(SELECT coalesce(json_group_array(json_object('id', tokens.id, 'accessToken', tokens.access_token)" +
+        " ORDER BY tokens.expires_at DESC, tokens.id ASC), '[]')" +
+        " FROM (SELECT tokens.* FROM tokens AS tokens WHERE tokens.user_id = users.id" +
+        " ORDER BY tokens.expires_at DESC, tokens.id ASC LIMIT ?) AS tokens) AS \"tokens\"" +
+        " FROM users WHERE users.role = ? ORDER BY users.id ASC LIMIT ?",
+    );
+    // Positional params follow textual order: nested LIMIT, root WHERE, root LIMIT.
+    expect(params).toEqual([2, "admin", 51]);
+  });
+
+  it("renders bucketed nested groups with items", () => {
+    const plan = nestedPlan({
+      name: "user",
+      select: {
+        id: true,
+        tokens: {
+          name: "tokens",
+          select: { accessToken: true },
+          groupBy: [{ field: "expiresAt", bucket: "month", as: "month" }],
+          aggregates: { n: { fn: "count", field: "*" } },
+        },
+      },
+    });
+    const { sql } = buildSelectSql(plan, schema);
+    expect(sql).toContain(`strftime('%Y-%m', tokens.expires_at) AS "month", COUNT(*) AS "n"`);
+    expect(sql).toContain(`GROUP BY strftime('%Y-%m', tokens.expires_at)`);
+    expect(sql).toContain(`'items', json(tokens__g."items")`);
+  });
+
+  it("buckets root aggregate keys and orders by the bucket alias", () => {
+    const { ast, read } = normalizeReadTree(
+      {
+        name: "user",
+        select: { id: true },
+        groupBy: [{ field: "createdAt", bucket: "week", as: "week" }],
+        aggregates: { total: { fn: "count", field: "*" } },
+        orderBy: [{ field: "week", direction: "desc" }],
+      },
+      schema,
+    );
+    const plan = buildJoinPlan(
+      ast,
+      schema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+      { read },
+    );
+    const { sql } = buildSelectSql(plan, schema);
+    const week = "date(users.created_at, 'weekday 0', '-6 days')";
+    expect(sql).toBe(
+      `SELECT ${week} AS "week", COUNT(*) AS "total" FROM users GROUP BY ${week} ORDER BY ${week} DESC LIMIT ?`,
+    );
+  });
+});
+
 describe("cursor helpers (SQLite)", () => {
   it("encodes and decodes round-trip", () => {
     expect(decodeCursor(encodeCursor({ id: 42 }))).toEqual({ id: 42 });

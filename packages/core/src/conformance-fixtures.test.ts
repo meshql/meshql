@@ -8,6 +8,7 @@ import { buildJoinPlan } from "./planner/join-plan.js";
 import { createQueryContext } from "./resolver/context.js";
 import type { MeshSchema } from "./schema/schema.js";
 import { shape } from "./shaper/shaper.js";
+import { shapeNested } from "./shaper/nested.js";
 
 function astFromJsonQuery(raw: string, schema: MeshSchema) {
   const doc = parseJsonQuery(raw);
@@ -60,6 +61,30 @@ const postCommentsSchema: MeshSchema = {
       entity: "user",
       on: "users.id = comments.author_id",
       type: "one",
+    },
+  },
+};
+
+const userPostsSchema: MeshSchema = {
+  entities: {
+    user: { fields: ["id", "name"], table: "users" },
+    post: {
+      fields: ["id", "score", "userId"],
+      table: "posts",
+      columns: { userId: "user_id" },
+    },
+    comment: {
+      fields: ["id", "createdAt"],
+      table: "comments",
+      columns: { createdAt: "created_at" },
+    },
+  },
+  joins: {
+    "user.posts": { entity: "post", on: "posts.user_id = users.id", type: "many" },
+    "post.comments": {
+      entity: "comment",
+      on: "comments.post_id = posts.id",
+      type: "many",
     },
   },
 };
@@ -119,5 +144,29 @@ describe("spec conformance fixtures", () => {
     );
 
     expect(shape(fixture.rows, ast.root, plan.joins)).toEqual(fixture.shaped);
+  });
+
+  it("nested-per-parent: planner picks nested strategy → nested shaper", () => {
+    const query = loadFixture<Record<string, unknown>>("queries/nested-per-parent.json");
+    const fixture = loadFixture<{
+      rows: Record<string, unknown>[];
+      shaped: Record<string, unknown>[];
+    }>("responses/nested-per-parent.json");
+
+    const { ast, read } = normalizeReadTree(
+      parseJsonQuery(JSON.stringify(query)).root,
+      userPostsSchema,
+    );
+    const plan = buildJoinPlan(
+      ast,
+      userPostsSchema,
+      createQueryContext({ requestId: "1", method: "GET" }),
+      { read },
+    );
+
+    expect(plan.strategy).toBe("nested");
+    expect(shapeNested(fixture.rows, ast.root, plan, userPostsSchema)).toEqual(
+      fixture.shaped,
+    );
   });
 });

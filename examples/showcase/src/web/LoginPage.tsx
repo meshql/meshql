@@ -2,9 +2,17 @@ import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMesh } from "./MeshContext.js";
 
+const DEMO_ACCOUNTS = [
+  { email: "guest@example.com", label: "read published posts" },
+  { email: "ada@example.com", label: "author CRUD" },
+  { email: "admin@example.com", label: "full access" },
+] as const;
+
 export function LoginPage() {
   const { login } = useMesh();
   const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("demo");
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(false);
 
@@ -12,12 +20,9 @@ export function LoginPage() {
     event.preventDefault();
     setError(undefined);
     setLoading(true);
-    const form = event.currentTarget;
-    const email = (form.elements.namedItem("email") as HTMLInputElement).value.trim();
-    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
 
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       navigate("/dashboard");
     } catch {
       setError("Invalid email or password");
@@ -31,7 +36,18 @@ export function LoginPage() {
       <div className="auth-card">
         <h1>MeshQL Blog</h1>
         <p className="subtitle">
-          Sign in via <code>POST /mesh/auth</code> using <code>@meshql/client</code>
+          Sign in via <code>POST /mesh/auth</code> using <code>@meshql/client</code>.
+          Watch the network sheet at the bottom of the page.
+        </p>
+        <p className="demo-note">
+          Shared live demo at{" "}
+          <a href="https://showcase.meshql.dev">showcase.meshql.dev</a> — posts are
+          not private.{" "}
+          <a href="/docs">Playground</a>
+          {" · "}
+          <a href="https://docs.meshql.dev" target="_blank" rel="noopener noreferrer">
+            Docs
+          </a>
         </p>
         {error ? <div className="flash err">{error}</div> : null}
         <form className="auth-form" onSubmit={onSubmit}>
@@ -43,11 +59,19 @@ export function LoginPage() {
               required
               autoFocus
               placeholder="ada@example.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
             />
           </label>
           <label>
             Password
-            <input type="password" name="password" required defaultValue="demo" />
+            <input
+              type="password"
+              name="password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
           </label>
           <button type="submit" className="btn primary full" disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}
@@ -55,19 +79,24 @@ export function LoginPage() {
         </form>
         <div className="demo-accounts">
           <p>
-            Demo accounts (password: <code>demo</code>)
+            Demo accounts (password: <code>demo</code>) — click to fill
           </p>
-          <ul>
-            <li>
-              <strong>guest@example.com</strong> — read published posts
-            </li>
-            <li>
-              <strong>ada@example.com</strong> — author CRUD
-            </li>
-            <li>
-              <strong>admin@example.com</strong> — full access
-            </li>
-          </ul>
+          <div className="demo-chips">
+            {DEMO_ACCOUNTS.map((account) => (
+              <button
+                key={account.email}
+                type="button"
+                className="demo-chip"
+                onClick={() => {
+                  setEmail(account.email);
+                  setPassword("demo");
+                }}
+              >
+                <strong>{account.email}</strong>
+                <span>{account.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

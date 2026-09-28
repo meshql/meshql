@@ -9,12 +9,16 @@ import type {
 import {
   DEFAULT_LIST_LIMIT,
   MAX_LIST_LIMIT,
+  buildNestedSelectSql,
   buildPathToSqlAlias,
   emitJoinSql,
   entityTable,
+  groupKeyAlias,
   joinsInDependencyOrder,
   polymorphicEntitySelectExpr,
   polymorphicSelectExpr,
+  renderAggregateOrderBySql,
+  renderGroupKeySql,
   renderReadWhereSql,
   resolvePlanField,
   rowAliasForPlanField,
@@ -183,10 +187,12 @@ export function buildAggregateSql(
   if (!rootConfig) throw new Error(`Unknown root entity '${plan.rootEntity}'`);
   const rootTable = entityTable(plan.rootEntity, rootConfig);
   const params: unknown[] = [];
-  const selectParts = read.groupBy.map((field) => {
-    const column = sqlColumn(plan.rootEntity, field, schema);
-    return `${rootTable}.${column} AS "${field}"`;
-  });
+  const groupExprs = read.groupBy.map((key) =>
+    renderGroupKeySql(key, rootTable, plan.rootEntity, schema, "postgres"),
+  );
+  const selectParts = read.groupBy.map(
+    (key, index) => `${groupExprs[index]} AS "${groupKeyAlias(key)}"`,
+  );
   for (const [alias, spec] of Object.entries(read.aggregates)) {
     const fn = spec.fn.toUpperCase();
     const field = spec.field ?? "*";
@@ -209,11 +215,16 @@ export function buildAggregateSql(
   if (whereClauses.length > 0) {
     sql += ` WHERE ${whereClauses.join(" AND ")}`;
   }
-  sql += ` GROUP BY ${read.groupBy
-    .map((field) => `${rootTable}.${sqlColumn(plan.rootEntity, field, schema)}`)
-    .join(", ")}`;
-  if (read.orderBy.length > 0) {
-    sql += ` ORDER BY ${renderReadOrderBy(read.orderBy, rootTable, plan.rootEntity, schema)}`;
+  sql += ` GROUP BY ${groupExprs.join(", ")}`;
+  const orderBy = renderAggregateOrderBySql(
+    read,
+    rootTable,
+    plan.rootEntity,
+    schema,
+    "postgres",
+  );
+  if (orderBy) {
+    sql += ` ORDER BY ${orderBy}`;
   }
   if (read.page && plan.context.entityId === undefined) {
     params.push(effectiveLimit(plan.list, plan));
@@ -230,6 +241,12 @@ export function buildSelectSql(
 ): SqlQuery {
   if (plan.read?.mode === "aggregate") {
     return buildAggregateSql(plan, schema, options);
+  }
+  if (plan.strategy === "nested") {
+    plan.rowFormat = "nested";
+    return buildNestedSelectSql(plan, schema, "postgres", {
+      ...(options.idColumn ? { idColumn: options.idColumn } : {}),
+    });
   }
   const rootConfig = schema.entities[plan.rootEntity];
   if (!rootConfig) {

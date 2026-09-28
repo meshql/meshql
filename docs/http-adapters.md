@@ -70,7 +70,17 @@ With **`@meshql/integrity`** (`meshIntegrityExpressRouter`), these are added:
 
 Core mutations (create/update/delete entities) are not in the base HTTP handler yet —
 `DELETE` returns **405** until a mutation story lands in core. The [showcase](../examples/showcase)
-uses a preview `POST /mesh/write` route for signed CRUD demos.
+demos plain REST writes with integrity signing:
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/mesh/post` | Create post |
+| `PATCH` | `/mesh/post/:id` | Update post (`PATCH` avoids colliding with MeshQL’s `PUT` read transport) |
+| `DELETE` | `/mesh/post/:id` | Delete post |
+| `POST` | `/mesh/comment` | Create comment |
+| `DELETE` | `/mesh/comment/:id` | Delete comment |
+
+The JSON body (or `{}` for delete) is signed into `X-Mesh-Query` like reads.
 
 Change the base path with the second argument / `options.basePath`.
 

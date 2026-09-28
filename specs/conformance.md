@@ -51,3 +51,10 @@ Pass fixtures: [fixtures/queries](./fixtures/queries/), [fixtures/responses](./f
 
 Publish which level you claim and the tested `@meshql/*` release. Linking
 fixture diffs in CI is encouraged.
+
+## Implementations
+
+| Implementation | Language | Role | Level | Tested against |
+|---|---|---|---|---|
+| [meshql](https://github.com/meshql/meshql) (`@meshql/*`) | TypeScript | Server + client | L4 + computed fields | Reference |
+| [meshql-go](https://github.com/meshql/meshql-go) | Go | Server | L2 | `@meshql/core` 0.11.2 fixtures on SQLite, PostgreSQL 16, MySQL 8 |

@@ -1,6 +1,7 @@
 import {
   AGGREGATE_FNS,
   COMPARISON_OPS,
+  DATE_BUCKETS,
   DEFAULT_PAGE_FIRST,
   MAX_PAGE_FIRST,
   type MeshConfig,
@@ -40,6 +41,8 @@ export interface SchemaQueryCapabilities {
   controls: string[];
   filterOperators: string[];
   aggregateFunctions: string[];
+  /** Units accepted by `{ field, bucket }` keys in `$groupBy`. */
+  dateBuckets: string[];
   pagination: {
     style: "keyset";
     defaultFirst: number;
@@ -141,6 +144,7 @@ export function buildSchemaDoc(
       ],
       filterOperators: [...COMPARISON_OPS],
       aggregateFunctions: [...AGGREGATE_FNS],
+      dateBuckets: [...DATE_BUCKETS],
       pagination: {
         style: "keyset",
         defaultFirst: DEFAULT_PAGE_FIRST,

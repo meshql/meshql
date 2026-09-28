@@ -42,3 +42,16 @@ export function canWritePosts(role: string): boolean {
 export function canWriteComments(role: string): boolean {
   return role === "author" || role === "admin";
 }
+
+export function roleStory(role: string): string {
+  switch (role) {
+    case "guest":
+      return "Guests can read published posts only. Field access hides `user.email`.";
+    case "author":
+      return "Authors can create, edit, and delete posts and comments. `user.email` stays hidden.";
+    case "admin":
+      return "Admins see everything, including `user.email`, and can mutate any record.";
+    default:
+      return `Signed in as ${role}.`;
+  }
+}

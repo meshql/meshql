@@ -228,6 +228,7 @@ export { parseQuery, parseQl, tokenize } from "./parser/index.js";
 export type { AST, ASTNode } from "./parser/ast.js";
 export {
   buildJoinPlan,
+  chooseFetchStrategy,
   collectAstNodes,
   joinPathAlias,
   parseQualifiedPlanField,
@@ -236,6 +237,7 @@ export {
 } from "./planner/join-plan.js";
 export type {
   BuildJoinPlanOptions,
+  FetchStrategy,
   JoinPlan,
   ResolvedJoin,
 } from "./planner/join-plan.js";
@@ -254,7 +256,16 @@ export {
   rewriteJoinOn,
   rowAliasForPlanField,
   sqlAliasForJoinPath,
+  sqlTableRef,
 } from "./planner/sql-from-plan.js";
+export {
+  buildNestedSelectSql,
+  renderAggregateOrderBySql,
+  renderBucketSql,
+  renderGroupKeySql,
+  type NestedSqlOptions,
+  type NestedSqlQuery,
+} from "./planner/sql-nested.js";
 export {
   stripFieldsFromPlan,
   normalizeFieldPath,
@@ -291,8 +302,13 @@ export {
   QUERY_PROTOCOL_VERSION,
   COMPARISON_OPS,
   AGGREGATE_FNS,
+  DATE_BUCKETS,
+  GROUP_ITEMS_KEY,
   DEFAULT_PAGE_FIRST,
   MAX_PAGE_FIRST,
+  groupKeyAlias,
+  groupKeyBucket,
+  groupKeyField,
 } from "./query/index.js";
 export type {
   WhereExpr,
@@ -300,6 +316,8 @@ export type {
   SortExpr,
   PageInput,
   AggregateSpec,
+  DateBucket,
+  GroupByKey,
   ReadNodeWire,
   NormalizedReadNode,
   CollectionResult,
@@ -345,6 +363,7 @@ export {
   type MeshSchemaOverride,
 } from "./schema/extend-schema.js";
 export { shape, shapeAggregateRows, shapeMany } from "./shaper/shaper.js";
+export { shapeNested } from "./shaper/nested.js";
 export {
   CATCH_ALL,
   createQueryContext,

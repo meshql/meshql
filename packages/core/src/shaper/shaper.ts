@@ -1,5 +1,6 @@
 import type { ASTNode } from "../parser/ast.js";
 import { joinPathAlias, type ResolvedJoin } from "../planner/join-plan.js";
+import { groupKeyAlias } from "../query/group-keys.js";
 import type { NormalizedReadNode } from "../query/types.js";
 
 const ROW_KEY_SEPARATORS = ["_", "."];
@@ -297,7 +298,7 @@ export function shapeAggregateRows(
     seen.add(key);
     keys.push(key);
   };
-  for (const field of read.groupBy ?? []) add(field);
+  for (const key of read.groupBy ?? []) add(groupKeyAlias(key));
   for (const alias of Object.keys(read.aggregates ?? {})) add(alias);
   for (const field of read.fields) add(field);
 

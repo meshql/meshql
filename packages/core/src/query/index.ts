@@ -1,6 +1,7 @@
 export * from "./types.js";
 export { QUERY_PROTOCOL_VERSION } from "./types.js";
 export { parseJsonQuery } from "./parse.js";
+export { groupKeyAlias, groupKeyBucket, groupKeyField } from "./group-keys.js";
 export {
   normalizeReadTree,
   astNodeToWire,

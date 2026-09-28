@@ -60,11 +60,44 @@ export function seed(): void {
        'draft', 1, '2026-02-01T12:00:00Z'),
       (3, 'The Future of Computing',
        'A ship in port is safe, but that is not what ships are for.',
-       'published', 2, '2026-03-15T09:30:00Z');
+       'published', 2, '2026-03-15T09:30:00Z'),
+      (4, 'Bernoulli numbers, step by step',
+       'Note G walks the engine through computing Bernoulli numbers, one operation card at a time.',
+       'published', 1, '2026-06-02T10:00:00Z'),
+      (5, 'Poetical science',
+       'Imagination is the discovering faculty, pre-eminently.',
+       'published', 1, '2026-08-14T09:00:00Z'),
+      (6, 'Draft: Letters to Babbage',
+       'Unfinished notes on our correspondence.',
+       'draft', 1, '2026-09-20T18:00:00Z'),
+      (7, 'Why I wrote a compiler',
+       'Nobody believed a computer could write its own programs.',
+       'published', 2, '2026-07-01T09:00:00Z'),
+      (8, 'The first actual bug',
+       'Relay #70, Panel F. First actual case of bug being found.',
+       'published', 2, '2026-09-09T15:45:00Z');
 
     INSERT INTO comments (id, body, post_id, author_id, created_at) VALUES
       (1, 'Brilliant insight.', 1, 2, '2026-01-11T08:00:00Z'),
       (2, 'Still relevant today.', 1, 3, '2026-01-12T14:00:00Z'),
       (3, 'Inspiring as always.', 3, 1, '2026-03-16T11:00:00Z');
   `);
+
+  // Recent comments spread over several days, so "each post's latest 5
+  // comments grouped by day" shows more than one day bucket.
+  const insertComment = db.prepare(
+    "INSERT INTO comments (body, post_id, author_id, created_at) VALUES (?, ?, ?, ?)",
+  );
+  const bodies = ["Great read.", "Saving this.", "More please!", "Sharing with my team."];
+  const days = ["2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27"];
+  for (const postId of [5, 6, 8]) {
+    let n = 0;
+    for (const day of days) {
+      for (const hour of ["10", "15"]) {
+        const authorId = [1, 2, 3][n % 3]!;
+        insertComment.run(bodies[n % bodies.length]!, postId, authorId, `${day}T${hour}:00:00Z`);
+        n++;
+      }
+    }
+  }
 }

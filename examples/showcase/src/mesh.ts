@@ -2,6 +2,7 @@ import {
   createMesh,
   type JoinPlan,
   type MeshPlugin,
+  type NormalizedReadNode,
   type WhereExpr,
   recordPlanSql,
 } from "@meshql/core";
@@ -13,15 +14,18 @@ import { buildSelectSql } from "@meshql/sqlite";
 import { withUpload } from "@meshql/upload";
 import { db, ensureSchema, seed, type SqliteParam } from "./db.js";
 import { schema } from "./schema.js";
+import { DEFAULT_MESH_SECRET } from "./config.js";
+import { uploadsDir } from "./paths.js";
+import { recordShowcaseSql } from "./sql-trace.js";
 
-export const SECRET = process.env.MESH_SECRET ?? "showcase-secret";
+export const SECRET = process.env.MESH_SECRET ?? DEFAULT_MESH_SECRET;
 
 ensureSchema();
 seed();
 
 const base = withUpload(createMesh(schema), {
   storage: "local",
-  localDirectory: "./uploads",
+  localDirectory: uploadsDir(),
 });
 
 const integrityMesh = withIntegrity(base, {
@@ -62,29 +66,53 @@ withAccess(integrityMesh, {
   },
 });
 
+const published: WhereExpr = {
+  field: "status",
+  op: "eq",
+  value: "published",
+};
+
+function withPublished(where: WhereExpr | undefined): WhereExpr {
+  return where ? { and: [where, published] } : published;
+}
+
+/**
+ * Filters nested `post` relations (e.g. `user.posts`) to published rows. The
+ * filter must apply per parent, so it forces the nested fetch strategy.
+ */
+function filterNestedPosts(node: NormalizedReadNode): {
+  node: NormalizedReadNode;
+  changed: boolean;
+} {
+  let changed = false;
+  const refs = node.refs.map((ref) => {
+    const inner = filterNestedPosts(ref);
+    changed ||= inner.changed;
+    if (ref.entityKey !== "post" || ref.joinType !== "many") return inner.node;
+    changed = true;
+    return { ...inner.node, where: withPublished(ref.where), perParent: true };
+  });
+  return { node: changed ? { ...node, refs } : node, changed };
+}
+
 const guestPostFilter: MeshPlugin = {
   name: "guest-post-filter",
   onPlan(plan, ctx) {
-    if (plan.rootEntity !== "post") return plan;
     if (ctx.queryContext.role === "admin" || ctx.queryContext.role === "author") {
       return plan;
     }
-    if (plan.context.entityId !== undefined) return plan;
     if (!plan.read) return plan;
 
-    const published: WhereExpr = {
-      field: "status",
-      op: "eq",
-      value: "published",
-    };
-    const where: WhereExpr = plan.read.where
-      ? { and: [plan.read.where, published] }
-      : published;
+    let read = plan.read;
+    if (plan.rootEntity === "post" && plan.context.entityId === undefined) {
+      read = { ...read, where: withPublished(read.where) };
+    }
 
-    return {
-      ...plan,
-      read: { ...plan.read, where },
-    };
+    const nested = filterNestedPosts(read);
+    if (nested.changed) {
+      return { ...plan, read: nested.node, strategy: "nested" };
+    }
+    return read === plan.read ? plan : { ...plan, read };
   },
 };
 
@@ -101,6 +129,7 @@ export const mesh = withDocs(integrityMesh, {
 mesh.resolve("*", async (plan: JoinPlan) => {
   const { sql, params } = buildSelectSql(plan, schema);
   recordPlanSql(plan, { sql, params });
+  recordShowcaseSql({ sql, params });
   return db.prepare(sql).all(...(params as SqliteParam[]));
 });
 

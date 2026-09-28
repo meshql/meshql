@@ -22,7 +22,7 @@ describe("formatSseEvent", () => {
 });
 
 describe("handleMeshSse", () => {
-  it("pushes an initial snapshot and updates on pub/sub notify", async () => {
+  it("acks with initialize then pushes updates on pub/sub notify", async () => {
     const mesh = createMesh(schema);
     let title = "Hello";
     mesh.resolve("post", async () => [{ post_id: 1, post_title: title }]);
@@ -59,7 +59,13 @@ describe("handleMeshSse", () => {
 
     await ssePromise;
 
-    expect(chunks.some((chunk) => chunk.includes('"title":"Hello"'))).toBe(true);
+    expect(chunks.some((chunk) => chunk.includes("event: initialize"))).toBe(
+      true,
+    );
+    expect(chunks.some((chunk) => chunk.includes('"ok":true'))).toBe(true);
+    expect(chunks.some((chunk) => chunk.includes('"title":"Hello"'))).toBe(
+      false,
+    );
 
     title = "Updated";
     notifyEntityUpdate(pubsub, "post", 1);

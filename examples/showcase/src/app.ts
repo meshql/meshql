@@ -1,20 +1,19 @@
 import { meshDocsExpressRouter } from "@meshql/docs/express";
 import express, { type Express } from "express";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { meshIntegrityExpressRouter } from "@meshql/integrity/express";
 import type { IntegrityConfig } from "@meshql/integrity";
 import { mesh } from "./mesh.js";
 import { mountUi } from "./ui.js";
 import { pubsub } from "./pubsub.js";
+import { publicDir, uploadsDir } from "./paths.js";
+import { mountSqlTrace } from "./sql-trace.js";
 import { mountSseRoute } from "./sse-handler.js";
 import { mountWriteRoute } from "./write-handler.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** Build the showcase Express app (no listen) for server + e2e tests. */
 export function createApp(): Express {
   const app = express();
+  app.set("trust proxy", 1);
 
   // JSON / form bodies for UI routes; leave multipart streams untouched.
   app.use((req, res, next) => {
@@ -29,13 +28,13 @@ export function createApp(): Express {
     });
   });
 
-  app.use(express.static(path.join(__dirname, "../public")));
-  app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+  app.use(express.static(publicDir()));
+  app.use("/uploads", express.static(uploadsDir()));
 
   // Interactive UI shells (browser uses @meshql/client → /mesh)
   mountUi(app);
 
-  // Signed writes (preview until core mutations)
+  // Signed REST writes (preview until core mutations)
   mountWriteRoute(app, mesh.integrity, pubsub);
 
   // Live updates (SSE + pub/sub)
@@ -43,6 +42,9 @@ export function createApp(): Express {
 
   // Interactive API playground (schema browser + query runner + SQL trace)
   app.use(meshDocsExpressRouter(mesh, mesh.docs, "/docs"));
+
+  // Demo-only: executed SQL for the network sheet (SHOWCASE_SQL_TRACE=0 disables)
+  mountSqlTrace(app, "/mesh");
 
   // MeshQL API (signed header transport)
   app.use(
