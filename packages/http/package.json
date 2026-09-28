@@ -1,6 +1,6 @@
 {
   "name": "@meshql/http",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "MeshQL HTTP transport and Express, Fastify, Hono adapters",
   "license": "MIT",
   "type": "module",
