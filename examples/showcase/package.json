@@ -27,7 +27,7 @@
     "@meshql/sse": "workspace:*",
     "express": "^5.1.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react-dom": "^19.3.0",
     "react-router-dom": "^7.6.0"
   },
   "devDependencies": {
@@ -35,7 +35,7 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.15.3",
     "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^4.4.1",
     "esbuild": "^0.25.12",
     "tsx": "^4.19.4",
