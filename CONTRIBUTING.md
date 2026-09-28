@@ -100,7 +100,7 @@ Choose the affected package(s) and semver bump (patch / minor / major). This cre
 3. **Merge the Version Packages PR.** It bumps `package.json`, syncs `jsr.json`, and updates per-package `CHANGELOG.md` files.
 
 4. **CI creates per-package tags** on `main`. Tag push triggers [publish.yml](./.github/workflows/publish.yml):
-   - npm: `npm/{pkg}/v{version}` → publishes `@meshqljs/{pkg}`
+   - npm: `npm/{pkg}/v{version}` → stages `@meshqljs/{pkg}` for approval (see [Approving staged npm versions](#approving-staged-npm-versions))
    - JSR: `{pkg}/v{version}` → publishes `@meshql/{pkg}`
 
 Example: releasing only `@meshql/core` at `0.1.4` pushes `npm/core/v0.1.4` and `core/v0.1.4` — no umbrella tag required.
@@ -180,14 +180,25 @@ Packages publish under the **`@meshqljs`** npm org as compiled ESM (`dist/`). Wo
 
 ### One-time npm setup
 
-1. Create an [npm access token](https://www.npmjs.com/settings/~/tokens) with **Automation** or **Publish** scope (member of `@meshqljs`).
+1. Create a granular [npm access token](https://www.npmjs.com/settings/~/tokens) with **Read and write (stage only)** permission for the `@meshqljs` packages. Direct-publish tokens that bypass 2FA are deprecated, and npm removes direct publishing with granular tokens in January 2027.
 2. Add it to the GitHub repo:
 
 ```bash
 gh secret set NPM_TOKEN --repo meshql/meshql
 ```
 
-3. First publish of each package claims `@meshqljs/<pkg>` on npm.
+3. A new package's first version has to be published by hand (`npm publish` with 2FA), because staging only works for packages that already exist on npm.
+
+### Approving staged npm versions
+
+CI runs `npm stage publish`, so a version isn't live on npm until a maintainer with 2FA approves it. The Publish run summary lists every staged version. Approve each one locally:
+
+```bash
+npm stage list @meshqljs/core            # shows the stage id
+npm stage approve <stage-id> --otp <code>
+```
+
+Use `npm stage reject <stage-id>` to discard a bad build, or approve and reject on npmjs.com instead. Re-running the workflow skips versions that are already staged or published.
 
 ### npm tag reference
 
