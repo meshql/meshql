@@ -240,7 +240,7 @@ jobs:
 
       - name: Upload npm tarball
         if: env.REGISTRY == 'npm'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: npm-${{ matrix.package }}
           path: artifacts/*.tgz
@@ -282,7 +282,7 @@ jobs:
           merge-multiple: true
 
       - name: Upload workflow artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: npm-tarballs
           path: artifacts/*.tgz
