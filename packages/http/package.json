@@ -40,7 +40,7 @@
     "@types/busboy": "^1.5.4",
     "@types/express": "^5.0.0",
     "@types/node": "^22.15.3",
-    "express": "^5.1.0",
+    "express": "^5.3.0",
     "fastify": "^5.3.3",
     "hono": "^4.7.10",
     "tsup": "^8.4.0",
