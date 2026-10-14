@@ -17,7 +17,7 @@
     "@meshql/http": "workspace:*",
     "@meshql/prisma": "workspace:*",
     "@prisma/client": "^6.9.0",
-    "express": "^5.1.0"
+    "express": "^5.3.0"
   },
   "devDependencies": {
     "@meshql/typescript-config": "workspace:*",

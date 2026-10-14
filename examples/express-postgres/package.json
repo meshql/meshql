@@ -16,7 +16,7 @@
     "@meshql/integrity": "workspace:*",
     "@meshql/postgres": "workspace:*",
     "@meshql/upload": "workspace:*",
-    "express": "^5.1.0",
+    "express": "^5.3.0",
     "pg": "^8.16.0"
   },
   "devDependencies": {
